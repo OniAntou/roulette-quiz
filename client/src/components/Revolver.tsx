@@ -151,11 +151,20 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
           />
 
           {/* 5. Cylinder Frame Cutout Shadow */}
-          <rect x="90" y="76" width="58" height="48" rx="2" fill="#111317" />
+          <rect x="90" y="76" width="58" height="48" rx="2" fill="#0a0b0d" />
+
+          {/* Cylinder Ratchet Teeth (Bánh răng cơ học ở khe hở sau) */}
+          <rect x="90.5" y="80" width="1.5" height="40" fill="#2c3038" />
+          <line x1="90" y1="83" x2="92" y2="83" stroke="#08090b" strokeWidth="0.8" />
+          <line x1="90" y1="89" x2="92" y2="89" stroke="#08090b" strokeWidth="0.8" />
+          <line x1="90" y1="95" x2="92" y2="95" stroke="#08090b" strokeWidth="0.8" />
+          <line x1="90" y1="101" x2="92" y2="101" stroke="#08090b" strokeWidth="0.8" />
+          <line x1="90" y1="107" x2="92" y2="107" stroke="#08090b" strokeWidth="0.8" />
+          <line x1="90" y1="113" x2="92" y2="113" stroke="#08090b" strokeWidth="0.8" />
 
           {/* 6. Cylinder (Ổ đạn Raging Bull nhìn nghiêng che đạn) */}
           <g clipPath="url(#cylinderClip)">
-            {/* Base cylinder steel */}
+            {/* Base cylinder metal */}
             <rect x="92" y="78" width="54" height="44" rx="3" fill="url(#cylinderSteel)" />
             
             {/* Spinning flutes (Các khía lõm 3D) */}
@@ -181,6 +190,22 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
                     rx="5" 
                     fill="url(#fluteGradient)" 
                   />
+                  {/* Flute bottom lip light highlight for 3D depth */}
+                  <path 
+                    d={`M 96 ${60 + (i * 18) + 9.5} L 140 ${60 + (i * 18) + 9.5}`} 
+                    stroke="#ffffff" 
+                    strokeWidth="0.8" 
+                    opacity="0.45" 
+                    strokeLinecap="round" 
+                  />
+                  {/* Flute top lip shadow line */}
+                  <path 
+                    d={`M 96 ${60 + (i * 18) + 0.5} L 140 ${60 + (i * 18) + 0.5}`} 
+                    stroke="#050608" 
+                    strokeWidth="0.8" 
+                    opacity="0.6" 
+                    strokeLinecap="round" 
+                  />
                   {/* Lock notch */}
                   <rect 
                     x="95" 
@@ -189,16 +214,32 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
                     height="2" 
                     fill="#111317" 
                   />
+                  {/* Lock notch 3D highlight */}
+                  <line 
+                    x1="95" 
+                    y1={66 + (i * 18)} 
+                    x2="99" 
+                    y2={66 + (i * 18)} 
+                    stroke="#ffffff" 
+                    strokeWidth="0.5" 
+                    opacity="0.35" 
+                  />
                 </g>
               ))}
             </motion.g>
 
             {/* Cylinder axis rod representation */}
-            <rect x="90" y="99" width="58" height="3" fill="url(#darkSteel)" opacity="0.35" />
+            <rect x="92" y="99" width="54" height="3" fill="#1f2229" />
+            <rect x="92" y="100" width="54" height="1" fill="#4b5563" />
             
-            {/* Subtle reflections */}
-            <line x1="92" y1="79" x2="146" y2="79" stroke="#ffffff" strokeWidth="0.8" opacity="0.45" />
-            <line x1="92" y1="121" x2="146" y2="121" stroke="#111317" strokeWidth="0.8" opacity="0.4" />
+            {/* Cylinder Technical split gaps shadows */}
+            <line x1="145.5" y1="78" x2="145.5" y2="122" stroke="#111317" strokeWidth="1.2" opacity="0.8" />
+            <line x1="92" y1="78" x2="92" y2="122" stroke="#111317" strokeWidth="1.2" opacity="0.8" />
+
+            {/* 3D cylindrical lighting reflection overlays */}
+            <rect x="92" y="78" width="54" height="3" fill="#ffffff" opacity="0.45" />
+            <rect x="92" y="119" width="54" height="3" fill="#111317" opacity="0.5" />
+            <line x1="92" y1="92" x2="146" y2="92" stroke="#ffffff" strokeWidth="1.2" opacity="0.2" />
           </g>
 
           {/* 7. Cylinder Release Latch & Plate (Chốt mở ổ đạn phía sau có răng nhám) */}
@@ -253,6 +294,9 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
             stroke="#4b5563" 
             strokeWidth="0.6" 
           />
+          {/* Cylinder Stop Lever (Chốt khóa ổ đạn ở đáy khung) */}
+          <path d="M 115 120 L 118 122 L 122 122 L 120 120 Z" fill="#374151" stroke="#111317" strokeWidth="0.5" />
+
           {/* Sideplate split seam lines (Đường ghép mảnh thân súng) */}
           <path d="M 88 120 C 88 108, 86 104, 76 104" fill="none" stroke="#787f8c" strokeWidth="0.8" opacity="0.6" />
           
