@@ -45,6 +45,10 @@ export default function App() {
   const gamePhaseRef = useRef<GamePhase>(phase);
   const currentTurnRef = useRef<string>(currentTurnId);
   const botsRef = useRef<BotState[]>(bots);
+  const handCardsRef = useRef<CardData[]>(handCards);
+  useEffect(() => {
+    handCardsRef.current = handCards;
+  }, [handCards]);
 
   useEffect(() => {
     gamePhaseRef.current = phase;
@@ -246,25 +250,26 @@ export default function App() {
       setCurrentTurnId(actualNext);
       setPhase('choosing');
 
-      if (actualNext !== 'local-player') {
-        const bot = botsRef.current.find(b => b.id === actualNext);
-        if (bot && bot.hand.length === 0) {
-          // If the bot has no cards, we need to deal new cards to everyone
-          setRound(prev => prev + 1);
-          setBots(prev => {
-            const updated = prev.map(b => b.isAlive ? { ...b, hand: [generateBotQuestion()], cardsCount: 1 } : b);
-            botsRef.current = updated;
-            return updated;
-          });
-          setPlayers(prev => prev.map(p => p.isAlive ? { ...p, cardsCount: p.id === 'local-player' ? (p.cardsCount || 0) : 1 } : p));
-          if (isPlayerAlive) {
-            setHandCards(prev => [...prev, generateBotQuestion()]);
-          }
-          Sounds.newRound();
-          scheduleNextTurn(actualNext, 500);
-          return;
-        }
+      const isBotEmpty = actualNext !== 'local-player' && botsRef.current.find(b => b.id === actualNext)?.hand.length === 0;
+      const isPlayerEmpty = actualNext === 'local-player' && handCardsRef.current.length === 0;
 
+      if (isBotEmpty || isPlayerEmpty) {
+        setRound(prev => prev + 1);
+        setBots(prev => {
+          const updated = prev.map(b => b.isAlive ? { ...b, hand: [generateBotQuestion(), generateBotQuestion(), generateBotQuestion(), generateBotQuestion()], cardsCount: 4 } : b);
+          botsRef.current = updated;
+          return updated;
+        });
+        setPlayers(prev => prev.map(p => p.isAlive ? { ...p, cardsCount: 4 } : p));
+        if (isPlayerAlive) {
+          setHandCards([generateBotQuestion(), generateBotQuestion(), generateBotQuestion(), generateBotQuestion()]);
+        }
+        Sounds.newRound();
+        scheduleNextTurn(actualNext, 500);
+        return;
+      }
+
+      if (actualNext !== 'local-player') {
         setTimeout(() => {
           botPlayCard(actualNext);
         }, 1500);
