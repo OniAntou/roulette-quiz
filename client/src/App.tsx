@@ -64,7 +64,8 @@ export default function App() {
     setConnectionStatus('connecting');
     setErrorMsg('');
 
-    const serverUrl = (mode === 'lan' && ip) ? `http://${ip}` : 'http://localhost:3000';
+    const baseHost = window.location.hostname || 'localhost';
+    const serverUrl = (mode === 'lan' && ip) ? `http://${ip}` : `http://${baseHost}:3000`;
 
     socketClient.connect(serverUrl)
       .then(() => {

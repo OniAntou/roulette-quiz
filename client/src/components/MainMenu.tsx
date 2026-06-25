@@ -46,7 +46,8 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
     setShowLanModal(true);
     setIsSearchingLan(true);
     try {
-      const res = await fetch('http://localhost:3000/lan-servers');
+      const baseHost = window.location.hostname || 'localhost';
+      const res = await fetch(`http://${baseHost}:3000/lan-servers`);
       const data = await res.json();
       setLanServers(data.servers || []);
     } catch (e) {
