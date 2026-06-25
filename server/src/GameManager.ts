@@ -251,6 +251,7 @@ export class GameManager {
         setTimeout(() => {
           this.io.to(roomId).emit('game:over', {
             winner: alivePlayers[0].name,
+            winnerId: alivePlayers[0].id,
             stats: game.stats,
           });
           this.games.delete(roomId);
@@ -274,7 +275,7 @@ export class GameManager {
 
       setTimeout(() => {
         game.round++;
-        game.currentTurn = this.getNextAlivePlayer(game, game.targetPlayer!);
+        game.currentTurn = game.targetPlayer!;
         game.phase = 'choosing';
         this.dealCards(roomId);
         this.io.to(roomId).emit('game:newRound', { round: game.round });
@@ -340,6 +341,7 @@ export class GameManager {
         if (alivePlayers.length <= 1) {
           this.io.to(roomId).emit('game:over', {
             winner: alivePlayers[0]?.name || 'No one',
+            winnerId: alivePlayers[0]?.id || '',
             reason: 'disconnect',
           });
           this.games.delete(roomId);

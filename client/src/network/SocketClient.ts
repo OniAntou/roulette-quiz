@@ -9,6 +9,18 @@ class SocketClient {
   public playerName: string = 'GUEST';
 
   connect(url: string): Promise<Socket> {
+    if (this.socket && this.connected) {
+      return Promise.resolve(this.socket);
+    }
+
+    if (this.socket) {
+      this.socket.removeAllListeners();
+      this.socket.disconnect();
+      this.socket = null;
+      this.connected = false;
+      this.callbacks = {};
+    }
+
     return new Promise((resolve, reject) => {
       this.socket = io(url, {
         reconnection: true,
