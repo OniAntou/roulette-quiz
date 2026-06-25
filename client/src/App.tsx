@@ -203,48 +203,99 @@ export default function App() {
     Sounds.newRound();
   }, [generateBotQuestion]);
 
-  function finishBotSpectatorGame(aliveBots: BotState[]) {
-    if (aliveBots.length > 1) return false;
-
-    const winner = aliveBots[0];
-    setWinnerInfo({ winner: winner?.name || playerName, isLocalWinner: !winner });
-    setPhase('game_over');
-    if (!winner) {
-      Sounds.victory();
+  function checkBotGameOver() {
+    let aliveBots = botsRef.current.filter(b => b.isAlive);
+    const playerAlive = players.find(p => p.id === 'local-player')?.isAlive;
+    if (aliveBots.length === 0 || (!playerAlive && aliveBots.length <= 1)) {
+      const winnerName = aliveBots.length > 0 ? aliveBots[0].name : playerName;
+      setWinnerInfo({ winner: winnerName, isLocalWinner: aliveBots.length === 0 });
+      setPhase('game_over');
+      if (aliveBots.length === 0) Sounds.victory();
+      setTimeout(() => setScreen('gameover'), 3000);
+      return true;
     }
-    setTimeout(() => setScreen('gameover'), 3000);
-    return true;
+    return false;
   }
 
-  function scheduleNextBotTurn(delay = 1000) {
+  const showHUDAlert = (text: string, color: string, duration: number) => {
+    setBotHudMessage({ text, color });
+    setTimeout(() => setBotHudMessage(null), duration);
+  };
+
+  const scheduleNextTurn = useCallback((nextTurnId: string, delay = 1000) => {
     setTimeout(() => {
+      if (checkBotGameOver()) return;
+
       const aliveBots = botsRef.current.filter(b => b.isAlive);
-      if (!finishBotSpectatorGame(aliveBots)) {
-        startBotTurns();
+      const isPlayerAlive = players.find(p => p.id === 'local-player')?.isAlive;
+      
+      const allAliveIds = [];
+      if (isPlayerAlive) allAliveIds.push('local-player');
+      aliveBots.forEach(b => allAliveIds.push(b.id));
+
+      if (allAliveIds.length <= 1) {
+        checkBotGameOver();
+        return;
+      }
+
+      let actualNext = nextTurnId;
+      if (!allAliveIds.includes(actualNext)) {
+        actualNext = allAliveIds[0];
+      }
+
+      setCurrentTurnId(actualNext);
+      setPhase('choosing');
+
+      if (actualNext !== 'local-player') {
+        const bot = botsRef.current.find(b => b.id === actualNext);
+        if (bot && bot.hand.length === 0) {
+          // If the bot has no cards, we need to deal new cards to everyone
+          setRound(prev => prev + 1);
+          setBots(prev => {
+            const updated = prev.map(b => b.isAlive ? { ...b, hand: [generateBotQuestion()], cardsCount: 1 } : b);
+            botsRef.current = updated;
+            return updated;
+          });
+          setPlayers(prev => prev.map(p => p.isAlive ? { ...p, cardsCount: p.id === 'local-player' ? (p.cardsCount || 0) : 1 } : p));
+          if (isPlayerAlive) {
+            setHandCards(prev => [...prev, generateBotQuestion()]);
+          }
+          Sounds.newRound();
+          scheduleNextTurn(actualNext, 500);
+          return;
+        }
+
+        setTimeout(() => {
+          botPlayCard(actualNext);
+        }, 1500);
       }
     }, delay);
-  }
+  }, [players, generateBotQuestion]);
 
-  function handleBotTriggerForBot(botId: string) {
-    const bot = botsRef.current.find(b => b.id === botId);
+  const executeTrigger = useCallback((targetId: string) => {
     const bulletInChamber = Math.random() < 0.167;
     const alive = !bulletInChamber;
+    
+    let targetName = playerName;
+    if (targetId !== 'local-player') {
+      targetName = botsRef.current.find(b => b.id === targetId)?.name || 'BOT';
+    }
 
     Sounds.gunClick();
 
     setTimeout(() => {
       if (alive) {
         Sounds.gunSurvive();
-        showHUDAlert(`${bot?.name || 'BOT'} // COCK SURVIVED`, 'text-amber-400', 2000);
+        showHUDAlert(`${targetName} // COCK SURVIVED`, 'text-amber-400', 2000);
       } else {
         Sounds.gunFire();
-        showHUDAlert(`${bot?.name || 'BOT'} // TERMINATED`, 'text-red-500', 3000);
+        showHUDAlert(`${targetName} // TERMINATED`, 'text-red-500', 3000);
       }
 
       setTriggerResult({
         alive,
-        playerId: botId,
-        playerName: bot?.name,
+        playerId: targetId,
+        playerName: targetName,
         bulletCount: bulletInChamber ? 0 : 1,
       });
       setPhase('trigger');
@@ -253,44 +304,62 @@ export default function App() {
         setTriggerResult(null);
 
         if (!alive) {
-          setBots(prev => {
-            const updated = prev.map(b => b.id === botId ? { ...b, isAlive: false } : b);
-            botsRef.current = updated;
-            return updated;
-          });
-          setPlayers(prev => prev.map(p => p.id === botId ? { ...p, isAlive: false } : p));
+          if (targetId === 'local-player') {
+            setPlayers(prev => prev.map(p => p.id === 'local-player' ? { ...p, isAlive: false } : p));
+            setHandCards([]);
+          } else {
+            setBots(prev => {
+              const updated = prev.map(b => b.id === targetId ? { ...b, isAlive: false } : b);
+              botsRef.current = updated;
+              return updated;
+            });
+            setPlayers(prev => prev.map(p => p.id === targetId ? { ...p, isAlive: false } : p));
+          }
         }
+        
+        if (checkBotGameOver()) return;
 
-        scheduleNextBotTurn();
+        if (alive) {
+          scheduleNextTurn(targetId, 500);
+        } else {
+          // Find next player
+          const allAlive = players.filter(p => p.isAlive && p.id !== targetId);
+          if (allAlive.length > 0) {
+            scheduleNextTurn(allAlive[0].id, 500);
+          }
+        }
       }, 3000);
     }, 1200);
-  }
+  }, [players, scheduleNextTurn, playerName]);
 
-  function handleBotVsBotAnswer(targetBotId: string, correct: boolean, correctAnswer: string) {
+  const processAnswer = useCallback((targetId: string, answer: string, correctAnswer: string) => {
     if (botTimerRef.current) {
       clearTimeout(botTimerRef.current);
       botTimerRef.current = null;
     }
 
-    if (correct) {
+    const isCorrect = answer === correctAnswer;
+
+    if (isCorrect) {
       Sounds.correct();
     } else {
       Sounds.wrong();
     }
-    setQuestionResult({ correct, correctAnswer });
+    
+    setQuestionResult({ correct: isCorrect, correctAnswer });
     setPhase('result');
 
     setTimeout(() => {
       setActiveQuestion(null);
       setQuestionResult(null);
 
-      if (correct) {
-        scheduleNextBotTurn();
+      if (isCorrect) {
+        scheduleNextTurn(targetId, 500);
       } else {
-        handleBotTriggerForBot(targetBotId);
+        executeTrigger(targetId);
       }
     }, 2500);
-  }
+  }, [scheduleNextTurn, executeTrigger]);
 
   const botPlayCard = useCallback((botId: string) => {
     setBots(prev => {
@@ -306,7 +375,11 @@ export default function App() {
 
       const isPlayerDead = !players.find(p => p.id === 'local-player')?.isAlive;
       const aliveTargets = prev.filter(b => b.isAlive && b.id !== botId);
-      const targetBot = aliveTargets[Math.floor(Math.random() * aliveTargets.length)];
+      
+      let targetId = 'local-player';
+      if (isPlayerDead || (aliveTargets.length > 0 && Math.random() > 0.5)) {
+        targetId = aliveTargets[Math.floor(Math.random() * aliveTargets.length)]?.id || 'local-player';
+      }
 
       setTimeout(() => {
         setActiveQuestion({
@@ -316,20 +389,27 @@ export default function App() {
         });
         setPhase('answering');
 
-        const botAnswerDelay = 2000 + Math.random() * 1000;
-        const isCorrect = Math.random() < 0.65;
-        const correctAnswer = card.correct || 'A';
-
-        const answerTimer = setTimeout(() => {
-          if (gamePhaseRef.current === 'answering') {
-            if (isPlayerDead && targetBot) {
-              handleBotVsBotAnswer(targetBot.id, isCorrect, correctAnswer);
-            } else {
-              handleBotAnswerResult(isCorrect, correctAnswer);
+        if (targetId === 'local-player') {
+          // Wait for local player to answer via handleBotModePlayerAnswer
+          // Auto answer if timer runs out (10s)
+          const answerTimer = setTimeout(() => {
+            if (gamePhaseRef.current === 'answering') {
+              processAnswer('local-player', '', card.correct || 'A'); // Empty answer = wrong
             }
-          }
-        }, isPlayerDead ? botAnswerDelay : 8000);
-        botTimerRef.current = answerTimer;
+          }, 10000);
+          botTimerRef.current = answerTimer;
+        } else {
+          // Bot answers Bot
+          const botAnswerDelay = 2000 + Math.random() * 1000;
+          const answerTimer = setTimeout(() => {
+            if (gamePhaseRef.current === 'answering') {
+              const isCorrect = Math.random() < 0.65;
+              const answered = isCorrect ? (card.correct || 'A') : 'X';
+              processAnswer(targetId, answered, card.correct || 'A');
+            }
+          }, botAnswerDelay);
+          botTimerRef.current = answerTimer;
+        }
       }, 1500);
 
       return prev.map(b =>
@@ -338,134 +418,7 @@ export default function App() {
           : b
       );
     });
-  }, [players]);
-
-  const handleBotAnswerResult = useCallback((correct: boolean, correctAnswer: string) => {
-    if (botTimerRef.current) {
-      clearTimeout(botTimerRef.current);
-      botTimerRef.current = null;
-    }
-
-    if (correct) {
-      Sounds.correct();
-    } else {
-      Sounds.wrong();
-    }
-    setQuestionResult({ correct, correctAnswer });
-    setPhase('result');
-
-    setTimeout(() => {
-      setActiveQuestion(null);
-      setQuestionResult(null);
-      if (!correct) {
-        handleBotTrigger();
-      } else {
-        setPhase('choosing');
-        setCurrentTurnId('local-player');
-      }
-    }, 2500);
-  }, []);
-
-  const handleBotTrigger = useCallback(() => {
-    const bulletInChamber = Math.random() < 0.167;
-    const alive = !bulletInChamber;
-
-    Sounds.gunClick();
-
-    setTimeout(() => {
-      if (alive) {
-        Sounds.gunSurvive();
-        showHUDAlert('CLICK // COCK SURVIVED', 'text-amber-400', 2000);
-      } else {
-        Sounds.gunFire();
-        showHUDAlert('BANG // PROTOCOL FAULT', 'text-red-500', 3000);
-      }
-
-      setTriggerResult({
-        alive,
-        playerId: 'local-player',
-        playerName: playerName,
-        bulletCount: bulletInChamber ? 0 : 1,
-      });
-      setPhase('trigger');
-
-      setTimeout(() => {
-        setTriggerResult(null);
-        if (alive) {
-          setPhase('choosing');
-          setCurrentTurnId('local-player');
-        } else {
-          setPlayers(prev => prev.map(p =>
-            p.id === 'local-player' ? { ...p, isAlive: false } : p
-          ));
-          setHandCards([]);
-          checkBotGameOver();
-          const aliveBots = botsRef.current.filter(b => b.isAlive);
-          if (aliveBots.length > 0) {
-            startBotTurns();
-          }
-        }
-      }, 3000);
-    }, 1200);
-  }, [playerName]);
-
-  const checkBotGameOver = useCallback(() => {
-    setBots(prev => {
-      const aliveBots = prev.filter(b => b.isAlive);
-      if (aliveBots.length === 0) {
-        setWinnerInfo({ winner: playerName, isLocalWinner: true });
-        setPhase('game_over');
-        Sounds.victory();
-        setTimeout(() => setScreen('gameover'), 3000);
-      }
-      return prev;
-    });
-  }, [playerName]);
-
-  const showHUDAlert = (text: string, color: string, duration: number) => {
-    setBotHudMessage({ text, color });
-    setTimeout(() => setBotHudMessage(null), duration);
-  };
-
-  const startBotTurns = useCallback(() => {
-    const aliveBots = botsRef.current.filter(b => b.isAlive);
-    if (aliveBots.length === 0) return;
-
-    if (finishBotSpectatorGame(aliveBots)) return;
-
-    if (aliveBots.every(bot => bot.hand.length === 0)) {
-      setRound(prev => prev + 1);
-      setBots(prev => {
-        const updated = prev.map(bot => bot.isAlive
-          ? { ...bot, hand: [generateBotQuestion()], cardsCount: 1 }
-          : bot
-        );
-        botsRef.current = updated;
-        return updated;
-      });
-      setPlayers(prev => prev.map(player => player.isAlive && player.id !== 'local-player'
-        ? { ...player, cardsCount: 1 }
-        : player
-      ));
-      Sounds.newRound();
-      scheduleNextBotTurn(500);
-      return;
-    }
-
-    const currentIndex = aliveBots.findIndex(bot => bot.id === currentTurnRef.current);
-    const currentBot = aliveBots[(currentIndex + 1) % aliveBots.length] || aliveBots[0];
-
-    setCurrentTurnId(currentBot.id);
-    setPhase('choosing');
-
-    setTimeout(() => {
-      if (currentBot.hand.length > 0) {
-        botPlayCard(currentBot.id);
-      } else {
-        scheduleNextBotTurn(300);
-      }
-    }, 1500);
-  }, [botPlayCard, generateBotQuestion]);
+  }, [players, processAnswer]);
 
   const handleBotCardChoice = useCallback((cardId: string) => {
     if (phase !== 'choosing' || currentTurnId !== 'local-player') return;
@@ -491,52 +444,22 @@ export default function App() {
         setPhase('answering');
 
         const botAnswerDelay = 2000 + Math.random() * 1000;
-        const isCorrect = Math.random() < 0.65;
-        const correctAnswer = card.correct || 'A';
-
         const answerTimer = setTimeout(() => {
           if (gamePhaseRef.current === 'answering') {
-            handleBotTargetAnswer(targetBot.id, isCorrect, correctAnswer);
+            const isCorrect = Math.random() < 0.65;
+            const answered = isCorrect ? (card.correct || 'A') : 'X';
+            processAnswer(targetBot.id, answered, card.correct || 'A');
           }
         }, botAnswerDelay);
         botTimerRef.current = answerTimer;
       }, 1500);
     }
-  }, [phase, currentTurnId, handCards]);
+  }, [phase, currentTurnId, handCards, processAnswer]);
 
-  const handleBotTargetAnswer = useCallback((botId: string, correct: boolean, correctAnswer: string) => {
-    if (botTimerRef.current) {
-      clearTimeout(botTimerRef.current);
-      botTimerRef.current = null;
-    }
-
-    if (correct) {
-      Sounds.correct();
-    } else {
-      Sounds.wrong();
-    }
-    setQuestionResult({ correct, correctAnswer });
-    setPhase('result');
-
-    setTimeout(() => {
-      setActiveQuestion(null);
-      setQuestionResult(null);
-
-      if (correct) {
-        setBots(prev => prev.map(b =>
-          b.id === botId ? { ...b, isAlive: false } : b
-        ));
-        setPlayers(prev => prev.map(p =>
-          p.id === botId ? { ...p, isAlive: false } : p
-        ));
-        checkBotGameOver();
-        setPhase('choosing');
-        setCurrentTurnId('local-player');
-      } else {
-        handleBotTrigger();
-      }
-    }, 2500);
-  }, [checkBotGameOver]);
+  const handleBotModePlayerAnswer = useCallback((letter: string) => {
+    if (phase !== 'answering' || !activeQuestion) return;
+    processAnswer('local-player', letter, activeQuestion.card.correct || 'A');
+  }, [phase, activeQuestion, processAnswer]);
 
   useEffect(() => {
     socketClient.on('room:created', (data: { roomId: string; playerId: string }) => {

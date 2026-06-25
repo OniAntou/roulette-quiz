@@ -20,6 +20,7 @@ interface GameBoardProps {
   roomId: string;
   onLeaveAfterDeath: () => void;
   onCardChoice?: (cardId: string) => void;
+  onAnswerSubmit?: (letter: string) => void;
   botHudMessage?: { text: string; color: string } | null;
 }
 
@@ -42,6 +43,7 @@ export function GameBoard({
   roomId,
   onLeaveAfterDeath,
   onCardChoice,
+  onAnswerSubmit,
   botHudMessage
 }: GameBoardProps) {
   
@@ -161,7 +163,11 @@ export function GameBoard({
 
   const handleAnswerSubmit = (letter: string) => {
     Sounds.buttonClick();
-    socketClient.submitAnswer(roomId, letter);
+    if (onAnswerSubmit) {
+      onAnswerSubmit(letter);
+    } else {
+      socketClient.submitAnswer(roomId, letter);
+    }
   };
 
   const localPlayer = players.find(p => p.id === localId) || { name: 'YOU', isAlive: true };
