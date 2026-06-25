@@ -368,9 +368,8 @@ export function GameBoard({
         </div>
 
         <div className="flex justify-center md:justify-end">
-          <div className="bg-[#1c1f2a]/40 border border-white/5 rounded-xl px-10 py-8 max-w-max flex flex-col items-center shadow-lg backdrop-blur-sm relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/5 to-transparent"></div>
-            <span className="text-xs font-bold text-slate-500 tracking-widest uppercase mb-4">FIREPOWER //</span>
+          <div className="flex flex-col items-center max-w-max">
+            <span className="text-xs font-bold text-slate-500 tracking-widest uppercase mb-4">// FIREPOWER //</span>
             <Revolver 
               bulletsFired={bulletsFired}
               currentPosition={currentPosition}
