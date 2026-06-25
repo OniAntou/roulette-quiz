@@ -73,7 +73,7 @@ Client runs on `http://localhost:5173`
 
 1. Start the server: `npm run server:start`
 2. Start the client: `cd client && npm run dev`
-3. In the game menu, select **ONLINE** or **LAN**
+3. In the game menu, select **ONLINE** or **LAN** *(Note: currently both connect to localhost:3000)*
 4. **Create Room** to get a room code
 5. Share the room code with your friend
 6. Friend selects **JOIN ROOM** and enters the code
@@ -142,7 +142,7 @@ PORT=8080 npm run server:start
 ```
 
 ### LAN Discovery
-Server broadcasts on UDP port `41234`
+*Currently not implemented (fallback to localhost).*
 
 ## Development
 
