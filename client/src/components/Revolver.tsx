@@ -91,7 +91,7 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
             stroke="#111215" 
             strokeWidth="1.5" 
           />
-          {/* Red Cushion Backstrap (Sống báng màu đỏ đặc trưng Raging Bull) */}
+          {/* Red Cushion Backstrap */}
           <path 
             d="M 78 126 
                C 75 140, 70 160, 50 206 
@@ -119,7 +119,7 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
                C 86 142, 85 138, 83 135 Z" 
             fill="url(#gripTexture)" 
           />
-          {/* Highlight line on rubber grip to show 3D volume */}
+          {/* Highlight line on rubber grip */}
           <path 
             d="M 84 136 C 82 148, 77 165, 63 198" 
             fill="none" 
@@ -127,18 +127,70 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
             strokeWidth="0.8" 
             opacity="0.5" 
           />
-          {/* Brass Medallion at the bottom corner (Logo tròn màu vàng) */}
+          {/* Brass Medallion at the bottom corner */}
           <circle cx="88" cy="198" r="4.5" fill="#d4af37" stroke="#9a7b1c" strokeWidth="0.8" />
           <circle cx="88" cy="198" r="2.5" fill="#111215" />
           {/* Taurus emblem letter representation in medallion */}
           <path d="M 87 197 Q 88.5 198, 87 199.5" fill="none" stroke="#d4af37" strokeWidth="0.6" />
 
-          {/* 2. Trigger Guard with Screw Detail */}
+          {/* 2. Hammer (Búa gõ Raging Bull - Drawn behind frame) */}
+          <motion.g
+            style={{ transformOrigin: '76px 86px' }}
+            animate={{ 
+              rotate: isFiring ? [0, 35, -20, 0] : isSpinning ? 35 : 0 
+            }}
+            transition={{ 
+              duration: isFiring ? 0.22 : 0.15,
+              ease: "easeInOut"
+            }}
+          >
+            <path
+              d="M 76 82 
+                 Q 62 66 52 70 
+                 Q 60 84 72 86 Z"
+              fill="url(#darkSteel)"
+              stroke="#4b5563"
+              strokeWidth="0.8"
+            />
+            {/* Hammer spur serrations */}
+            <line x1="53" y1="69" x2="56" y2="67" stroke="#9ca3af" strokeWidth="0.6" />
+            <line x1="55" y1="71" x2="58" y2="69" stroke="#9ca3af" strokeWidth="0.6" />
+            <line x1="57" y1="73" x2="60" y2="71" stroke="#9ca3af" strokeWidth="0.6" />
+          </motion.g>
+
+          {/* 3. Main Frame (Thành súng thép - Drawn UNDER cylinder but OVER hammer base) */}
+          <path 
+            d="M 72 74 
+               C 72 74, 90 74, 145 74 
+               L 145 120 
+               C 118 120, 105 125, 92 128 
+               L 92 135 
+               L 72 120 Z" 
+            fill="url(#ragingSteel)" 
+            stroke="#4b5563" 
+            strokeWidth="1.2" 
+          />
+          {/* Sideplate split seam lines */}
+          <path d="M 88 120 C 88 108, 86 104, 76 104" fill="none" stroke="#787f8c" strokeWidth="0.8" opacity="0.6" />
+          
+          {/* Mechanical flat-head screws on Frame */}
+          {/* Screw 1: under cylinder area */}
+          <g transform="translate(138, 126)">
+            <circle cx="0" cy="0" r="2.5" fill="url(#ragingSteel)" stroke="#374151" strokeWidth="0.8" />
+            <line x1="-1.5" y1="-1" x2="1.5" y2="1" stroke="#374151" strokeWidth="0.6" />
+          </g>
+          {/* Screw 2: behind cylinder latch */}
+          <g transform="translate(86, 85)">
+            <circle cx="0" cy="0" r="2" fill="url(#ragingSteel)" stroke="#374151" strokeWidth="0.6" />
+            <line x1="-1.2" y1="1.2" x2="1.2" y2="-1.2" stroke="#374151" strokeWidth="0.5" />
+          </g>
+
+          {/* 4. Trigger Guard & Trigger */}
           <path d="M 92 124 C 92 158, 142 158, 142 120 Z" fill="none" stroke="url(#ragingSteel)" strokeWidth="4.5" strokeLinecap="round" />
           {/* Small screw on trigger guard base */}
           <circle cx="132" cy="136" r="1.5" fill="#1f2937" />
 
-          {/* 3. Trigger (Cò súng màu bạc nhạt) */}
+          {/* Trigger */}
           <motion.path 
             d="M 116 122 C 116 138, 108 144, 105 144" 
             fill="none" 
@@ -150,10 +202,10 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
             transition={{ duration: 0.18 }}
           />
 
-          {/* 5. Cylinder Frame Cutout Shadow */}
+          {/* 5. Cylinder slot shadow & Ratchet (Drawn ON TOP of Main Frame) */}
           <rect x="90" y="76" width="58" height="48" rx="2" fill="#0a0b0d" />
 
-          {/* Cylinder Ratchet Teeth (Bánh răng cơ học ở khe hở sau) */}
+          {/* Cylinder Ratchet Teeth */}
           <rect x="90.5" y="80" width="1.5" height="40" fill="#2c3038" />
           <line x1="90" y1="83" x2="92" y2="83" stroke="#08090b" strokeWidth="0.8" />
           <line x1="90" y1="89" x2="92" y2="89" stroke="#08090b" strokeWidth="0.8" />
@@ -162,12 +214,12 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
           <line x1="90" y1="107" x2="92" y2="107" stroke="#08090b" strokeWidth="0.8" />
           <line x1="90" y1="113" x2="92" y2="113" stroke="#08090b" strokeWidth="0.8" />
 
-          {/* 6. Cylinder (Ổ đạn Raging Bull nhìn nghiêng che đạn) */}
+          {/* 6. Cylinder Assembly (Drawn ON TOP of Main Frame & Cutout slot) */}
           <g clipPath="url(#cylinderClip)">
             {/* Base cylinder metal */}
             <rect x="92" y="78" width="54" height="44" rx="3" fill="url(#cylinderSteel)" />
             
-            {/* Spinning flutes (Các khía lõm 3D) */}
+            {/* Spinning flutes */}
             <motion.g
               animate={{ 
                 y: isSpinning 
@@ -190,7 +242,7 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
                     rx="5" 
                     fill="url(#fluteGradient)" 
                   />
-                  {/* Flute bottom lip light highlight for 3D depth */}
+                  {/* Flute bottom lip highlight */}
                   <path 
                     d={`M 96 ${60 + (i * 18) + 9.5} L 140 ${60 + (i * 18) + 9.5}`} 
                     stroke="#ffffff" 
@@ -198,7 +250,7 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
                     opacity="0.45" 
                     strokeLinecap="round" 
                   />
-                  {/* Flute top lip shadow line */}
+                  {/* Flute top lip shadow */}
                   <path 
                     d={`M 96 ${60 + (i * 18) + 0.5} L 140 ${60 + (i * 18) + 0.5}`} 
                     stroke="#050608" 
@@ -228,11 +280,11 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
               ))}
             </motion.g>
 
-            {/* Cylinder axis rod representation */}
+            {/* Cylinder axis rod */}
             <rect x="92" y="99" width="54" height="3" fill="#1f2229" />
             <rect x="92" y="100" width="54" height="1" fill="#4b5563" />
             
-            {/* Cylinder Technical split gaps shadows */}
+            {/* Cylinder split gaps shadows */}
             <line x1="145.5" y1="78" x2="145.5" y2="122" stroke="#111317" strokeWidth="1.2" opacity="0.8" />
             <line x1="92" y1="78" x2="92" y2="122" stroke="#111317" strokeWidth="1.2" opacity="0.8" />
 
@@ -242,81 +294,29 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
             <line x1="92" y1="92" x2="146" y2="92" stroke="#ffffff" strokeWidth="1.2" opacity="0.2" />
           </g>
 
-          {/* 7. Cylinder Release Latch & Plate (Chốt mở ổ đạn phía sau có răng nhám) */}
-          <rect x="75" y="93" width="16" height="10" rx="1.5" fill="url(#ragingSteel)" stroke="#4b5563" strokeWidth="0.8" />
-          {/* Latch serration lines */}
-          <line x1="78" y1="95" x2="78" y2="101" stroke="#374151" strokeWidth="0.8" />
-          <line x1="81" y1="95" x2="81" y2="101" stroke="#374151" strokeWidth="0.8" />
-          <line x1="84" y1="95" x2="84" y2="101" stroke="#374151" strokeWidth="0.8" />
-          <circle cx="87" cy="98" r="1" fill="#111317" />
-
-          {/* 4. Hammer (Búa gõ Raging Bull với răng cưa chống trượt) */}
-          <motion.g
-            style={{ transformOrigin: '76px 86px' }}
-            animate={{ 
-              rotate: isFiring ? [0, 35, -20, 0] : isSpinning ? 35 : 0 
-            }}
-            transition={{ 
-              duration: isFiring ? 0.22 : 0.15,
-              ease: "easeInOut"
-            }}
-          >
-            <path
-              d="M 76 82 
-                 Q 62 66 52 70 
-                 Q 60 84 72 86 Z"
-              fill="url(#darkSteel)"
-              stroke="#4b5563"
-              strokeWidth="0.8"
-            />
-            {/* Hammer spur serrations (Răng khía) */}
-            <line x1="53" y1="69" x2="56" y2="67" stroke="#9ca3af" strokeWidth="0.6" />
-            <line x1="55" y1="71" x2="58" y2="69" stroke="#9ca3af" strokeWidth="0.6" />
-            <line x1="57" y1="73" x2="60" y2="71" stroke="#9ca3af" strokeWidth="0.6" />
-          </motion.g>
-
-          {/* 8. Main Frame & Crane (Thành súng thép bọc ổ đạn + càng xoay) */}
-          <path 
-            d="M 72 74 
-               C 72 74, 90 74, 145 74 
-               L 145 120 
-               C 118 120, 105 125, 92 128 
-               L 92 135 
-               L 72 120 Z" 
-            fill="url(#ragingSteel)" 
-            stroke="#4b5563" 
-            strokeWidth="1.2" 
-          />
-          {/* Detailed Crane Arm seam (Càng xoay ổ đạn ở góc dưới trước) */}
+          {/* 7. Crane Arm seam (Drawn after cylinder to overlap it at bottom-front) */}
           <path 
             d="M 134 114 L 145 114 L 145 120 L 138 120 Z" 
             fill="url(#ragingSteel)" 
             stroke="#4b5563" 
             strokeWidth="0.6" 
           />
-          {/* Cylinder Stop Lever (Chốt khóa ổ đạn ở đáy khung) */}
+          {/* Cylinder Stop Lever (Drawn after cylinder to lock it at bottom) */}
           <path d="M 115 120 L 118 122 L 122 122 L 120 120 Z" fill="#374151" stroke="#111317" strokeWidth="0.5" />
 
-          {/* Sideplate split seam lines (Đường ghép mảnh thân súng) */}
-          <path d="M 88 120 C 88 108, 86 104, 76 104" fill="none" stroke="#787f8c" strokeWidth="0.8" opacity="0.6" />
-          
-          {/* Mechanical flat-head screws on Frame (Ốc vít dẹt xẻ rãnh) */}
-          {/* Screw 1: under cylinder */}
-          <g transform="translate(138, 126)">
-            <circle cx="0" cy="0" r="2.5" fill="url(#ragingSteel)" stroke="#374151" strokeWidth="0.8" />
-            <line x1="-1.5" y1="-1" x2="1.5" y2="1" stroke="#374151" strokeWidth="0.6" />
-          </g>
-          {/* Screw 2: behind cylinder latch */}
-          <g transform="translate(86, 85)">
-            <circle cx="0" cy="0" r="2" fill="url(#ragingSteel)" stroke="#374151" strokeWidth="0.6" />
-            <line x1="-1.2" y1="1.2" x2="1.2" y2="-1.2" stroke="#374151" strokeWidth="0.5" />
-          </g>
+          {/* 8. Cylinder Release Latch & Plate (Drawn on top of frame) */}
+          <rect x="75" y="93" width="16" height="10" rx="1.5" fill="url(#ragingSteel)" stroke="#4b5563" strokeWidth="0.8" />
+          <line x1="78" y1="95" x2="78" y2="101" stroke="#374151" strokeWidth="0.8" />
+          <line x1="81" y1="95" x2="81" y2="101" stroke="#374151" strokeWidth="0.8" />
+          <line x1="84" y1="95" x2="84" y2="101" stroke="#374151" strokeWidth="0.8" />
+          <circle cx="87" cy="98" r="1" fill="#111317" />
 
-          {/* 9. Rear Sight (Thước ngắm sau có ốc điều chỉnh gió) */}
+          {/* 9. Sights, Barrel, Ejector Rod */}
+          {/* Rear Sight */}
           <path d="M 72 74 L 84 74 L 84 70 L 78 70 L 78 74" fill="#111317" stroke="#111317" strokeWidth="0.8" />
           <circle cx="81" cy="72" r="0.8" fill="#9ca3af" />
 
-          {/* 10. Massive Flat-Top Barrel (Nòng súng Raging Bull vuông phẳng) */}
+          {/* Massive Flat-Top Barrel */}
           <path 
             d="M 145 74 
                L 285 74 
@@ -327,15 +327,15 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
             strokeWidth="1.2" 
           />
 
-          {/* Polished highlight lines on top/bottom edges of barrel */}
+          {/* Polished highlight lines on barrel */}
           <line x1="145" y1="75" x2="284" y2="75" stroke="#ffffff" strokeWidth="1" opacity="0.75" />
           <line x1="145" y1="115" x2="284" y2="115" stroke="#ffffff" strokeWidth="0.8" opacity="0.6" />
           <line x1="145" y1="74" x2="145" y2="116" stroke="#ffffff" strokeWidth="0.8" opacity="0.5" />
 
-          {/* Muzzle end cap shape */}
+          {/* Muzzle end cap */}
           <ellipse cx="285" cy="95.5" rx="2.5" ry="20.5" fill="#111317" />
 
-          {/* Vented Rib Slots (5 khe tản nhiệt đen nằm ngang mặt trên nòng có vạch phản sáng ở đáy) */}
+          {/* Vented Rib Slots */}
           {[155, 180, 205, 230, 255].map((x) => (
             <g key={`vent-${x}`}>
               <rect x={x} y="77" width="15" height="3.2" fill="#111317" />
@@ -343,21 +343,20 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
             </g>
           ))}
 
-          {/* Front Sight Blade with Red Ramp Insert (Đầu ruồi ngắm trước có vạch đỏ phản quang) */}
+          {/* Front Sight Blade with Red Ramp Insert */}
           <rect x="272" y="70" width="13" height="4" fill="#111317" />
           <polygon points="273,74 277,70 280,70 276,74" fill="#ef4444" />
 
-          {/* Ejector Rod Slot & Rod (Thanh đẩy vỏ đạn chìm dưới nòng) */}
+          {/* Ejector Rod Slot & Rod */}
           <rect x="145" y="106" width="70" height="6" rx="3" fill="#111317" />
           <rect x="150" y="108" width="55" height="2" fill="url(#ragingSteel)" rx="0.5" />
           <rect x="205" y="107.5" width="4" height="3" fill="#9ca3af" rx="0.5" />
 
-          {/* Engravings on Frame / Technical texts */}
+          {/* Engravings */}
           <text x="143" y="126" fill="#787f8c" fontSize="4" fontFamily="monospace" fontWeight="bold" opacity="0.8">.44 MAGNUM</text>
           <text x="143" y="131" fill="#787f8c" fontSize="3.5" fontFamily="monospace" opacity="0.7">TAURUS INT. BRAZIL</text>
 
-          {/* Engraved "RAGING BULL" Text (Khắc chữ 3D tinh xảo) */}
-          {/* White shadow offset */}
+          {/* Engraved "RAGING BULL" Text */}
           <text 
             x="215.5" 
             y="98.5" 
@@ -372,7 +371,6 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
           >
             RAGING BULL
           </text>
-          {/* Main dark gray text */}
           <text 
             x="215" 
             y="98" 
@@ -396,7 +394,6 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
           {isFiring && !alive && (
             <div className="absolute inset-0 pointer-events-none">
               <svg className="w-full h-full" viewBox="0 0 320 220">
-                {/* 1. Muzzle Flash Core Blast */}
                 <motion.g
                   initial={{ opacity: 0, scale: 0.4 }}
                   animate={{ 
@@ -406,16 +403,13 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
                   transition={{ duration: 0.45, ease: "easeOut" }}
                   style={{ transformOrigin: '285px 96px' }}
                 >
-                  {/* Fire blast polygon pointing right */}
                   <path d="M 285 96 L 322 72 L 315 88 L 362 96 L 315 104 L 322 120 Z" fill="#ff7c1f" filter="drop-shadow(0 0 8px rgba(255,124,31,0.5))" />
-                  {/* Yellow core */}
                   <path d="M 285 96 L 312 82 L 302 96 L 337 96 L 302 96 L 312 110 Z" fill="#ffeb3b" />
                   <circle cx="285" cy="96" r="12" fill="#ffffff" />
                 </motion.g>
 
-                {/* 2. Spark particles blowing right */}
                 {[...Array(8)].map((_, i) => {
-                  const sparkAngle = (Math.random() * 0.7 - 0.35); // Rightward direction +/- 20 deg
+                  const sparkAngle = (Math.random() * 0.7 - 0.35);
                   const sparkDistance = Math.random() * 90 + 50;
                   const tx = Math.cos(sparkAngle) * sparkDistance;
                   const ty = Math.sin(sparkAngle) * sparkDistance;
