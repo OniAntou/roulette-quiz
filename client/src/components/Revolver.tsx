@@ -168,65 +168,57 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
           <circle cx="100" cy="80" r="1.5" fill="#4b5563" />
           <circle cx="106" cy="80" r="1.5" fill="#4b5563" />
 
-          {/* Active chamber indicator pointer at top (12 o'clock) */}
-          <polygon points="115,63 110,53 120,53" fill="#ff3b30" filter="url(#neonRedGlow)" />
-
           {/* =======================================================
-              DYNAMIC ROTATING CYLINDER Group (Ổ xoay đạn ở giữa-trái)
+              SOLID METAL RECEIVER & STATUS SCREEN (Che hoàn toàn ổ đạn)
               ======================================================= */}
-          <g transform="translate(115, 115)">
-            <motion.g
-              animate={{ rotate: isSpinning ? -720 - (currentPosition * 60) : -(currentPosition * 60) }}
-              transition={{ duration: isSpinning ? 1.2 : 0.4, ease: isSpinning ? [0.16, 1, 0.3, 1] as const : "easeOut" }}
-            >
-              {/* Cylinder Outer Shell */}
-              <circle cx="0" cy="0" r="44" stroke="#374151" strokeWidth="1.5" fill="url(#charcoalMetal)" />
-              <circle cx="0" cy="0" r="38" stroke="#08090c" strokeWidth="1.2" fill="#14161e" />
-
-              {/* Cylinder Flutes (Đường cắt dọc) */}
-              {[0, 1, 2, 3, 4, 5].map((i) => {
-                const fluteAngle = (i / 6) * Math.PI * 2 + (Math.PI / 6);
-                const fluteX = Math.cos(fluteAngle) * 44;
-                const fluteY = Math.sin(fluteAngle) * 44;
-                return <circle key={`flute-${i}`} cx={fluteX} cy={fluteY} r="7.5" fill="#08090c" />;
-              })}
-
-              {/* Center axle assembly */}
-              <circle cx="0" cy="0" r="10" fill="#08090c" stroke="#374151" strokeWidth="1" />
-              <circle cx="0" cy="0" r="3.5" fill="#2c303b" />
-
-              {/* 6 Chambers with Bullets */}
-              {[0, 1, 2, 3, 4, 5].map((index) => {
-                const angle = (index / 6) * Math.PI * 2 - Math.PI / 2;
-                const bulletDist = 27;
-                const x = Math.cos(angle) * bulletDist;
-                const y = Math.sin(angle) * bulletDist;
-                const isFired = index < bulletsFired;
-
-                return (
-                  <g key={index} transform={`translate(${x}, ${y})`}>
-                    {/* Chamber rim border */}
-                    <circle cx="0" cy="0" r="10" fill="#07080a" stroke="rgba(255,255,255,0.06)" strokeWidth="0.8" />
-                    
-                    {!isFired ? (
-                      // Live Bullet (Vỏ đồng vàng mạ)
-                      <>
-                        <circle cx="0" cy="0" r="7.5" fill="url(#bulletBrass)" stroke="#5c450c" strokeWidth="0.8" />
-                        <circle cx="0" cy="0" r="4.2" fill="url(#bulletPrimer)" stroke="#4f4f4f" strokeWidth="0.5" />
-                        <circle cx="0" cy="0" r="1.3" fill="#3d2c04" />
-                      </>
-                    ) : (
-                      // Fired Chamber
-                      <>
-                        <circle cx="0" cy="0" r="7.5" fill="url(#firedCap)" stroke="#111317" strokeWidth="0.8" />
-                        <circle cx="0" cy="0" r="3" fill="#000000" stroke="#080808" strokeWidth="0.5" />
-                      </>
-                    )}
-                  </g>
-                );
-              })}
-            </motion.g>
-          </g>
+          {/* Receiver Cover Plate */}
+          <path 
+            d="M 94 75 L 145 70 L 145 122 L 125 134 L 105 125 L 94 125 Z" 
+            fill="url(#charcoalMetal)" 
+            stroke="#1f2937" 
+            strokeWidth="1.5" 
+          />
+          {/* Machined panel detailing lines */}
+          <line x1="98" y1="95" x2="141" y2="90" stroke="#101216" strokeWidth="1.2" />
+          <line x1="105" y1="110" x2="141" y2="105" stroke="#101216" strokeWidth="1.2" />
+          
+          {/* Futuristic Cyberpunk LED status screen */}
+          <rect x="104" y="88" width="32" height="20" rx="3" fill="#0b0f19" stroke="#1f2937" strokeWidth="1.2" />
+          
+          {/* Text/LED indicators inside status screen */}
+          {isSpinning ? (
+            <g>
+              <text x="120" y="101" fill="#f59e0b" fontSize="5" fontFamily="monospace" fontWeight="bold" textAnchor="middle" className="animate-pulse">
+                SYS_ROT
+              </text>
+              <circle cx="120" cy="94" r="1.5" fill="#f59e0b" className="animate-ping" />
+            </g>
+          ) : isFiring ? (
+            !alive ? (
+              <g>
+                <rect x="105" y="89" width="30" height="18" rx="2" fill="#7f1d1d" opacity="0.85" />
+                <text x="120" y="101" fill="#f87171" fontSize="6" fontFamily="monospace" fontWeight="black" textAnchor="middle">
+                  LETHAL
+                </text>
+              </g>
+            ) : (
+              <g>
+                <rect x="105" y="89" width="30" height="18" rx="2" fill="#064e3b" opacity="0.85" />
+                <text x="120" y="101" fill="#34d399" fontSize="6" fontFamily="monospace" fontWeight="black" textAnchor="middle">
+                  EMPTY
+                </text>
+              </g>
+            )
+          ) : (
+            <g>
+              <text x="120" y="97" fill="#10b981" fontSize="5" fontFamily="monospace" fontWeight="bold" textAnchor="middle">
+                SYS_OK
+              </text>
+              <text x="120" y="104" fill="#4b5563" fontSize="4" fontFamily="monospace" textAnchor="middle">
+                READY
+              </text>
+            </g>
+          )}
         </svg>
 
         {/* =======================================================
@@ -303,13 +295,13 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
         </AnimatePresence>
       </motion.div>
 
-      {/* Probability text */}
+      {/* Suspense status text */}
       <div className="flex flex-col items-center space-y-1">
-        <span className="text-xs font-bold text-white tracking-widest uppercase">
-          LOAD // 0{remaining}
+        <span className="text-xs font-bold text-white tracking-widest uppercase animate-pulse">
+          CHAMBER // BLIND_MODE
         </span>
-        <span className={`text-[10px] font-semibold tracking-wider uppercase ${getDangerColor()}`}>
-          PROBABILITY // {probability}
+        <span className="text-[10px] font-semibold text-red-500 tracking-wider uppercase">
+          HAZARD LEVEL // UNKNOWN
         </span>
       </div>
     </div>
