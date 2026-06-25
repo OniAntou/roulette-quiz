@@ -1,0 +1,132 @@
+import { io, Socket } from 'socket.io-client';
+
+type EventCallback = (data: any) => void;
+
+class SocketClient {
+  private socket: Socket | null = null;
+  private connected: boolean = false;
+  private callbacks: Record<string, EventCallback[]> = {};
+  public playerName: string = 'GUEST';
+
+  connect(url: string): Promise<Socket> {
+    return new Promise((resolve, reject) => {
+      this.socket = io(url, {
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+      });
+
+      this.socket.on('connect', () => {
+        this.connected = true;
+        console.log('Connected to server');
+        resolve(this.socket!);
+      });
+
+      this.socket.on('disconnect', () => {
+        this.connected = false;
+        console.log('Disconnected from server');
+      });
+
+      this.socket.on('connect_error', (error: Error) => {
+        console.error('Connection error:', error);
+        reject(error);
+      });
+
+      this.setupEventListeners();
+    });
+  }
+
+  private setupEventListeners(): void {
+    if (!this.socket) return;
+
+    this.socket.on('room:created', (data: any) => this.emit('room:created', data));
+    this.socket.on('room:joined', (data: any) => this.emit('room:joined', data));
+    this.socket.on('room:players', (data: any) => this.emit('room:players', data));
+    this.socket.on('room:left', () => this.emit('room:left'));
+
+    this.socket.on('game:start', (data: any) => this.emit('game:start', data));
+    this.socket.on('game:deal', (data: any) => this.emit('game:deal', data));
+    this.socket.on('game:cardPlayed', (data: any) => this.emit('game:cardPlayed', data));
+    this.socket.on('game:question', (data: any) => this.emit('game:question', data));
+    this.socket.on('game:result', (data: any) => this.emit('game:result', data));
+    this.socket.on('game:trigger', (data: any) => this.emit('game:trigger', data));
+    this.socket.on('game:newRound', (data: any) => this.emit('game:newRound', data));
+    this.socket.on('game:over', (data: any) => this.emit('game:over', data));
+    this.socket.on('game:playerLeft', (data: any) => this.emit('game:playerLeft', data));
+    this.socket.on('game:playerLeftAfterDeath', (data: any) => this.emit('game:playerLeftAfterDeath', data));
+    this.socket.on('game:cardsUpdate', (data: any) => this.emit('game:cardsUpdate', data));
+    this.socket.on('game:turn', (data: any) => this.emit('game:turn', data));
+
+    this.socket.on('error', (data: any) => this.emit('error', data));
+  }
+
+  on(event: string, callback: EventCallback): void {
+    if (!this.callbacks[event]) {
+      this.callbacks[event] = [];
+    }
+    this.callbacks[event].push(callback);
+  }
+
+  off(event: string, callback: EventCallback): void {
+    if (this.callbacks[event]) {
+      this.callbacks[event] = this.callbacks[event].filter(cb => cb !== callback);
+    }
+  }
+
+  clearListeners(event?: string): void {
+    if (event) {
+      this.callbacks[event] = [];
+    } else {
+      this.callbacks = {};
+    }
+  }
+
+  private emit(event: string, data?: any): void {
+    if (this.callbacks[event]) {
+      const callbacks = [...this.callbacks[event]];
+      callbacks.forEach(cb => cb(data));
+    }
+  }
+
+  send(event: string, data?: any): void {
+    if (this.socket && this.connected) {
+      this.socket.emit(event, data);
+    }
+  }
+
+  createRoom(playerName: string): void {
+    this.send('room:create', { playerName });
+  }
+
+  joinRoom(roomId: string, playerName: string): void {
+    this.send('room:join', { roomId, playerName });
+  }
+
+  toggleReady(roomId: string): void {
+    this.send('room:ready', { roomId });
+  }
+
+  leaveRoom(roomId: string): void {
+    this.send('room:leave', { roomId });
+  }
+
+  chooseCard(roomId: string, cardId: string): void {
+    this.send('game:choose', { roomId, cardId });
+  }
+
+  submitAnswer(roomId: string, answer: string): void {
+    this.send('game:answer', { roomId, answer });
+  }
+
+  leaveAfterDeath(roomId: string): void {
+    this.send('game:leaveAfterDeath', { roomId });
+  }
+
+  disconnect(): void {
+    if (this.socket) {
+      this.socket.disconnect();
+    }
+  }
+}
+
+export const socketClient = new SocketClient();

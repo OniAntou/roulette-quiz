@@ -1,0 +1,196 @@
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ArrowRight, WifiHigh, Globe, Robot } from '@phosphor-icons/react';
+import { ConnectionStatus } from '../types';
+import { Sounds } from '../audio/Sounds';
+
+const RANDOM_NAMES = [
+  'PHANTOM', 'CIPHER', 'GHOST', 'ROGUE', 'SHADOW', 'NEXUS', 'VIPER', 'STORM',
+  'BLAZE', 'FROST', 'RAVEN', 'TITAN', 'SPARK', 'VENOM', 'WRAITH', 'ZENITH',
+  'APEX', 'BOLT', 'CRUX', 'DRIFT', 'ECHO', 'FLUX', 'GRID', 'HAZE',
+  'ION', 'JOLT', 'KNOT', 'LYNX', 'MESH', 'NOVA', 'ONYX', 'PELT',
+  'QUARK', 'RIFT', 'SURGE', 'TALON', 'ULTRA', 'VOID', 'WAVE', 'XENON',
+  'YIELD', 'ZERO', 'ATLAS', 'BRISK', 'CORAL', 'DAWN', 'EDGE', 'FOAM',
+  'GUST', 'HAWK', 'IRON', 'JADE', 'KARMA', 'LUNA', 'MIST', 'NEON',
+  'OPAL', 'PEARL', 'RAIN', 'SAGE', 'TEAL', 'UNITY', 'VALE', 'WHISPER'
+];
+
+function getRandomName(): string {
+  return RANDOM_NAMES[Math.floor(Math.random() * RANDOM_NAMES.length)];
+}
+
+interface MainMenuProps {
+  connect: (mode: string, name: string) => void;
+  startBot: (count: number) => void;
+  error: string;
+  status: ConnectionStatus;
+}
+
+export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
+  const [name, setName] = useState<string>('GUEST');
+  const [showBotModal, setShowBotModal] = useState<boolean>(false);
+  const [selectedBotCount, setSelectedBotCount] = useState<number>(1);
+
+  const handleSubmit = (mode: string) => {
+    Sounds.buttonClick();
+    const finalName = name.trim().toUpperCase() || getRandomName();
+    connect(mode, finalName);
+  };
+
+  const handleBotStart = () => {
+    Sounds.buttonClick();
+    const finalName = name.trim().toUpperCase() || getRandomName();
+    startBot(selectedBotCount);
+  };
+
+  return (
+    <div className="w-full max-w-6xl px-12 grid grid-cols-1 md:grid-cols-2 gap-12 items-center z-10">
+      <motion.div 
+        initial={{ opacity: 0, x: -50 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+        className="flex flex-col space-y-6"
+      >
+        <div className="inline-flex max-w-max px-3 py-1 bg-red-950/20 border border-red-500/20 rounded text-[9px] font-bold text-red-500 tracking-widest uppercase">
+          SECURE CONNECTION PROTOCOL //
+        </div>
+        <h1 className="text-7xl md:text-8xl font-extrabold tracking-tighter leading-[0.9] text-white">
+          ROULETTE<br />
+          <span className="text-slate-500">PROTOCOL.</span>
+        </h1>
+        <p className="text-slate-400 text-[14px] leading-relaxed max-w-[45ch]">
+          The ultimate high-stakes trivia multiplayer system. Decrypted for elite minds. Answer correctly or pull the trigger. Survive to conquer.
+        </p>
+      </motion.div>
+
+      <motion.div 
+        initial={{ opacity: 0, x: 50 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
+        className="flex flex-col space-y-6"
+      >
+        <div className="bg-[#1c1f2a] border border-white/8 rounded-xl p-6 flex flex-col space-y-2">
+          <label className="text-[9px] font-bold text-slate-500 tracking-wider">USER_IDENTIFICATION_KEY</label>
+          <div className="flex items-center space-x-1">
+            <input 
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value.substring(0, 12).toUpperCase())}
+              disabled={status === 'connecting'}
+              className="bg-transparent text-xl font-bold text-white focus:outline-none w-full uppercase"
+            />
+            <span className="terminal-cursor text-xl font-bold text-red-500">_</span>
+          </div>
+        </div>
+
+        <div className="flex flex-col space-y-4">
+          <button 
+            onClick={() => handleSubmit('online')}
+            disabled={status === 'connecting'}
+            className="group relative flex items-center justify-between px-6 py-4 bg-[#1c1f2a] border border-white/8 rounded-xl text-[12px] font-bold text-slate-300 tracking-widest uppercase cursor-pointer hover:border-red-500/40 hover:bg-slate-900 transition-all duration-200"
+          >
+            <span className="flex items-center gap-3">
+              <Globe size={16} className="text-slate-500 group-hover:text-red-500 transition-colors" />
+              INITIALIZE ONLINE
+            </span>
+            <ArrowRight size={16} className="group-hover:text-red-500 group-hover:translate-x-2 transition-all" />
+          </button>
+
+          <button 
+            onClick={() => handleSubmit('lan')}
+            disabled={status === 'connecting'}
+            className="group relative flex items-center justify-between px-6 py-4 bg-[#1c1f2a] border border-white/8 rounded-xl text-[12px] font-bold text-slate-300 tracking-widest uppercase cursor-pointer hover:border-red-500/40 hover:bg-slate-900 transition-all duration-200"
+          >
+            <span className="flex items-center gap-3">
+              <WifiHigh size={16} className="text-slate-500 group-hover:text-red-500 transition-colors" />
+              LOCAL PROTOCOL // LAN
+            </span>
+            <ArrowRight size={16} className="group-hover:text-red-500 group-hover:translate-x-2 transition-all" />
+          </button>
+
+          <button 
+            onClick={() => setShowBotModal(true)}
+            disabled={status === 'connecting'}
+            className="group relative flex items-center justify-between px-6 py-4 bg-[#1c1f2a] border border-white/8 rounded-xl text-[12px] font-bold text-slate-300 tracking-widest uppercase cursor-pointer hover:border-emerald-500/40 hover:bg-slate-900 transition-all duration-200"
+          >
+            <span className="flex items-center gap-3">
+              <Robot size={16} className="text-slate-500 group-hover:text-emerald-500 transition-colors" />
+              BOT PROTOCOL // VS CPU
+            </span>
+            <ArrowRight size={16} className="group-hover:text-emerald-500 group-hover:translate-x-2 transition-all" />
+          </button>
+        </div>
+
+        {status === 'connecting' && (
+          <div className="text-[10px] text-amber-500 font-bold tracking-widest uppercase flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping"></span>
+            INITIALIZING CENTRAL SERVER LINK...
+          </div>
+        )}
+        
+        {error && (
+          <div className="text-[10px] text-red-500 font-bold tracking-widest uppercase border border-red-500/20 bg-red-950/10 px-3 py-2 rounded">
+            EXCEPTION // {error}
+          </div>
+        )}
+
+        <div className="text-[10px] text-slate-600 tracking-wide font-medium">
+          // Type your name and initialize connection state. ESC to drop socket link.
+        </div>
+      </motion.div>
+
+      <AnimatePresence>
+        {showBotModal && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-[#14161e]/80 backdrop-blur-md flex items-center justify-center z-50"
+          >
+            <motion.div 
+              initial={{ scale: 0.95, y: 30 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20, opacity: 0 }}
+              className="bg-[#1c1f2a] border border-white/8 rounded-xl p-8 max-w-md w-full flex flex-col items-center"
+            >
+              <h3 className="text-[10px] text-slate-500 font-bold tracking-widest uppercase mb-6">SELECT BOT COUNT //</h3>
+              
+              <div className="flex gap-4 mb-8">
+                {[1, 2, 3].map((count) => (
+                  <button
+                    key={count}
+                    onClick={() => {
+                      Sounds.buttonClick();
+                      setSelectedBotCount(count);
+                    }}
+                    className={`w-16 h-16 rounded-xl border flex flex-col items-center justify-center transition-all cursor-pointer ${
+                      selectedBotCount === count
+                        ? 'bg-emerald-950/40 border-emerald-500/60 text-emerald-400'
+                        : 'bg-[#252833] border-white/5 text-slate-400 hover:border-white/20'
+                    }`}
+                  >
+                    <span className="text-2xl font-bold">{count}</span>
+                    <span className="text-[8px] font-bold tracking-wider">BOTS</span>
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex gap-4 w-full">
+                <button onClick={() => setShowBotModal(false)}
+                  className="flex-1 py-3 bg-[#252833] border border-white/5 hover:border-red-500/20 text-[9px] font-bold text-slate-400 tracking-wider uppercase rounded-lg hover:text-white transition-all cursor-pointer"
+                >
+                  CANCEL
+                </button>
+                <button onClick={handleBotStart}
+                  className="flex-1 py-3 bg-emerald-950/40 border border-emerald-500/30 hover:border-emerald-500 text-[9px] font-bold text-emerald-400 tracking-wider uppercase rounded-lg hover:bg-emerald-950/60 transition-all cursor-pointer"
+                >
+                  START MISSION
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
