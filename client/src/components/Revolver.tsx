@@ -31,36 +31,41 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
           <defs>
             {/* Matte Silver Steel Gradient for Raging Bull */}
             <linearGradient id="ragingSteel" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#f3f4f6" />
-              <stop offset="20%" stopColor="#e5e7eb" />
-              <stop offset="50%" stopColor="#d1d5db" />
-              <stop offset="85%" stopColor="#9ca3af" />
-              <stop offset="100%" stopColor="#787f8c" />
+              <stop offset="0%" stopColor="#ffffff" />
+              <stop offset="15%" stopColor="#f3f4f6" />
+              <stop offset="45%" stopColor="#d1d5db" />
+              <stop offset="80%" stopColor="#9ca3af" />
+              <stop offset="100%" stopColor="#707682" />
             </linearGradient>
 
             {/* Dark metal for hammer, sights and mechanical joints */}
             <linearGradient id="darkSteel" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#4b5563" />
               <stop offset="50%" stopColor="#1f2937" />
-              <stop offset="100%" stopColor="#111317" />
+              <stop offset="100%" stopColor="#0d0e12" />
             </linearGradient>
 
             {/* Cylinder Steel with realistic rounded shading */}
             <linearGradient id="cylinderSteel" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#e5e7eb" />
-              <stop offset="25%" stopColor="#d1d5db" />
-              <stop offset="55%" stopColor="#9ca3af" />
-              <stop offset="85%" stopColor="#5a606d" />
-              <stop offset="100%" stopColor="#373d47" />
+              <stop offset="0%" stopColor="#ffffff" />
+              <stop offset="20%" stopColor="#e5e7eb" />
+              <stop offset="50%" stopColor="#9ca3af" />
+              <stop offset="80%" stopColor="#5a606d" />
+              <stop offset="100%" stopColor="#2c3038" />
             </linearGradient>
 
             {/* 3D Flute indentation gradient */}
             <linearGradient id="fluteGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#0d0e12" />
-              <stop offset="35%" stopColor="#1a1c22" />
-              <stop offset="80%" stopColor="#7a818f" />
+              <stop offset="0%" stopColor="#08090b" />
+              <stop offset="35%" stopColor="#181a20" />
+              <stop offset="75%" stopColor="#676d7b" />
               <stop offset="100%" stopColor="#d1d5db" />
             </linearGradient>
+
+            {/* Rubber Grip black texture pattern */}
+            <pattern id="gripTexture" width="3" height="3" patternUnits="userSpaceOnUse">
+              <circle cx="1.5" cy="1.5" r="0.5" fill="#141518" />
+            </pattern>
 
             {/* Cylinder Mask */}
             <clipPath id="cylinderClip">
@@ -72,7 +77,7 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
               TAURUS RAGING BULL REVOLVER (RIGHT-FACING)
               ======================================================= */}
 
-          {/* 1. Black Rubber Grip with Red Cushion Spine & Finger Grooves */}
+          {/* 1. Black Rubber Grip with Red Cushion Spine, Finger Grooves & Textured Panel */}
           {/* Main Grip Body (Black rubber) */}
           <path 
             d="M 78 126 
@@ -84,7 +89,7 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
                C 94 138, 92 132, 88 126 Z" 
             fill="#23252a" 
             stroke="#111215" 
-            strokeWidth="1.2" 
+            strokeWidth="1.5" 
           />
           {/* Red Cushion Backstrap (Sống báng màu đỏ đặc trưng Raging Bull) */}
           <path 
@@ -103,14 +108,35 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
                C 88 162, 82 156, 84 148 
                C 86 142, 85 138, 83 135 Z" 
             fill="#181a1f" 
-            opacity="0.8" 
+          />
+          {/* Grip Dotted Textured Layer */}
+          <path 
+            d="M 83 135 
+               C 80 148, 75 165, 60 200 
+               C 62 202, 82 202, 86 195 
+               C 88 185, 84 180, 86 172 
+               C 88 162, 82 156, 84 148 
+               C 86 142, 85 138, 83 135 Z" 
+            fill="url(#gripTexture)" 
+          />
+          {/* Highlight line on rubber grip to show 3D volume */}
+          <path 
+            d="M 84 136 C 82 148, 77 165, 63 198" 
+            fill="none" 
+            stroke="#3a3f4d" 
+            strokeWidth="0.8" 
+            opacity="0.5" 
           />
           {/* Brass Medallion at the bottom corner (Logo tròn màu vàng) */}
           <circle cx="88" cy="198" r="4.5" fill="#d4af37" stroke="#9a7b1c" strokeWidth="0.8" />
           <circle cx="88" cy="198" r="2.5" fill="#111215" />
+          {/* Taurus emblem letter representation in medallion */}
+          <path d="M 87 197 Q 88.5 198, 87 199.5" fill="none" stroke="#d4af37" strokeWidth="0.6" />
 
-          {/* 2. Trigger Guard */}
+          {/* 2. Trigger Guard with Screw Detail */}
           <path d="M 92 124 C 92 158, 142 158, 142 120 Z" fill="none" stroke="url(#ragingSteel)" strokeWidth="4.5" strokeLinecap="round" />
+          {/* Small screw on trigger guard base */}
+          <circle cx="132" cy="136" r="1.5" fill="#1f2937" />
 
           {/* 3. Trigger (Cò súng màu bạc nhạt) */}
           <motion.path 
@@ -122,24 +148,6 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
             animate={isFiring ? { rotate: [0, -15, 0] } : {}}
             style={{ transformOrigin: '116px 122px' }}
             transition={{ duration: 0.18 }}
-          />
-
-          {/* 4. Hammer (Búa gõ Raging Bull) */}
-          <motion.path
-            d="M 76 82 
-               Q 62 66 52 70 
-               Q 60 84 72 86 Z"
-            fill="url(#darkSteel)"
-            stroke="#4b5563"
-            strokeWidth="0.8"
-            style={{ transformOrigin: '76px 86px' }}
-            animate={{ 
-              rotate: isFiring ? [0, 35, -20, 0] : isSpinning ? 35 : 0 
-            }}
-            transition={{ 
-              duration: isFiring ? 0.22 : 0.15,
-              ease: "easeInOut"
-            }}
           />
 
           {/* 5. Cylinder Frame Cutout Shadow */}
@@ -189,16 +197,44 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
             <rect x="90" y="99" width="58" height="3" fill="url(#darkSteel)" opacity="0.35" />
             
             {/* Subtle reflections */}
-            <line x1="92" y1="79" x2="146" y2="79" stroke="#ffffff" strokeWidth="0.8" opacity="0.35" />
+            <line x1="92" y1="79" x2="146" y2="79" stroke="#ffffff" strokeWidth="0.8" opacity="0.45" />
             <line x1="92" y1="121" x2="146" y2="121" stroke="#111317" strokeWidth="0.8" opacity="0.4" />
           </g>
 
-          {/* 7. Cylinder Release Latch (Nút gạt mở ổ đạn phía sau) */}
-          <rect x="76" y="94" width="14" height="8" rx="1.5" fill="url(#ragingSteel)" stroke="#4b5563" strokeWidth="0.8" />
-          <circle cx="80" cy="98" r="2" fill="#111317" />
-          <line x1="79" y1="98" x2="81" y2="98" stroke="#ffffff" strokeWidth="0.6" />
+          {/* 7. Cylinder Release Latch & Plate (Chốt mở ổ đạn phía sau có răng nhám) */}
+          <rect x="75" y="93" width="16" height="10" rx="1.5" fill="url(#ragingSteel)" stroke="#4b5563" strokeWidth="0.8" />
+          {/* Latch serration lines */}
+          <line x1="78" y1="95" x2="78" y2="101" stroke="#374151" strokeWidth="0.8" />
+          <line x1="81" y1="95" x2="81" y2="101" stroke="#374151" strokeWidth="0.8" />
+          <line x1="84" y1="95" x2="84" y2="101" stroke="#374151" strokeWidth="0.8" />
+          <circle cx="87" cy="98" r="1" fill="#111317" />
 
-          {/* 8. Main Frame (Thành súng bạc thép chắc chắn bọc ổ đạn) */}
+          {/* 4. Hammer (Búa gõ Raging Bull với răng cưa chống trượt) */}
+          <motion.g
+            style={{ transformOrigin: '76px 86px' }}
+            animate={{ 
+              rotate: isFiring ? [0, 35, -20, 0] : isSpinning ? 35 : 0 
+            }}
+            transition={{ 
+              duration: isFiring ? 0.22 : 0.15,
+              ease: "easeInOut"
+            }}
+          >
+            <path
+              d="M 76 82 
+                 Q 62 66 52 70 
+                 Q 60 84 72 86 Z"
+              fill="url(#darkSteel)"
+              stroke="#4b5563"
+              strokeWidth="0.8"
+            />
+            {/* Hammer spur serrations (Răng khía) */}
+            <line x1="53" y1="69" x2="56" y2="67" stroke="#9ca3af" strokeWidth="0.6" />
+            <line x1="55" y1="71" x2="58" y2="69" stroke="#9ca3af" strokeWidth="0.6" />
+            <line x1="57" y1="73" x2="60" y2="71" stroke="#9ca3af" strokeWidth="0.6" />
+          </motion.g>
+
+          {/* 8. Main Frame & Crane (Thành súng thép bọc ổ đạn + càng xoay) */}
           <path 
             d="M 72 74 
                C 72 74, 90 74, 145 74 
@@ -210,9 +246,31 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
             stroke="#4b5563" 
             strokeWidth="1.2" 
           />
+          {/* Detailed Crane Arm seam (Càng xoay ổ đạn ở góc dưới trước) */}
+          <path 
+            d="M 134 114 L 145 114 L 145 120 L 138 120 Z" 
+            fill="url(#ragingSteel)" 
+            stroke="#4b5563" 
+            strokeWidth="0.6" 
+          />
+          {/* Sideplate split seam lines (Đường ghép mảnh thân súng) */}
+          <path d="M 88 120 C 88 108, 86 104, 76 104" fill="none" stroke="#787f8c" strokeWidth="0.8" opacity="0.6" />
+          
+          {/* Mechanical flat-head screws on Frame (Ốc vít dẹt xẻ rãnh) */}
+          {/* Screw 1: under cylinder */}
+          <g transform="translate(138, 126)">
+            <circle cx="0" cy="0" r="2.5" fill="url(#ragingSteel)" stroke="#374151" strokeWidth="0.8" />
+            <line x1="-1.5" y1="-1" x2="1.5" y2="1" stroke="#374151" strokeWidth="0.6" />
+          </g>
+          {/* Screw 2: behind cylinder latch */}
+          <g transform="translate(86, 85)">
+            <circle cx="0" cy="0" r="2" fill="url(#ragingSteel)" stroke="#374151" strokeWidth="0.6" />
+            <line x1="-1.2" y1="1.2" x2="1.2" y2="-1.2" stroke="#374151" strokeWidth="0.5" />
+          </g>
 
-          {/* 9. Rear Sight (Khe ngắm sau màu đen) */}
+          {/* 9. Rear Sight (Thước ngắm sau có ốc điều chỉnh gió) */}
           <path d="M 72 74 L 84 74 L 84 70 L 78 70 L 78 74" fill="#111317" stroke="#111317" strokeWidth="0.8" />
+          <circle cx="81" cy="72" r="0.8" fill="#9ca3af" />
 
           {/* 10. Massive Flat-Top Barrel (Nòng súng Raging Bull vuông phẳng) */}
           <path 
@@ -225,22 +283,34 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
             strokeWidth="1.2" 
           />
 
+          {/* Polished highlight lines on top/bottom edges of barrel */}
+          <line x1="145" y1="75" x2="284" y2="75" stroke="#ffffff" strokeWidth="1" opacity="0.75" />
+          <line x1="145" y1="115" x2="284" y2="115" stroke="#ffffff" strokeWidth="0.8" opacity="0.6" />
+          <line x1="145" y1="74" x2="145" y2="116" stroke="#ffffff" strokeWidth="0.8" opacity="0.5" />
+
           {/* Muzzle end cap shape */}
           <ellipse cx="285" cy="95.5" rx="2.5" ry="20.5" fill="#111317" />
 
-          {/* Vented Rib Slots (5 khe tản nhiệt đen nằm ngang mặt trên nòng) */}
-          <rect x="155" y="77" width="15" height="3" fill="#111317" />
-          <rect x="180" y="77" width="15" height="3" fill="#111317" />
-          <rect x="205" y="77" width="15" height="3" fill="#111317" />
-          <rect x="230" y="77" width="15" height="3" fill="#111317" />
-          <rect x="255" y="77" width="15" height="3" fill="#111317" />
+          {/* Vented Rib Slots (5 khe tản nhiệt đen nằm ngang mặt trên nòng có vạch phản sáng ở đáy) */}
+          {[155, 180, 205, 230, 255].map((x) => (
+            <g key={`vent-${x}`}>
+              <rect x={x} y="77" width="15" height="3.2" fill="#111317" />
+              <line x1={x} y1="80.2" x2={x + 15} y2="80.2" stroke="#ffffff" strokeWidth="0.5" opacity="0.35" />
+            </g>
+          ))}
 
-          {/* Front Sight Blade (Đầu ruồi ngắm trước đen phẳng) */}
+          {/* Front Sight Blade with Red Ramp Insert (Đầu ruồi ngắm trước có vạch đỏ phản quang) */}
           <rect x="272" y="70" width="13" height="4" fill="#111317" />
+          <polygon points="273,74 277,70 280,70 276,74" fill="#ef4444" />
 
           {/* Ejector Rod Slot & Rod (Thanh đẩy vỏ đạn chìm dưới nòng) */}
           <rect x="145" y="106" width="70" height="6" rx="3" fill="#111317" />
           <rect x="150" y="108" width="55" height="2" fill="url(#ragingSteel)" rx="0.5" />
+          <rect x="205" y="107.5" width="4" height="3" fill="#9ca3af" rx="0.5" />
+
+          {/* Engravings on Frame / Technical texts */}
+          <text x="143" y="126" fill="#787f8c" fontSize="4" fontFamily="monospace" fontWeight="bold" opacity="0.8">.44 MAGNUM</text>
+          <text x="143" y="131" fill="#787f8c" fontSize="3.5" fontFamily="monospace" opacity="0.7">TAURUS INT. BRAZIL</text>
 
           {/* Engraved "RAGING BULL" Text (Khắc chữ 3D tinh xảo) */}
           {/* White shadow offset */}
@@ -252,9 +322,9 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
             fontFamily="Impact, Arial Black, sans-serif" 
             fontStyle="italic" 
             fontWeight="black" 
-            letterSpacing="1" 
+            letterSpacing="1.2" 
             textAnchor="middle"
-            opacity="0.6"
+            opacity="0.7"
           >
             RAGING BULL
           </text>
@@ -262,12 +332,12 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
           <text 
             x="215" 
             y="98" 
-            fill="#41454f" 
+            fill="#3a3d47" 
             fontSize="14" 
             fontFamily="Impact, Arial Black, sans-serif" 
             fontStyle="italic" 
             fontWeight="black" 
-            letterSpacing="1" 
+            letterSpacing="1.2" 
             textAnchor="middle"
           >
             RAGING BULL
