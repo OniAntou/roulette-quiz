@@ -17,12 +17,14 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
         animate={isFiring ? { 
           x: [0, -12, 3, -1, 0], 
           y: [0, -6, 2, -1, 0], 
-          rotate: [0, 5, -1, 0] 
-        } : {}}
+          rotate: [-90, -85, -91, -90] 
+        } : {
+          rotate: -90
+        }}
         transition={{ duration: 0.22, ease: "easeOut" }}
         className="w-80 h-[220px] relative flex items-center justify-center pointer-events-none select-none"
         style={{
-          filter: 'drop-shadow(0px 12px 20px rgba(0, 0, 0, 0.6))'
+          filter: 'drop-shadow(-12px 0px 20px rgba(0, 0, 0, 0.6))'
         }}
       >
         <svg className="w-full h-full text-slate-800" viewBox="0 0 320 220">
