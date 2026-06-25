@@ -11,7 +11,7 @@ interface RevolverProps {
 
 export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, alive }: RevolverProps) {
   const totalChambers = 6;
-  const radius = 26;
+  const radius = 46;
 
   const remaining = totalChambers - bulletsFired;
   const probability = remaining <= 0 ? '100%' : `${Math.round((1 / remaining) * 100)}%`;
@@ -27,7 +27,7 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
       <motion.div 
         animate={isFiring ? { x: [0, 8, -4, 2, 0], y: [0, -6, 2, -1, 0], rotate: [0, -5, 2, 0] } : {}}
         transition={{ duration: 0.15, ease: "easeOut" }}
-        className="w-48 h-48 relative flex items-center justify-center"
+        className="w-80 h-80 relative flex items-center justify-center"
       >
         <svg className="absolute inset-0 w-full h-full text-slate-800" viewBox="0 0 160 160">
           <circle cx="80" cy="80" r="70" stroke="currentColor" strokeWidth="0.5" strokeDasharray="2,2" fill="none" opacity="0.15" />
@@ -41,8 +41,8 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
         <motion.svg 
           animate={{ rotate: isSpinning ? -20 : 0 }}
           transition={{ duration: 0.1 }}
-          className="absolute w-[24px] h-[36px] origin-bottom text-slate-600"
-          style={{ top: '20px', right: '48px', transformOrigin: '15px 30px' }}
+          className="absolute w-[40px] h-[60px] origin-bottom text-slate-600"
+          style={{ top: '32px', right: '80px', transformOrigin: '25px 50px' }}
           viewBox="0 0 24 36"
         >
           <path d="M 0 30 L 5 10 L 15 5 L 22 22 Z" fill="#2d3139" stroke="currentColor" strokeWidth="1.5" />
@@ -51,7 +51,7 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
         <motion.div
           animate={{ rotate: isSpinning ? -720 - (currentPosition * 60) : -(currentPosition * 60) }}
           transition={{ duration: isSpinning ? 1.2 : 0.4, ease: isSpinning ? [0.16, 1, 0.3, 1] as const : "easeOut" }}
-          className="w-28 h-28 relative flex items-center justify-center"
+          className="w-48 h-48 relative flex items-center justify-center"
         >
           <svg className="w-full h-full text-slate-700" viewBox="0 0 100 100">
             <circle cx="50" cy="50" r="44" stroke="currentColor" strokeWidth="2" fill="#1f232d" />
@@ -66,25 +66,25 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
 
           {[0, 1, 2, 3, 4, 5].map((index) => {
             const angle = (index / 6) * Math.PI * 2 - Math.PI / 2;
-            const x = 56 + Math.cos(angle) * radius;
-            const y = 56 + Math.sin(angle) * radius;
+            const x = 96 + Math.cos(angle) * radius;
+            const y = 96 + Math.sin(angle) * radius;
             const isFired = index < bulletsFired;
 
             return (
               <div 
                 key={index}
-                className="absolute w-[22px] h-[22px] rounded-full border border-white/10 bg-[#0a0b0d] flex items-center justify-center"
+                className="absolute w-[36px] h-[36px] rounded-full border border-white/10 bg-[#0a0b0d] flex items-center justify-center"
                 style={{ left: `${x}px`, top: `${y}px`, transform: 'translate(-50%, -50%)' }}
               >
                 {!isFired ? (
-                  <div className="w-[16px] h-[16px] rounded-full bg-[#d4af37] border border-[#7c5e10] flex items-center justify-center shadow-inner">
-                    <div className="w-[8px] h-[8px] rounded-full bg-[#c0c0c0] flex items-center justify-center">
-                      <div className="w-[3px] h-[3px] rounded-full bg-[#7c5e10]"></div>
+                  <div className="w-[26px] h-[26px] rounded-full bg-[#d4af37] border border-[#7c5e10] flex items-center justify-center shadow-inner">
+                    <div className="w-[13px] h-[13px] rounded-full bg-[#c0c0c0] flex items-center justify-center">
+                      <div className="w-[5px] h-[5px] rounded-full bg-[#7c5e10]"></div>
                     </div>
                   </div>
                 ) : (
-                  <div className="w-[16px] h-[16px] rounded-full bg-[#5a4a2a]/50 border border-white/5 flex items-center justify-center">
-                    <div className="w-[6px] h-[6px] rounded-full bg-black"></div>
+                  <div className="w-[26px] h-[26px] rounded-full bg-[#5a4a2a]/50 border border-white/5 flex items-center justify-center">
+                    <div className="w-[10px] h-[10px] rounded-full bg-black"></div>
                   </div>
                 )}
               </div>
@@ -92,7 +92,7 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
           })}
         </motion.div>
 
-        <div className="absolute top-2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[10px] border-t-[#ff3b30] z-20"></div>
+        <div className="absolute top-3 w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-t-[12px] border-t-[#ff3b30] z-20"></div>
 
         {isFiring && !alive && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -114,10 +114,10 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
       </motion.div>
 
       <div className="flex flex-col items-center space-y-1">
-        <span className="text-[11px] font-bold text-white tracking-widest uppercase">
+        <span className="text-xs font-bold text-white tracking-widest uppercase">
           LOAD // 0{remaining}
         </span>
-        <span className={`text-[9px] font-semibold tracking-wider uppercase ${getDangerColor()}`}>
+        <span className={`text-[10px] font-semibold tracking-wider uppercase ${getDangerColor()}`}>
           PROBABILITY // {probability}
         </span>
       </div>
