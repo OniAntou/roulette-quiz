@@ -208,52 +208,74 @@ export function GameBoard({
         </span>
       </div>
 
-      <div className="flex items-start justify-center space-x-10 mt-4">
+      <div className="flex items-start justify-center space-x-12 mt-6">
         {opponentPlayers.map((opponent) => {
           const cardCount = opponent.cardsCount || 0;
+          const isCurrentTurn = currentTurnId === opponent.id;
           return (
-            <div key={opponent.id} className="flex flex-col items-center space-y-3">
+            <div key={opponent.id} className="flex flex-col items-center space-y-3 relative group">
               <div className="relative">
-                <div className={`w-12 h-12 rounded-lg bg-[#1c1f2a] border flex items-center justify-center font-bold text-xs ${
-                  !opponent.isAlive ? 'border-red-500/30 opacity-30' : 'border-red-500/60'
+                {/* Active turn indicator circle */}
+                {isCurrentTurn && opponent.isAlive && (
+                  <motion.div 
+                    layoutId="activeTurnGlow"
+                    className="absolute -inset-1.5 rounded-2xl bg-red-500/20 blur-sm border border-red-500/50 z-0"
+                    animate={{ opacity: [0.5, 1, 0.5] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  />
+                )}
+                <div className={`w-14 h-14 rounded-2xl bg-[#1c1f2a]/90 backdrop-blur-sm border flex items-center justify-center font-black text-sm relative z-10 transition-all duration-300 ${
+                  !opponent.isAlive 
+                    ? 'border-red-500/20 bg-red-950/10 text-red-500/40 opacity-40' 
+                    : isCurrentTurn 
+                      ? 'border-red-500 text-white shadow-[0_0_15px_rgba(239,68,68,0.25)]' 
+                      : 'border-white/10 text-slate-300 group-hover:border-white/20'
                 }`}>
                   {opponent.name.substring(0, 2).toUpperCase()}
-                  {!opponent.isAlive && (
-                    <X size={20} className="absolute text-red-500 stroke-[3px]" />
+                  
+                  {/* Status dot */}
+                  {opponent.isAlive ? (
+                    <span className={`absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full border border-[#14161e] z-20 ${
+                      isCurrentTurn ? 'bg-red-500 animate-pulse' : 'bg-emerald-500'
+                    }`} />
+                  ) : (
+                    <div className="absolute inset-0 bg-red-950/20 rounded-2xl flex items-center justify-center">
+                      <X size={24} className="text-red-500/60 stroke-[3px]" />
+                    </div>
                   )}
                 </div>
               </div>
-              <span className="text-[11px] font-bold text-white tracking-wider uppercase">
+              
+              <span className="text-[11px] font-black text-white tracking-widest uppercase relative z-10">
                 {opponent.name}
               </span>
               
               {/* Opponent's face-down cards */}
               {opponent.isAlive && cardCount > 0 && (
-                <div className="flex justify-center items-center h-20 relative">
+                <div className="flex justify-center items-center h-16 w-32 relative mt-1">
                   {Array.from({ length: cardCount }).map((_, index) => {
                     const total = cardCount;
                     const mid = (total - 1) / 2;
                     const dist = index - mid;
-                    const xOffset = dist * 28;
-                    const arcY = Math.abs(dist) * 4;
-                    const arcAngle = dist * 6;
+                    const xOffset = dist * 22;
+                    const arcY = Math.abs(dist) * 3;
+                    const arcAngle = dist * 5;
 
                     return (
                       <motion.div
                         key={index}
-                        initial={{ opacity: 0, y: -30 }}
-                        animate={{ opacity: 1, y: arcY, x: xOffset, rotate: arcAngle }}
-                        transition={{ type: "spring", stiffness: 200, damping: 20, delay: index * 0.05 }}
-                        className="absolute w-11 h-16 rounded-md border border-white/10 bg-[#1a1d26] shadow-lg"
+                        initial={{ opacity: 0, y: -20, scale: 0.8 }}
+                        animate={{ opacity: 1, y: arcY, x: xOffset, rotate: arcAngle, scale: 1 }}
+                        transition={{ type: "spring", stiffness: 200, damping: 20, delay: index * 0.04 }}
+                        className="absolute w-9 h-13 rounded-lg border border-white/10 bg-[#1a1d26] shadow-lg overflow-hidden"
                         style={{ transformOrigin: 'center 120%', zIndex: index }}
                       >
                         {/* Card back pattern */}
-                        <div className="absolute inset-1 rounded border border-white/5 bg-[#181b24] flex items-center justify-center overflow-hidden">
-                          <div className="absolute inset-0 opacity-20">
-                            <div className="absolute inset-1 border border-dashed border-white/10 rounded"></div>
-                            <div className="absolute inset-2 border border-dotted border-white/5 rounded"></div>
+                        <div className="absolute inset-0.5 rounded-md border border-white/5 bg-[#181b24] flex items-center justify-center overflow-hidden">
+                          <div className="absolute inset-0 opacity-15">
+                            <div className="absolute inset-0.5 border border-dashed border-white/10 rounded"></div>
                           </div>
-                          <div className="w-4 h-4 rounded-full border border-white/10 bg-[#1e2028]"></div>
+                          <div className="w-2 h-2 rounded-full border border-white/10 bg-[#1e2028]"></div>
                         </div>
                       </motion.div>
                     );
@@ -261,12 +283,12 @@ export function GameBoard({
                 </div>
               )}
 
-              <span className="text-[9px] font-bold text-slate-500 tracking-wider">
+              <span className="text-[8.5px] font-mono font-extrabold text-slate-500 tracking-wider">
                 {!opponent.isAlive 
                   ? '// TERMINATED' 
-                  : phase === 'choosing' && currentTurnId !== localId 
-                    ? '// THINKING_CARDS' 
-                    : phase === 'answering' && currentTurnId === localId 
+                  : phase === 'choosing' && isCurrentTurn 
+                    ? '// CHOSING_CARD' 
+                    : phase === 'answering' && isCurrentTurn 
                       ? '// DECRYPTING' 
                       : `CARDS // [0${cardCount}]`
                 }
@@ -275,12 +297,12 @@ export function GameBoard({
           );
         })}
         {opponentPlayers.length === 0 && (
-          <div className="flex flex-col items-center space-y-2">
-            <div className="w-12 h-12 rounded-lg bg-[#1c1f2a] border border-white/10 flex items-center justify-center font-bold text-xs text-slate-500">
+          <div className="flex flex-col items-center space-y-3 p-6 border border-dashed border-white/8 rounded-2xl bg-black/10">
+            <div className="w-12 h-12 rounded-xl bg-[#1c1f2a]/60 border border-white/5 flex items-center justify-center font-bold text-xs text-slate-600 animate-pulse">
               ?
             </div>
-            <span className="text-[11px] font-bold text-slate-500 tracking-wider uppercase">
-              WAITING...
+            <span className="text-[10px] font-extrabold text-slate-500 tracking-widest uppercase">
+              WAITING FOR OPPONENTS //
             </span>
           </div>
         )}
@@ -308,23 +330,34 @@ export function GameBoard({
                   animate={{ scale: 1, opacity: 1, y: 0 }}
                   exit={{ scale: 0.8, opacity: 0 }}
                   transition={{ type: "spring", stiffness: 200, damping: 20 }}
-                  className={`w-36 h-52 border rounded-xl p-5 flex flex-col justify-between relative shadow-lg ${
+                  className={`w-36 h-52 border rounded-xl p-4 flex flex-col justify-between relative shadow-2xl overflow-hidden bg-[linear-gradient(135deg,rgba(255,255,255,0.01)_25%,transparent_25%,transparent_50%,rgba(255,255,255,0.01)_50%,rgba(255,255,255,0.01)_75%,transparent_75%,transparent)] bg-[size:10px_10px] ${
                     playedCard.difficulty === 'easy' 
-                      ? 'bg-[#0f2e22]/90 border-emerald-500/40 text-emerald-100' 
+                      ? 'bg-[#0b1c16]/95 border-emerald-500/40 text-emerald-100 shadow-[0_0_25px_rgba(16,185,129,0.2)] animate-pulse' 
                       : playedCard.difficulty === 'medium' 
-                        ? 'bg-[#33260f]/90 border-amber-500/40 text-amber-100' 
-                        : 'bg-[#341113]/90 border-red-500/40 text-red-100'
+                        ? 'bg-[#1f160a]/95 border-amber-500/40 text-amber-100 shadow-[0_0_25px_rgba(245,158,11,0.2)] animate-pulse' 
+                        : 'bg-[#220d0f]/95 border-red-500/40 text-red-100 shadow-[0_0_25px_rgba(239,68,68,0.2)] animate-pulse'
                   }`}
                 >
-                  <p className="text-[11px] font-semibold leading-relaxed text-left mt-2">
-                    {playedCard.question}
-                  </p>
-                  <span className="absolute bottom-2 right-4 text-4xl font-light text-white/5 select-none">Q</span>
+                  <div className="flex justify-between items-center w-full border-b border-white/8 pb-1.5 text-[7px] font-mono tracking-wider opacity-60">
+                    <span>#{playedCard.id.substring(0, 4).toUpperCase()}</span>
+                    <span className={
+                      playedCard.difficulty === 'easy' ? 'text-emerald-400 font-extrabold' : playedCard.difficulty === 'medium' ? 'text-amber-400 font-extrabold' : 'text-red-400 font-extrabold'
+                    }>{playedCard.difficulty.toUpperCase()}</span>
+                  </div>
+                  <div className="flex-1 flex items-center justify-center py-2 overflow-y-auto pr-0.5">
+                    <p className="text-[10px] font-extrabold leading-relaxed text-left tracking-wide">
+                      {playedCard.question}
+                    </p>
+                  </div>
+                  <div className="flex justify-between items-center w-full border-t border-white/8 pt-1.5 text-[7.5px] font-mono tracking-widest opacity-50">
+                    <span className="uppercase truncate max-w-[65px]">{playedCard.topic.substring(0, 10)}</span>
+                    <span>FP // 0{playedCard.difficulty === 'easy' ? '1' : playedCard.difficulty === 'medium' ? '2' : '3'}</span>
+                  </div>
                 </motion.div>
               ) : (
                 <div className="flex flex-col items-center justify-center space-y-2">
-                  <div className="w-36 h-52 border border-white/5 border-dashed rounded-xl flex items-center justify-center">
-                    <span className="text-[9px] font-bold text-slate-600 tracking-widest uppercase">
+                  <div className="w-36 h-52 border border-white/5 border-dashed rounded-xl flex items-center justify-center bg-black/10">
+                    <span className="text-[9px] font-extrabold text-slate-600 tracking-widest uppercase">
                       AWAITING ATTACK //
                     </span>
                   </div>
@@ -335,7 +368,8 @@ export function GameBoard({
         </div>
 
         <div className="flex justify-center md:justify-end">
-          <div className="bg-[#1c1f2a]/40 border border-white/5 rounded-xl px-8 py-6 max-w-max flex flex-col items-center">
+          <div className="bg-[#1c1f2a]/40 border border-white/5 rounded-xl px-8 py-6 max-w-max flex flex-col items-center shadow-lg backdrop-blur-sm relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/5 to-transparent"></div>
             <span className="text-[9px] font-bold text-slate-500 tracking-widest uppercase mb-4">FIREPOWER //</span>
             <Revolver 
               bulletsFired={bulletsFired}
@@ -380,23 +414,34 @@ export function GameBoard({
                       delay: index * 0.2,
                       rotateY: { duration: 0.4, delay: index * 0.2 + 0.2 }
                     }}
-                    className={`absolute w-36 h-52 border rounded-xl p-5 flex flex-col justify-between shadow-xl ${
+                    className={`absolute w-36 h-52 border rounded-xl p-4 flex flex-col justify-between shadow-xl relative overflow-hidden bg-[linear-gradient(135deg,rgba(255,255,255,0.01)_25%,transparent_25%,transparent_50%,rgba(255,255,255,0.01)_50%,rgba(255,255,255,0.01)_75%,transparent_75%,transparent)] bg-[size:10px_10px] ${
                       isRevealed
                         ? card.difficulty === 'easy'
-                          ? 'bg-[#0f2e22]/95 border-emerald-500/40 text-emerald-100'
+                          ? 'bg-[#0b1c16]/95 border-emerald-500/40 text-emerald-100'
                           : card.difficulty === 'medium'
-                            ? 'bg-[#33260f]/95 border-amber-500/40 text-amber-100'
-                            : 'bg-[#341113]/95 border-red-500/40 text-red-100'
+                            ? 'bg-[#1f160a]/95 border-amber-500/40 text-amber-100'
+                            : 'bg-[#220d0f]/95 border-red-500/40 text-red-100'
                         : 'bg-[#1a1d26] border-white/10'
                     }`}
                     style={{ transformOrigin: 'center 110%', zIndex: index, perspective: '1000px' }}
                   >
                     {isRevealed ? (
                       <>
-                        <p className="text-[11px] font-semibold leading-relaxed text-left mt-2">
-                          {card.question.substring(0, 56) + (card.question.length > 56 ? '...' : '')}
-                        </p>
-                        <span className="absolute bottom-2 right-4 text-4xl font-light text-white/3 select-none">Q</span>
+                        <div className="flex justify-between items-center w-full border-b border-white/5 pb-1.5 text-[7px] font-mono tracking-wider opacity-60">
+                          <span>#{card.id.substring(0, 4).toUpperCase()}</span>
+                          <span className={
+                            card.difficulty === 'easy' ? 'text-emerald-400 font-extrabold' : card.difficulty === 'medium' ? 'text-amber-400 font-extrabold' : 'text-red-400 font-extrabold'
+                          }>{card.difficulty.toUpperCase()}</span>
+                        </div>
+                        <div className="flex-1 flex items-center justify-center py-2 overflow-y-auto pr-0.5">
+                          <p className="text-[10px] font-extrabold leading-normal text-left tracking-wide">
+                            {card.question.substring(0, 56) + (card.question.length > 56 ? '...' : '')}
+                          </p>
+                        </div>
+                        <div className="flex justify-between items-center w-full border-t border-white/5 pt-1.5 text-[7.5px] font-mono tracking-widest opacity-50">
+                          <span className="uppercase truncate max-w-[65px]">{card.topic.substring(0, 10)}</span>
+                          <span>FP // 0{card.difficulty === 'easy' ? '1' : card.difficulty === 'medium' ? '2' : '3'}</span>
+                        </div>
                       </>
                     ) : (
                       <div className="absolute inset-1 rounded border border-white/5 bg-[#181b24] flex items-center justify-center overflow-hidden">
@@ -427,21 +472,32 @@ export function GameBoard({
                     animate={{ opacity: isPlayable ? 1 : 0.3, y: arcY, x: xOffset, rotate: arcAngle, scale: 1 }}
                     exit={{ opacity: 0, y: -80 }}
                     transition={{ type: "spring", stiffness: 180, damping: 20, delay: index * 0.03 }}
-                    whileHover={isPlayable ? { y: arcY - 60, rotate: 0, scale: 1.12, zIndex: 50, transition: { type: "spring", stiffness: 300, damping: 18 } } : {}}
+                    whileHover={isPlayable ? { y: arcY - 65, rotate: 0, scale: 1.15, zIndex: 50, transition: { type: "spring", stiffness: 350, damping: 15 } } : {}}
                     onClick={() => handleCardClick(card)}
-                    className={`absolute w-36 h-52 border rounded-xl p-5 flex flex-col justify-between cursor-pointer select-none group shadow-xl transition-shadow duration-200 hover:shadow-2xl ${
+                    className={`absolute w-36 h-52 border rounded-xl p-4 flex flex-col justify-between cursor-pointer select-none group shadow-xl transition-all duration-300 overflow-hidden bg-[linear-gradient(135deg,rgba(255,255,255,0.01)_25%,transparent_25%,transparent_50%,rgba(255,255,255,0.01)_50%,rgba(255,255,255,0.01)_75%,transparent_75%,transparent)] bg-[size:10px_10px] ${
                       card.difficulty === 'easy'
-                        ? 'bg-[#0f2e22]/95 border-emerald-500/40 text-emerald-100 hover:border-emerald-400'
+                        ? 'bg-[#0b1c16]/95 border-emerald-500/30 text-emerald-100 hover:border-emerald-400 hover:shadow-[0_0_20px_rgba(16,185,129,0.15)]'
                         : card.difficulty === 'medium'
-                          ? 'bg-[#33260f]/95 border-amber-500/40 text-amber-100 hover:border-amber-400'
-                          : 'bg-[#341113]/95 border-red-500/40 text-red-100 hover:border-red-400'
+                          ? 'bg-[#1f160a]/95 border-amber-500/30 text-amber-100 hover:border-amber-400 hover:shadow-[0_0_20px_rgba(245,158,11,0.15)]'
+                          : 'bg-[#220d0f]/95 border-red-500/30 text-red-100 hover:border-red-400 hover:shadow-[0_0_20px_rgba(239,68,68,0.15)]'
                     }`}
                     style={{ transformOrigin: 'center 110%', zIndex: index }}
                   >
-                    <p className="text-[11px] font-semibold leading-relaxed text-left mt-2">
-                      {card.question.substring(0, 56) + (card.question.length > 56 ? '...' : '')}
-                    </p>
-                    <span className="absolute bottom-2 right-4 text-4xl font-light text-white/3 select-none">Q</span>
+                    <div className="flex justify-between items-center w-full border-b border-white/5 pb-1.5 text-[7px] font-mono tracking-wider opacity-60">
+                      <span>#{card.id.substring(0, 4).toUpperCase()}</span>
+                      <span className={
+                        card.difficulty === 'easy' ? 'text-emerald-400 font-extrabold' : card.difficulty === 'medium' ? 'text-amber-400 font-extrabold' : 'text-red-400 font-extrabold'
+                      }>{card.difficulty.toUpperCase()}</span>
+                    </div>
+                    <div className="flex-1 flex items-center justify-center py-2 overflow-y-auto pr-0.5">
+                      <p className="text-[10px] font-extrabold leading-normal text-left tracking-wide">
+                        {card.question.substring(0, 56) + (card.question.length > 56 ? '...' : '')}
+                      </p>
+                    </div>
+                    <div className="flex justify-between items-center w-full border-t border-white/5 pt-1.5 text-[7.5px] font-mono tracking-widest opacity-50">
+                      <span className="uppercase truncate max-w-[65px]">{card.topic.substring(0, 10)}</span>
+                      <span>FP // 0{card.difficulty === 'easy' ? '1' : card.difficulty === 'medium' ? '2' : '3'}</span>
+                    </div>
                   </motion.div>
                 );
               })
@@ -452,24 +508,29 @@ export function GameBoard({
 
       {/* Local Player Info - Left side */}
       <div className="absolute bottom-6 left-6 z-20">
-        <div className="flex items-center gap-3">
-          <div className={`w-8 h-8 rounded-lg bg-[#1c1f2a] border flex items-center justify-center font-bold text-xs ${
-            !localPlayer.isAlive ? 'border-red-500/30 opacity-30' : 'border-emerald-500/60'
+        <div className="flex items-center gap-4 bg-[#1c1f2a]/80 backdrop-blur-sm border border-white/8 rounded-2xl p-3.5 shadow-lg pr-6">
+          <div className={`w-12 h-12 rounded-xl bg-[#1c1f2a] border flex items-center justify-center font-black text-sm relative transition-all duration-300 ${
+            !localPlayer.isAlive ? 'border-red-500/20 opacity-30 bg-red-950/10' : 'border-emerald-500/60 shadow-[0_0_10px_rgba(16,185,129,0.15)]'
           }`}>
             {localPlayer.name.substring(0, 2).toUpperCase()}
-            {!localPlayer.isAlive && (
-              <X size={20} className="absolute text-red-500 stroke-[3px]" />
+            {!localPlayer.isAlive ? (
+              <div className="absolute inset-0 bg-red-950/20 rounded-xl flex items-center justify-center">
+                <X size={20} className="text-red-500/60 stroke-[3px]" />
+              </div>
+            ) : (
+              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-400" />
             )}
           </div>
-          <div className="flex flex-col items-start leading-none">
-            <span className="text-sm font-extrabold text-white tracking-wide uppercase">
-              {localPlayer.name} <span className="text-[9px] text-slate-500 font-normal italic">(YOU)</span>
+          <div className="flex flex-col items-start leading-tight">
+            <span className="text-sm font-extrabold text-white tracking-wide uppercase flex items-center gap-1.5">
+              {localPlayer.name} 
+              <span className="text-[8.5px] text-slate-500 font-extrabold tracking-wider bg-white/3 px-1.5 py-0.5 rounded">// YOU</span>
             </span>
-            <span className="text-[9px] font-bold text-slate-500 tracking-wider mt-1">
+            <span className="text-[8.5px] font-mono font-extrabold text-slate-500 tracking-wider mt-1.5">
               {!localPlayer.isAlive 
                 ? '// TERMINATED' 
                 : phase === 'choosing' && isMyTurn 
-                  ? '// YOUR TURN // SELECT A CARD' 
+                  ? '// YOUR TURN // SELECT CARD' 
                   : phase === 'answering' && isAnswering 
                     ? '// DECRYPTING CHALLENGE' 
                     : 'LINK STATE // SECURED'
@@ -479,9 +540,9 @@ export function GameBoard({
           {!localPlayer.isAlive && (
             <button 
               onClick={onLeaveAfterDeath}
-              className="ml-4 px-4 py-2 bg-red-950/20 border border-red-500/30 hover:bg-red-950/40 rounded-lg text-[10px] font-bold text-red-400 tracking-widest uppercase flex items-center gap-2 transition-all duration-200"
+              className="ml-6 px-4 py-2.5 bg-red-950/20 border border-red-500/30 hover:border-red-500/80 hover:bg-red-950/40 rounded-xl text-[10px] font-extrabold text-red-400 tracking-widest uppercase flex items-center gap-2 transition-all duration-300 cursor-pointer shadow-[0_0_15px_rgba(239,68,68,0.05)]"
             >
-              <ArrowLeft size={12} />
+              <ArrowLeft size={14} />
               RỜI PHÒNG
             </button>
           )}
@@ -512,35 +573,38 @@ export function GameBoard({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-[#14161e]/80 backdrop-blur-md flex items-center justify-center z-50"
+            className="fixed inset-0 bg-[#0c0d12]/90 backdrop-blur-md flex items-center justify-center z-50 p-4"
           >
             <motion.div 
-              initial={{ scale: 0.95, y: 30 }}
+              initial={{ scale: 0.95, y: 20 }}
               animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.95, y: 20, opacity: 0 }}
-              className="bg-[#1c1f2a] border border-white/8 rounded-xl p-8 max-w-2xl w-full flex flex-col"
+              exit={{ scale: 0.95, y: 15, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 350, damping: 30 }}
+              className="glass-panel rounded-2xl p-8 max-w-2xl w-full flex flex-col relative overflow-hidden"
             >
+              <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
               <div className="flex justify-between items-center mb-6">
-                <span className="text-[10px] text-slate-500 font-bold tracking-widest uppercase">
+                <span className="text-[10px] text-slate-500 font-extrabold tracking-widest uppercase flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
                   DECRYPTING PROTOCOL // {activeQuestion.card.topic.toUpperCase()}
                 </span>
-                <span className={`text-[11px] font-bold tracking-wider ${
-                  timeLeft <= 3 ? 'text-red-500 animate-ping' : 'text-slate-400'
+                <span className={`text-[11px] font-mono font-bold tracking-widest ${
+                  timeLeft <= 3 ? 'text-red-500 animate-pulse font-black' : 'text-slate-400'
                 }`}>
-                  0{timeLeft}s
+                  0{timeLeft}S
                 </span>
               </div>
 
-              <div className="w-full h-[3px] bg-white/5 rounded-full overflow-hidden mb-6">
+              <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden mb-6">
                 <motion.div 
                   initial={{ width: '100%' }}
                   animate={{ width: `${(timeLeft / maxTime) * 100}%` }}
                   transition={{ duration: 1, ease: "linear" }}
-                  className="h-full bg-red-500"
+                  className={`h-full transition-colors duration-300 ${timeLeft <= 3 ? 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]' : 'bg-amber-500'}`}
                 />
               </div>
 
-              <h2 className="text-xl md:text-2xl font-bold text-white text-center mb-8 leading-relaxed max-w-xl mx-auto">
+              <h2 className="text-lg md:text-xl font-extrabold text-white text-center mb-8 leading-relaxed max-w-xl mx-auto uppercase tracking-wide">
                 {activeQuestion.card.question}
               </h2>
 
@@ -549,12 +613,12 @@ export function GameBoard({
                   const isCorrectAnswer = questionResult && letter === questionResult.correctAnswer;
                   const isWrongAnswer = questionResult && !questionResult.correct && letter !== questionResult.correctAnswer;
                   
-                  let buttonStyle = "bg-[#252833] border-white/5 text-slate-300 hover:border-red-500/40 hover:text-white";
+                  let buttonStyle = "bg-[#252833]/40 border-white/8 text-slate-300 hover:border-red-500/40 hover:text-white hover:bg-[#252833]/70";
                   if (questionResult) {
                     if (isCorrectAnswer) {
-                      buttonStyle = "bg-emerald-950/40 border-emerald-500/60 text-emerald-400";
+                      buttonStyle = "bg-emerald-950/40 border-emerald-500/60 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.1)]";
                     } else if (isWrongAnswer) {
-                      buttonStyle = "bg-red-950/20 border-red-500/10 text-slate-600 opacity-50";
+                      buttonStyle = "bg-red-950/20 border-red-500/20 text-slate-600 opacity-50";
                     } else {
                       buttonStyle = "opacity-20 border-transparent text-slate-600";
                     }
@@ -565,12 +629,12 @@ export function GameBoard({
                       key={letter}
                       disabled={questionResult !== null || isSpectating}
                       onClick={() => handleAnswerSubmit(letter)}
-                      className={`w-full py-3.5 px-6 border text-xs font-semibold tracking-wide uppercase rounded-xl flex items-center gap-4 transition-all duration-200 ${isSpectating ? 'cursor-not-allowed' : 'cursor-pointer'} ${buttonStyle}`}
+                      className={`w-full py-4 px-6 border text-xs font-bold tracking-widest uppercase rounded-2xl flex items-center gap-4 transition-all duration-300 relative overflow-hidden ${isSpectating ? 'cursor-not-allowed' : 'cursor-pointer'} ${buttonStyle}`}
                     >
-                      <div className="w-6 h-6 rounded-full bg-white/5 flex items-center justify-center font-bold text-[10px] text-slate-500">
+                      <div className="w-6 h-6 rounded-lg bg-white/5 flex items-center justify-center font-black text-[10px] text-slate-400 border border-white/5">
                         {letter}
                       </div>
-                      <span className="text-left leading-normal">{answer}</span>
+                      <span className="text-left leading-normal font-semibold">{answer}</span>
                     </button>
                   );
                 })}
