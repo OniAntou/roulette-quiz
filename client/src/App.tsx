@@ -42,6 +42,7 @@ export default function App() {
   const [botCount, setBotCount] = useState<number>(1);
   const [bots, setBots] = useState<BotState[]>([]);
   const botTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const bulletsFiredCountRef = useRef<number>(0);
   const gamePhaseRef = useRef<GamePhase>(phase);
   const currentTurnRef = useRef<string>(currentTurnId);
   const botsRef = useRef<BotState[]>(bots);
@@ -173,6 +174,7 @@ export default function App() {
     setPlayers(allPlayers);
     setScreen('game');
     setRound(1);
+    bulletsFiredCountRef.current = 0;
     setPhase('waiting');
 
     setTimeout(() => {
@@ -286,6 +288,9 @@ export default function App() {
       targetName = botsRef.current.find(b => b.id === targetId)?.name || 'BOT';
     }
 
+    bulletsFiredCountRef.current++;
+    const bulletCount = 6 - bulletsFiredCountRef.current;
+
     Sounds.gunClick();
 
     setTimeout(() => {
@@ -301,7 +306,7 @@ export default function App() {
         alive,
         playerId: targetId,
         playerName: targetName,
-        bulletCount: bulletInChamber ? 0 : 1,
+        bulletCount,
       });
       setPhase('trigger');
 
@@ -571,8 +576,8 @@ export default function App() {
       setRound(data.round);
     });
 
-    socketClient.on('game:over', (data: { winner: string }) => {
-      const isLocal = data.winner === playerName;
+    socketClient.on('game:over', (data: { winner: string; winnerId?: string }) => {
+      const isLocal = data.winnerId ? data.winnerId === localPlayerId : data.winner === playerName;
       if (isLocal) {
         Sounds.victory();
       }

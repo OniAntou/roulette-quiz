@@ -58,6 +58,7 @@ export function GameBoard({
   const [isDealing, setIsDealing] = useState<boolean>(false);
   const [dealtCards, setDealtCards] = useState<CardData[]>([]);
   const [revealedCards, setRevealedCards] = useState<Set<string>>(new Set());
+  const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const prevHandCardsLength = useRef<number>(0);
 
   useEffect(() => {
@@ -161,8 +162,13 @@ export function GameBoard({
     }
   };
 
+  useEffect(() => {
+    setSelectedAnswer(null);
+  }, [activeQuestion]);
+
   const handleAnswerSubmit = (letter: string) => {
     Sounds.buttonClick();
+    setSelectedAnswer(letter);
     if (onAnswerSubmit) {
       onAnswerSubmit(letter);
     } else {
@@ -609,14 +615,14 @@ export function GameBoard({
               <div className="flex flex-col space-y-3 w-full">
                 {Object.entries(activeQuestion.card.answers).map(([letter, answer]) => {
                   const isCorrectAnswer = questionResult && letter === questionResult.correctAnswer;
-                  const isWrongAnswer = questionResult && !questionResult.correct && letter !== questionResult.correctAnswer;
+                  const isMyWrongAnswer = questionResult && !questionResult.correct && letter === selectedAnswer;
                   
                   let buttonStyle = "bg-[#252833]/40 border-white/8 text-slate-300 hover:border-red-500/40 hover:text-white hover:bg-[#252833]/70";
                   if (questionResult) {
                     if (isCorrectAnswer) {
                       buttonStyle = "bg-emerald-950/40 border-emerald-500/60 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.1)]";
-                    } else if (isWrongAnswer) {
-                      buttonStyle = "bg-red-950/20 border-red-500/20 text-slate-600 opacity-50";
+                    } else if (isMyWrongAnswer) {
+                      buttonStyle = "bg-red-950/40 border-red-500/60 text-red-400";
                     } else {
                       buttonStyle = "opacity-20 border-transparent text-slate-600";
                     }
