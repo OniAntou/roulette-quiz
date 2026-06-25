@@ -387,14 +387,14 @@ export default function App() {
       }
 
       setTimeout(() => {
-        setActiveQuestion({
-          card: { ...card, answers: card.answers || { A: 'Option A', B: 'Option B', C: 'Option C', D: 'Option D' }, correct: card.correct || 'A' } as any,
-          timer: 10,
-          from: botId,
-        });
-        setPhase('answering');
-
         if (targetId === 'local-player') {
+          setActiveQuestion({
+            card: { ...card, answers: card.answers || { A: 'Option A', B: 'Option B', C: 'Option C', D: 'Option D' }, correct: card.correct || 'A' } as any,
+            timer: 10,
+            from: botId,
+          });
+          setPhase('answering');
+
           // Wait for local player to answer via handleBotModePlayerAnswer
           // Auto answer if timer runs out (10s)
           const answerTimer = setTimeout(() => {
@@ -407,7 +407,7 @@ export default function App() {
           // Bot answers Bot
           const botAnswerDelay = 2000 + Math.random() * 1000;
           const answerTimer = setTimeout(() => {
-            if (gamePhaseRef.current === 'answering') {
+            if (gamePhaseRef.current === 'questioning') {
               const isCorrect = Math.random() < 0.65;
               const answered = isCorrect ? (card.correct || 'A') : 'X';
               processAnswer(targetId, answered, card.correct || 'A');
@@ -441,16 +441,9 @@ export default function App() {
       const targetBot = aliveBots[Math.floor(Math.random() * aliveBots.length)];
 
       setTimeout(() => {
-        setActiveQuestion({
-          card: { ...card, answers: card.answers || { A: 'Option A', B: 'Option B', C: 'Option C', D: 'Option D' }, correct: card.correct || 'A' } as any,
-          timer: 10,
-          from: 'local-player',
-        });
-        setPhase('answering');
-
         const botAnswerDelay = 2000 + Math.random() * 1000;
         const answerTimer = setTimeout(() => {
-          if (gamePhaseRef.current === 'answering') {
+          if (gamePhaseRef.current === 'questioning') {
             const isCorrect = Math.random() < 0.65;
             const answered = isCorrect ? (card.correct || 'A') : 'X';
             processAnswer(targetBot.id, answered, card.correct || 'A');
