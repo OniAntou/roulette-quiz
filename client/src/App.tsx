@@ -58,13 +58,13 @@ export default function App() {
     botsRef.current = bots;
   }, [bots]);
 
-  const connectToServer = (mode: string, name: string) => {
+  const connectToServer = (mode: string, name: string, ip?: string) => {
     setPlayerName(name);
     setGameMode(mode);
     setConnectionStatus('connecting');
     setErrorMsg('');
 
-    const serverUrl = 'http://localhost:3000';
+    const serverUrl = (mode === 'lan' && ip) ? `http://${ip}` : 'http://localhost:3000';
 
     socketClient.connect(serverUrl)
       .then(() => {

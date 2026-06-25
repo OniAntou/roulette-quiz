@@ -3,6 +3,8 @@ import http from 'http';
 import { Server } from 'socket.io';
 import { RoomManager } from './RoomManager';
 import { GameManager } from './GameManager';
+import { LANDiscovery } from './LANDiscovery';
+import cors from 'cors';
 
 const app = express();
 const server = http.createServer(app);
@@ -16,10 +18,19 @@ const io = new Server(server, {
 const roomManager = new RoomManager();
 const gameManager = new GameManager(roomManager, io);
 
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+const lanDiscovery = new LANDiscovery(PORT);
+lanDiscovery.start();
+
+app.use(cors());
 app.use(express.static('public'));
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', rooms: roomManager.getRoomCount() });
+});
+
+app.get('/lan-servers', (_req, res) => {
+  res.json({ servers: lanDiscovery.getServers() });
 });
 
 io.on('connection', (socket) => {
@@ -108,7 +119,6 @@ io.on('connection', (socket) => {
   });
 });
 
-const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`LAN: http://localhost:${PORT}`);

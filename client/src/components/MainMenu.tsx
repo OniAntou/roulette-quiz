@@ -20,7 +20,7 @@ function getRandomName(): string {
 }
 
 interface MainMenuProps {
-  connect: (mode: string, name: string) => void;
+  connect: (mode: string, name: string, ip?: string) => void;
   startBot: (count: number) => void;
   error: string;
   status: ConnectionStatus;
@@ -29,12 +29,31 @@ interface MainMenuProps {
 export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
   const [name, setName] = useState<string>('GUEST');
   const [showBotModal, setShowBotModal] = useState<boolean>(false);
+  const [showLanModal, setShowLanModal] = useState<boolean>(false);
+  const [lanServers, setLanServers] = useState<any[]>([]);
   const [selectedBotCount, setSelectedBotCount] = useState<number>(1);
+  const [manualIp, setManualIp] = useState<string>('');
+  const [isSearchingLan, setIsSearchingLan] = useState<boolean>(false);
 
-  const handleSubmit = (mode: string) => {
+  const handleSubmit = (mode: string, ip?: string) => {
     Sounds.buttonClick();
     const finalName = name.trim().toUpperCase() || getRandomName();
-    connect(mode, finalName);
+    connect(mode, finalName, ip);
+  };
+
+  const handleLanClick = async () => {
+    Sounds.buttonClick();
+    setShowLanModal(true);
+    setIsSearchingLan(true);
+    try {
+      const res = await fetch('http://localhost:3000/lan-servers');
+      const data = await res.json();
+      setLanServers(data.servers || []);
+    } catch (e) {
+      console.error('Failed to fetch LAN servers', e);
+    } finally {
+      setIsSearchingLan(false);
+    }
   };
 
   const handleBotStart = () => {
@@ -97,7 +116,7 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
           </button>
 
           <button 
-            onClick={() => handleSubmit('lan')}
+            onClick={handleLanClick}
             disabled={status === 'connecting'}
             className="group relative flex items-center justify-between px-6 py-4 bg-[#1c1f2a] border border-white/8 rounded-xl text-[12px] font-bold text-slate-300 tracking-widest uppercase cursor-pointer hover:border-red-500/40 hover:bg-slate-900 transition-all duration-200"
           >
@@ -138,6 +157,83 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
           // Type your name and initialize connection state. ESC to drop socket link.
         </div>
       </motion.div>
+
+      <AnimatePresence>
+        {showLanModal && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-[#14161e]/80 backdrop-blur-md flex items-center justify-center z-50"
+          >
+            <motion.div 
+              initial={{ scale: 0.95, y: 30 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20, opacity: 0 }}
+              className="bg-[#1c1f2a] border border-white/8 rounded-xl p-8 max-w-lg w-full flex flex-col"
+            >
+              <h3 className="text-[10px] text-slate-500 font-bold tracking-widest uppercase mb-4">LOCAL PROTOCOL // DISCOVERED SERVERS</h3>
+              
+              <div className="flex flex-col space-y-2 mb-6 max-h-48 overflow-y-auto">
+                {isSearchingLan ? (
+                  <div className="text-[10px] text-amber-500 font-bold tracking-widest uppercase flex items-center gap-2 p-4">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping"></span>
+                    SCANNING LOCAL FREQUENCIES...
+                  </div>
+                ) : lanServers.length > 0 ? (
+                  lanServers.map((server, i) => (
+                    <button
+                      key={i}
+                      onClick={() => { setShowLanModal(false); handleSubmit('lan', `${server.ip}:${server.port}`); }}
+                      className="flex items-center justify-between p-3 bg-[#252833] border border-white/5 rounded-lg hover:border-emerald-500/40 hover:bg-emerald-950/20 transition-all cursor-pointer group"
+                    >
+                      <div className="flex flex-col items-start">
+                        <span className="text-sm font-bold text-slate-300 group-hover:text-emerald-400">{server.name}</span>
+                        <span className="text-[9px] text-slate-500 tracking-wider font-mono">{server.ip}:{server.port}</span>
+                      </div>
+                      <ArrowRight size={16} className="text-slate-500 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all" />
+                    </button>
+                  ))
+                ) : (
+                  <div className="text-[10px] text-slate-500 font-bold tracking-widest uppercase p-4 border border-dashed border-white/10 rounded-lg text-center">
+                    NO ACTIVE SERVERS FOUND ON LOCAL NETWORK
+                  </div>
+                )}
+              </div>
+
+              <h3 className="text-[10px] text-slate-500 font-bold tracking-widest uppercase mb-2">MANUAL OVERRIDE // ENTER IP</h3>
+              <div className="flex space-x-2 mb-6">
+                <input 
+                  type="text"
+                  placeholder="192.168.1.x:3000"
+                  value={manualIp}
+                  onChange={(e) => setManualIp(e.target.value)}
+                  className="flex-1 bg-[#252833] border border-white/10 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:border-emerald-500/50 font-mono"
+                />
+                <button
+                  onClick={() => {
+                    if(manualIp) {
+                      setShowLanModal(false);
+                      handleSubmit('lan', manualIp);
+                    }
+                  }}
+                  className="px-4 py-2 bg-emerald-950/40 border border-emerald-500/30 text-[9px] font-bold text-emerald-400 tracking-wider uppercase rounded-lg hover:bg-emerald-950/60 transition-all cursor-pointer"
+                >
+                  CONNECT
+                </button>
+              </div>
+
+              <div className="flex justify-end mt-2">
+                <button onClick={() => setShowLanModal(false)}
+                  className="px-6 py-2 bg-[#252833] border border-white/5 hover:border-red-500/20 text-[9px] font-bold text-slate-400 tracking-wider uppercase rounded-lg hover:text-white transition-all cursor-pointer"
+                >
+                  ABORT
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {showBotModal && (
