@@ -1,19 +1,20 @@
 # Roulette Quiz
 
-Multiplayer party game combining quiz questions with Russian Roulette mechanics.
+Multiplayer party game combining trivia questions with Russian Roulette mechanics.
 
 ## Overview
 
-Players use question cards to attack opponents. Wrong answers or timeout means pulling the trigger. Death probability increases over time, creating mounting tension.
+Players use question cards to attack opponents. A wrong answer or timeout means pulling the trigger. The probability of death increases with each empty chamber, creating mounting tension. 
 
 **Goal:** Be the last player standing.
 
 ## Tech Stack
 
-- **Desktop:** Electron
-- **Renderer:** Phaser 3 (2D game engine)
-- **Networking:** Socket.io (online + LAN)
+- **Desktop Wrapper:** Electron
+- **Renderer Engine:** Phaser 3 (2D game engine)
+- **Networking:** Socket.io
 - **Server:** Node.js + Express
+- **Frontend UI:** React + TailwindCSS (via Vite)
 
 ## Quick Start
 
@@ -25,7 +26,8 @@ Players use question cards to attack opponents. Wrong answers or timeout means p
 ### Installation
 
 ```bash
-cd D:\Game\roulette-quiz
+# Clone or enter the project directory
+cd roulette-quiz
 
 # Install root dependencies
 npm install
@@ -50,52 +52,39 @@ cd ..
 npm run dev
 ```
 
-This starts both server and client concurrently.
+This starts both the server and client concurrently using `concurrently`.
 
-**Server only:**
+**Run separately:**
 
-```bash
-npm run server:start
-```
+- **Server:** `npm run server:start` (Runs on `http://localhost:3000`)
+- **Client:** `cd client && npm run dev` (Runs on `http://localhost:5173`)
 
-Server runs on `http://localhost:3000`
+## Playing the Game
 
-**Client only:**
-
-```bash
-cd client
-npm run dev
-```
-
-Client runs on `http://localhost:5173`
-
-### Playing the Game
-
-1. Start the server: `npm run server:start`
-2. Start the client: `cd client && npm run dev`
-3. In the game menu, select **ONLINE** or **LAN** *(Note: currently both connect to localhost:3000)*
-4. **Create Room** to get a room code
-5. Share the room code with your friend
-6. Friend selects **JOIN ROOM** and enters the code
-7. Both players click **READY**
-8. Game starts when both are ready!
+1. Start both the client and server.
+2. In the game menu, you can select **ONLINE** or **LAN**.
+   - *Note: Currently, both modes connect directly to the hardcoded local server (`http://localhost:3000`). LAN UDP discovery is not yet implemented.*
+3. Click **Create Room** to get a room code.
+4. Share the room code with your opponent.
+5. The opponent selects **JOIN ROOM** and enters the code.
+6. Once both players click **READY**, the game begins.
 
 ## Game Rules
 
 ### Setup
-- 2+ players
-- Each player gets 4 question cards
-- 6-chamber revolver with 1 bullet
+- 2+ players (currently optimized for 1v1).
+- Each player starts with a hand of 4 question cards.
+- A 6-chamber revolver is loaded with exactly 1 bullet.
 
 ### Gameplay
-1. Choose a card from your hand
-2. Opponent must answer the question
-3. **Correct answer:** Turn passes to opponent
-4. **Wrong answer/timeout:** You pull the trigger
-5. **Survived:** New round, both get 4 new cards
-6. **Dead:** Game over, remaining player wins
+1. Select a card from your hand to attack your opponent.
+2. The opponent must answer the question within the time limit.
+3. **Correct answer:** The turn passes back to them.
+4. **Wrong answer or timeout:** The opponent must pull the trigger.
+5. **Survived:** The round resets, and both players receive a fresh hand of 4 cards.
+6. **Dead:** Game over! The surviving player wins.
 
-### Bullet Progression
+### Bullet Progression (Trigger Odds)
 - 1st pull: 1/6 chance
 - 2nd pull: 1/5 chance
 - 3rd pull: 1/4 chance
@@ -104,95 +93,49 @@ Client runs on `http://localhost:5173`
 - 6th pull: 100% (guaranteed death)
 
 ### Card Difficulties
-- **Easy (Green):** 10 seconds to answer
-- **Medium (Yellow):** 7 seconds to answer
-- **Hard (Red):** 5 seconds to answer
+- 🟢 **Easy (Green):** 10 seconds to answer
+- 🟡 **Medium (Yellow):** 7 seconds to answer
+- 🔴 **Hard (Red):** 5 seconds to answer
 
 ## Project Structure
 
 ```
 roulette-quiz/
-├── client/                 # Phaser + Electron client
+├── client/                 # React + Phaser + Electron client
 │   ├── src/
-│   │   ├── scenes/        # Game scenes
-│   │   ├── objects/       # Game objects (Card, Player, Gun, Timer)
-│   │   ├── ui/            # UI components (HUD, QuestionPanel, CardHand)
-│   │   ├── network/       # Socket.io client
+│   │   ├── components/    # React UI components (MainMenu, Lobby, GameBoard)
+│   │   ├── network/       # Socket.io client wrapper
 │   │   └── audio/         # Audio manager
-│   └── assets/            # Images, audio, fonts
-├── server/                 # Node.js server
+│   ├── public/            # Static assets
+│   └── index.html
+├── server/                 # Node.js + Express + Socket.io server
 │   ├── src/
-│   │   ├── GameManager.js
-│   │   ├── RoomManager.js
-│   │   ├── QuestionManager.js
-│   │   └── SocketServer.js
+│   │   ├── index.ts       # Main server entry
+│   │   ├── GameManager.ts
+│   │   ├── RoomManager.ts
+│   │   ├── QuestionManager.ts
 │   └── data/
 │       └── questions.json  # Question bank
-└── shared/                 # Shared constants
+├── shared/                 # Shared constants between client and server
+└── docs/                   # Design specs and documentation
 ```
-
-## Configuration
-
-### Server Port
-Default: `3000`
-
-Set via environment variable:
-```bash
-PORT=8080 npm run server:start
-```
-
-### LAN Discovery
-*Currently not implemented (fallback to localhost).*
-
-## Development
-
-### Adding Questions
-
-Edit `server/data/questions.json`:
-
-```json
-{
-  "id": "q_XXX",
-  "topic": "science",
-  "difficulty": "easy|medium|hard",
-  "question": "Your question?",
-  "answers": {
-    "A": "Answer A",
-    "B": "Answer B",
-    "C": "Answer C",
-    "D": "Answer D"
-  },
-  "correct": "A"
-}
-```
-
-### Topics
-- science 🔬
-- geography 🌍
-- history 📜
-- entertainment 🎬
-- gaming 🎮
-- technology 💻
 
 ## Known Issues
 
-- Audio files are placeholders (no actual sounds yet)
-- Player name input uses browser prompt
-- No LAN discovery implemented yet
-- Single browser window for testing
+- 🔇 **Audio:** Currently uses placeholder references; actual audio files are missing.
+- 🛜 **Networking:** No real LAN discovery (UDP broadcast) is implemented. The UI buttons for Online/LAN both default to `localhost:3000`.
+- 💬 **Input:** Player name input still relies on basic implementations without extensive sanitization.
 
-## Future Features
+## Future Roadmap
 
-- [ ] Ranking system
-- [ ] Achievements
-- [ ] Custom avatars
-- [ ] In-game chat
-- [ ] Spectator mode
-- [ ] Power-up cards
-- [ ] Items
-- [ ] More questions (500+)
-- [ ] Sound effects
-- [ ] Music
+- [ ] Implement true LAN discovery using UDP broadcasting on port `41234`.
+- [ ] Add real sound effects and background music.
+- [ ] Ranking and matchmaking system.
+- [ ] Custom avatars and player profiles.
+- [ ] In-game chat system.
+- [ ] Support for spectator mode.
+- [ ] Power-up cards and usable items.
+- [ ] Expand the question bank (500+ questions).
 
 ## License
 
