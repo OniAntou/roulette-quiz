@@ -277,16 +277,6 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
           )}
         </AnimatePresence>
       </motion.div>
-
-      {/* Suspense status text */}
-      <div className="flex flex-col items-center space-y-1">
-        <span className="text-xs font-bold text-white tracking-widest uppercase animate-pulse">
-          CHAMBER // BLIND_MODE
-        </span>
-        <span className="text-[10px] font-semibold text-red-500 tracking-wider uppercase">
-          HAZARD LEVEL // UNKNOWN
-        </span>
-      </div>
     </div>
   );
 }

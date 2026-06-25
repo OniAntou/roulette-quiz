@@ -369,7 +369,6 @@ export function GameBoard({
 
         <div className="flex justify-center md:justify-end">
           <div className="flex flex-col items-center max-w-max">
-            <span className="text-xs font-bold text-slate-500 tracking-widest uppercase mb-4">// FIREPOWER //</span>
             <Revolver 
               bulletsFired={bulletsFired}
               currentPosition={currentPosition}
