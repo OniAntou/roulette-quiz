@@ -64,260 +64,278 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
   };
 
   return (
-    <div className="w-full max-w-6xl px-6 md:px-12 grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-20 items-center z-10 py-10">
-      <motion.div 
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-        className="flex flex-col space-y-8"
-      >
-        <div className="inline-flex max-w-max px-3 py-1 bg-red-950/20 border border-red-500/30 rounded text-[9px] font-bold text-red-400 tracking-widest uppercase shadow-[0_0_15px_rgba(239,68,68,0.05)]">
-          SECURE CONNECTION PROTOCOL //
-        </div>
-        <h1 className="text-6xl sm:text-7xl lg:text-8xl font-black tracking-tighter leading-[0.85] text-transparent bg-clip-text bg-gradient-to-br from-white via-slate-100 to-slate-500">
-          ROULETTE<br />
-          <span className="text-slate-500 drop-shadow-[0_0_30px_rgba(255,255,255,0.05)]">PROTOCOL.</span>
-        </h1>
-        <p className="text-slate-400 text-base md:text-lg leading-relaxed max-w-[45ch] font-medium">
-          The ultimate high-stakes trivia multiplayer system. Decrypted for elite minds. Answer correctly or pull the trigger. Survive to conquer.
-        </p>
-      </motion.div>
-
-      <motion.div 
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.15 }}
-        className="flex flex-col space-y-6"
-      >
-        {/* Username access terminal */}
-        <div className="bg-[#1c1f2a]/80 backdrop-blur-md border border-white/8 rounded-2xl p-8 flex flex-col space-y-3 relative overflow-hidden transition-all duration-300 focus-within:border-red-500/50 focus-within:shadow-[0_0_30px_rgba(239,68,68,0.08)] group">
-          <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-red-500/30 to-transparent"></div>
-          <label className="text-[11px] font-extrabold text-slate-500 tracking-wider flex justify-between items-center">
-            <span>USER_IDENTIFICATION_KEY</span>
-            <span className="text-red-500/60 font-mono group-focus-within:animate-pulse">ACTIVE_LINK</span>
-          </label>
-          <div className="flex items-center space-x-2">
-            <input 
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value.substring(0, 12).toUpperCase())}
-              disabled={status === 'connecting'}
-              className="bg-transparent text-4xl font-black text-white focus:outline-none w-full uppercase tracking-widest placeholder-slate-700"
-              placeholder="ENTER_NAME"
-            />
-            <span className="terminal-cursor text-4xl font-bold text-red-500">_</span>
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex flex-col space-y-4">
-          <button 
-            onClick={() => handleSubmit('online')}
-            disabled={status === 'connecting'}
-            className="group relative flex items-center justify-between px-10 py-6.5 bg-[#1c1f2a]/80 backdrop-blur-md border border-white/8 rounded-2xl text-base font-extrabold text-slate-300 tracking-widest uppercase cursor-pointer hover:border-red-500/40 hover:text-white hover:shadow-[0_0_25px_rgba(239,68,68,0.12)] transition-all duration-300 overflow-hidden"
-          >
-            <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-red-500 scale-y-0 group-hover:scale-y-100 transition-transform duration-300 origin-center"></div>
-            <span className="flex items-center gap-4 transition-transform duration-300 group-hover:translate-x-2">
-              <Globe size={24} className="text-slate-500 group-hover:text-red-500 transition-colors" />
-              INITIALIZE ONLINE
-            </span>
-            <ArrowRight size={24} className="text-slate-500 group-hover:text-red-500 group-hover:translate-x-1 transition-all duration-300" />
-          </button>
-
-          <button 
-            onClick={handleLanClick}
-            disabled={status === 'connecting'}
-            className="group relative flex items-center justify-between px-10 py-6.5 bg-[#1c1f2a]/80 backdrop-blur-md border border-white/8 rounded-2xl text-base font-extrabold text-slate-300 tracking-widest uppercase cursor-pointer hover:border-red-500/40 hover:text-white hover:shadow-[0_0_25px_rgba(239,68,68,0.12)] transition-all duration-300 overflow-hidden"
-          >
-            <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-red-500 scale-y-0 group-hover:scale-y-100 transition-transform duration-300 origin-center"></div>
-            <span className="flex items-center gap-4 transition-transform duration-300 group-hover:translate-x-2">
-              <WifiHigh size={24} className="text-slate-500 group-hover:text-red-500 transition-colors" />
-              LOCAL PROTOCOL // LAN
-            </span>
-            <ArrowRight size={24} className="text-slate-500 group-hover:text-red-500 group-hover:translate-x-1 transition-all duration-300" />
-          </button>
-
-          <button 
-            onClick={() => setShowBotModal(true)}
-            disabled={status === 'connecting'}
-            className="group relative flex items-center justify-between px-10 py-6.5 bg-[#1c1f2a]/80 backdrop-blur-md border border-white/8 rounded-2xl text-base font-extrabold text-slate-300 tracking-widest uppercase cursor-pointer hover:border-emerald-500/40 hover:text-white hover:shadow-[0_0_25px_rgba(16,185,129,0.12)] transition-all duration-300 overflow-hidden"
-          >
-            <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-emerald-500 scale-y-0 group-hover:scale-y-100 transition-transform duration-300 origin-center"></div>
-            <span className="flex items-center gap-4 transition-transform duration-300 group-hover:translate-x-2">
-              <Robot size={24} className="text-slate-500 group-hover:text-emerald-500 transition-colors" />
-              BOT PROTOCOL // VS CPU
-            </span>
-            <ArrowRight size={24} className="text-slate-500 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all duration-300" />
-          </button>
-        </div>
-
-        {status === 'connecting' && (
-          <div className="text-[10px] text-amber-500 font-extrabold tracking-widest uppercase flex items-center gap-3 bg-amber-500/5 border border-amber-500/20 px-4 py-3 rounded-xl">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
-            </span>
-            INITIALIZING CENTRAL SERVER LINK...
-          </div>
-        )}
+    <>
+      {/* Tactical Blueprint Ambient Background - Pure Industrial Brutalist */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none -z-10 bg-[#07080b]">
+        {/* Subtle grid lines */}
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.015)_1px,transparent_1px)] bg-[size:32px_32px]" />
         
-        {error && (
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="text-[10px] text-red-500 font-extrabold tracking-widest uppercase border border-red-500/20 bg-red-950/20 px-4 py-3 rounded-xl shadow-[0_0_15px_rgba(239,68,68,0.05)]"
-          >
-            EXCEPTION // {error}
-          </motion.div>
-        )}
+        {/* Vignette shadow */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black opacity-60" />
 
-        <div className="text-[10px] text-slate-600 tracking-wide font-semibold text-center md:text-left">
-          // Type your name and initialize connection state. ESC to drop socket link.
-        </div>
-      </motion.div>
+        {/* Blueprint technical lines */}
+        <svg className="absolute inset-0 w-full h-full opacity-[0.035]" xmlns="http://www.w3.org/2000/svg">
+          <line x1="5%" y1="0" x2="5%" y2="100%" stroke="white" strokeWidth="1" strokeDasharray="5,5" />
+          <line x1="95%" y1="0" x2="95%" y2="100%" stroke="white" strokeWidth="1" strokeDasharray="5,5" />
+          <line x1="0" y1="12%" x2="100%" y2="12%" stroke="white" strokeWidth="1" />
+          <line x1="0" y1="88%" x2="100%" y2="88%" stroke="white" strokeWidth="1" />
+          
+          {/* Target crosshairs in corners */}
+          <circle cx="5%" cy="12%" r="8" fill="none" stroke="white" strokeWidth="1" />
+          <circle cx="95%" cy="12%" r="8" fill="none" stroke="white" strokeWidth="1" />
+          <circle cx="5%" cy="88%" r="8" fill="none" stroke="white" strokeWidth="1" />
+          <circle cx="95%" cy="88%" r="8" fill="none" stroke="white" strokeWidth="1" />
+        </svg>
 
-      <AnimatePresence>
-        {showLanModal && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-[#0c0d12]/90 backdrop-blur-md flex items-center justify-center z-50 p-4"
-          >
-            <motion.div 
-              initial={{ scale: 0.95, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.95, y: 15, opacity: 0 }}
-              transition={{ type: "spring", stiffness: 350, damping: 30 }}
-              className="glass-panel rounded-2xl p-8 max-w-2xl w-full flex flex-col relative overflow-hidden"
-            >
-              <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
-              <h3 className="text-[10px] text-slate-500 font-extrabold tracking-widest uppercase mb-5 flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
-                LOCAL PROTOCOL // DISCOVERED SERVERS
-              </h3>
+        {/* Corner coordinates / Technical Labels */}
+        <div className="absolute top-6 left-6 font-mono text-[8px] text-white/10 tracking-widest">SYS.LOC // 47.11.02</div>
+        <div className="absolute top-6 right-6 font-mono text-[8px] text-white/10 tracking-widest">VER.PRT // 2.0.26</div>
+        <div className="absolute bottom-6 left-6 font-mono text-[8px] text-white/10 tracking-widest">LAT.DEG // 90.00.00</div>
+        <div className="absolute bottom-6 right-6 font-mono text-[8px] text-white/10 tracking-widest">HAZ.STA // ACTIVE</div>
+      </div>
+
+      <div className="w-full max-w-6xl px-6 md:px-12 grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-20 items-center z-10 py-10">
+        <motion.div 
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          className="flex flex-col space-y-6"
+        >
+          <div className="inline-flex max-w-max px-2 py-0.5 border border-white/10 rounded-sm font-mono text-[9px] text-slate-500 tracking-widest uppercase">
+            EST. CONNECTION // SECURE
+          </div>
+          <h1 className="text-6xl sm:text-7xl font-mono font-black tracking-tight leading-[0.9] text-white select-none">
+            ROULETTE<br />
+            <span className="text-slate-500 font-normal">PROTOCOL</span>
+          </h1>
+          <p className="text-slate-500 font-mono text-xs leading-relaxed max-w-[40ch] uppercase tracking-wider">
+            High-stakes trivia multiplayer system. Answer correctly or pull the trigger. Survive to decrypt the next level.
+          </p>
+        </motion.div>
+
+        <motion.div 
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: "easeOut", delay: 0.1 }}
+          className="flex flex-col space-y-6"
+        >
+          {/* Username access terminal */}
+          <div className="border border-white/10 rounded-lg p-6 flex flex-col space-y-3 bg-black/20 focus-within:border-white/30 transition-all duration-300">
+            <label className="font-mono text-[9px] text-slate-500 tracking-widest">
+              // USER_IDENTIFICATION_KEY
+            </label>
+            <div className="flex items-center space-x-2">
+              <input 
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value.substring(0, 12).toUpperCase())}
+                disabled={status === 'connecting'}
+                className="bg-transparent text-3xl font-mono font-bold text-white focus:outline-none w-full uppercase tracking-wider placeholder-slate-800"
+                placeholder="INPUT_NAME"
+              />
+              <span className="w-2.5 h-6 bg-white/40 animate-pulse"></span>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex flex-col space-y-3">
+            {[
+              { label: 'INITIALIZE ONLINE', icon: Globe, onClick: () => handleSubmit('online') },
+              { label: 'LOCAL PROTOCOL // LAN', icon: WifiHigh, onClick: handleLanClick },
+              { label: 'BOT PROTOCOL // VS CPU', icon: Robot, onClick: () => setShowBotModal(true), isGreen: true }
+            ].map((btn, i) => {
+              const Icon = btn.icon;
+              const hoverBorderColor = btn.isGreen ? 'hover:border-emerald-500/30' : 'hover:border-white/30';
+              const hoverBgColor = btn.isGreen ? 'hover:bg-emerald-950/10' : 'hover:bg-white/5';
+              const hoverTextColor = btn.isGreen ? 'hover:text-emerald-400' : 'hover:text-white';
               
-              <div className="flex flex-col space-y-3 mb-6 max-h-48 overflow-y-auto pr-1">
-                {isSearchingLan ? (
-                  <div className="text-[10px] text-amber-500 font-extrabold tracking-widest uppercase flex items-center gap-3 p-5 border border-white/5 rounded-xl bg-white/2">
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
-                    </span>
-                    SCANNING LOCAL FREQUENCIES...
-                  </div>
-                ) : lanServers.length > 0 ? (
-                  lanServers.map((server, i) => (
-                    <button
-                      key={i}
-                      onClick={() => { setShowLanModal(false); handleSubmit('lan', `${server.ip}:${server.port}`); }}
-                      className="flex items-center justify-between p-4 bg-[#252833]/50 border border-white/5 rounded-xl hover:border-emerald-500/40 hover:bg-emerald-950/20 transition-all duration-300 cursor-pointer group"
-                    >
-                      <div className="flex flex-col items-start gap-1">
-                        <span className="text-sm font-extrabold text-slate-300 group-hover:text-emerald-400 transition-colors uppercase">{server.name}</span>
-                        <span className="text-[9px] text-slate-500 tracking-wider font-mono bg-black/30 px-2 py-0.5 rounded">{server.ip}:{server.port}</span>
-                      </div>
-                      <ArrowRight size={24} className="text-slate-500 group-hover:text-emerald-500 group-hover:translate-x-1.5 transition-all duration-300" />
-                    </button>
-                  ))
-                ) : (
-                  <div className="text-[10px] text-slate-500 font-bold tracking-widest uppercase p-6 border border-dashed border-white/8 rounded-xl text-center bg-black/10">
-                    NO ACTIVE SERVERS FOUND ON LOCAL NETWORK
-                  </div>
-                )}
-              </div>
-
-              <h3 className="text-[10px] text-slate-500 font-extrabold tracking-widest uppercase mb-3">MANUAL OVERRIDE // ENTER IP</h3>
-              <div className="flex space-x-3 mb-8">
-                <input 
-                  type="text"
-                  placeholder="192.168.1.X:3000"
-                  value={manualIp}
-                  onChange={(e) => setManualIp(e.target.value)}
-                  className="flex-1 bg-[#252833]/50 border border-white/8 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-red-500/50 focus:shadow-[0_0_15px_rgba(239,68,68,0.05)] font-mono transition-all uppercase"
-                />
-                <button
-                  onClick={() => {
-                    if(manualIp) {
-                      setShowLanModal(false);
-                      handleSubmit('lan', manualIp);
-                    }
-                  }}
-                  className="px-6 py-3 bg-red-950/30 border border-red-500/30 text-[10px] font-extrabold text-red-400 tracking-wider uppercase rounded-xl hover:bg-red-950/60 hover:border-red-500 transition-all duration-300 cursor-pointer"
+              return (
+                <motion.button 
+                  key={i}
+                  whileHover={{ x: 6 }}
+                  whileTap={{ scale: 0.99 }}
+                  onClick={btn.onClick}
+                  disabled={status === 'connecting'}
+                  className={`flex items-center justify-between px-6 py-4.5 bg-black/10 border border-white/10 rounded-lg font-mono text-xs font-bold text-slate-400 tracking-widest uppercase cursor-pointer transition-all duration-200 ${hoverBorderColor} ${hoverBgColor} ${hoverTextColor}`}
                 >
-                  CONNECT
-                </button>
-              </div>
+                  <span className="flex items-center gap-3">
+                    <Icon size={18} className="text-slate-500" />
+                    {btn.label}
+                  </span>
+                  <ArrowRight size={18} className="text-slate-600" />
+                </motion.button>
+              );
+            })}
+          </div>
 
-              <div className="flex justify-end border-t border-white/5 pt-4">
-                <button onClick={() => setShowLanModal(false)}
-                  className="px-6 py-2.5 bg-[#252833]/50 border border-white/8 hover:border-red-500/30 text-[10px] font-extrabold text-slate-400 tracking-wider uppercase rounded-xl hover:text-white hover:bg-red-950/10 transition-all duration-300 cursor-pointer"
-                >
-                  ABORT CONNECTIONS
-                </button>
-              </div>
+          {status === 'connecting' && (
+            <div className="text-[10px] text-amber-500 font-mono font-extrabold tracking-widest uppercase flex items-center gap-3 bg-amber-500/5 border border-amber-500/20 px-4 py-3 rounded-lg">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+              </span>
+              CONNECTING CENTRAL SERVER...
+            </div>
+          )}
+          
+          {error && (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="text-[10px] text-red-500 font-mono font-extrabold tracking-widest uppercase border border-red-500/20 bg-red-950/20 px-4 py-3 rounded-lg"
+            >
+              EXCEPTION // {error}
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
 
-      <AnimatePresence>
-        {showBotModal && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-[#0c0d12]/90 backdrop-blur-md flex items-center justify-center z-50 p-4"
-          >
+          <div className="text-[9px] font-mono text-slate-600 tracking-wider">
+            // ESC key drops current connection state. system ready.
+          </div>
+        </motion.div>
+
+        <AnimatePresence>
+          {showLanModal && (
             <motion.div 
-              initial={{ scale: 0.95, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.95, y: 15, opacity: 0 }}
-              transition={{ type: "spring", stiffness: 350, damping: 30 }}
-              className="glass-panel rounded-2xl p-8 max-w-xl w-full flex flex-col items-center relative overflow-hidden"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50 p-4"
             >
-              <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-emerald-500/20 to-transparent"></div>
-              <h3 className="text-[10px] text-slate-500 font-extrabold tracking-widest uppercase mb-6 flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                SELECT BOT COUNT //
-              </h3>
-              
-              <div className="flex gap-4 mb-8 w-full justify-center">
-                {[1, 2, 3].map((count) => (
+              <motion.div 
+                initial={{ scale: 0.98, y: 10 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.98, y: 10, opacity: 0 }}
+                transition={{ duration: 0.25, ease: "easeOut" }}
+                className="bg-[#0b0c10] border border-white/10 rounded-lg p-8 max-w-2xl w-full flex flex-col relative"
+              >
+                <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
+                <h3 className="font-mono text-[9px] text-slate-500 tracking-widest uppercase mb-5 flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
+                  // DISCOVERED LAN SERVERS
+                </h3>
+                
+                <div className="flex flex-col space-y-2 mb-6 max-h-48 overflow-y-auto pr-1">
+                  {isSearchingLan ? (
+                    <div className="text-[10px] text-amber-500 font-mono font-extrabold tracking-widest uppercase flex items-center gap-3 p-5 border border-white/5 rounded-lg bg-white/2">
+                      <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                      </span>
+                      SCANNING FREQUENCIES...
+                    </div>
+                  ) : lanServers.length > 0 ? (
+                    lanServers.map((server, i) => (
+                      <button
+                        key={i}
+                        onClick={() => { setShowLanModal(false); handleSubmit('lan', `${server.ip}:${server.port}`); }}
+                        className="flex items-center justify-between p-4 bg-black/20 border border-white/10 rounded-lg hover:border-emerald-500/30 hover:bg-emerald-950/10 transition-all duration-200 cursor-pointer group"
+                      >
+                        <div className="flex flex-col items-start gap-1">
+                          <span className="text-xs font-bold text-slate-300 uppercase font-mono">{server.name}</span>
+                          <span className="text-[9px] text-slate-500 font-mono bg-black/40 px-2 py-0.5 rounded">{server.ip}:{server.port}</span>
+                        </div>
+                        <ArrowRight size={18} className="text-slate-500 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all duration-200" />
+                      </button>
+                    ))
+                  ) : (
+                    <div className="text-[9px] font-mono text-slate-500 font-bold tracking-widest uppercase p-6 border border-dashed border-white/10 rounded-lg text-center bg-black/10">
+                      NO ACTIVE SERVERS FOUND ON NETWORK
+                    </div>
+                  )}
+                </div>
+
+                <h3 className="font-mono text-[9px] text-slate-500 tracking-widest uppercase mb-3">// MANUAL IP DIRECT CONNECTION</h3>
+                <div className="flex space-x-3 mb-8">
+                  <input 
+                    type="text"
+                    placeholder="192.168.1.X:3000"
+                    value={manualIp}
+                    onChange={(e) => setManualIp(e.target.value)}
+                    className="flex-1 bg-black/20 border border-white/10 rounded-lg px-4 py-3 text-sm text-white placeholder-slate-700 focus:outline-none focus:border-white/30 font-mono uppercase"
+                  />
                   <button
-                    key={count}
                     onClick={() => {
-                      Sounds.buttonClick();
-                      setSelectedBotCount(count);
+                      if(manualIp) {
+                        setShowLanModal(false);
+                        handleSubmit('lan', manualIp);
+                      }
                     }}
-                    className={`w-28 h-28 rounded-2xl border flex flex-col items-center justify-center gap-1 transition-all duration-300 cursor-pointer ${
-                      selectedBotCount === count
-                        ? 'bg-emerald-950/40 border-emerald-500/60 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.15)] scale-105'
-                        : 'bg-[#252833]/40 border-white/8 text-slate-400 hover:border-white/20 hover:bg-[#252833]/70 hover:scale-102'
-                    }`}
+                    className="px-6 py-3 bg-red-950/20 border border-red-500/30 text-[9px] font-mono font-bold text-red-400 tracking-widest uppercase rounded-lg hover:bg-red-950/40 hover:border-red-500/50 transition-all duration-200 cursor-pointer"
                   >
-                    <span className="text-4xl font-black">{count}</span>
-                    <span className="text-[10px] font-extrabold tracking-widest uppercase">BOTS</span>
+                    CONNECT
                   </button>
-                ))}
-              </div>
+                </div>
 
-              <div className="flex gap-4 w-full border-t border-white/5 pt-5">
-                <button onClick={() => setShowBotModal(false)}
-                  className="flex-1 py-3 bg-[#252833]/50 border border-white/8 hover:border-red-500/30 text-[10px] font-extrabold text-slate-400 tracking-wider uppercase rounded-xl hover:text-white hover:bg-red-950/10 transition-all duration-300 cursor-pointer"
-                >
-                  CANCEL
-                </button>
-                <button onClick={handleBotStart}
-                  className="flex-1 py-3 bg-emerald-950/30 border border-emerald-500/30 hover:border-emerald-500/80 text-[10px] font-extrabold text-emerald-400 tracking-wider uppercase rounded-xl hover:bg-emerald-950/60 hover:shadow-[0_0_20px_rgba(16,185,129,0.12)] transition-all duration-300 cursor-pointer"
-                >
-                  START MISSION
-                </button>
-              </div>
+                <div className="flex justify-end border-t border-white/5 pt-4">
+                  <button onClick={() => setShowLanModal(false)}
+                    className="px-5 py-2 bg-black/20 border border-white/10 hover:border-red-500/30 text-[9px] font-mono font-bold text-slate-500 tracking-wider uppercase rounded-lg hover:text-white hover:bg-red-950/10 transition-all duration-200 cursor-pointer"
+                  >
+                    ABORT
+                  </button>
+                </div>
+              </motion.div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {showBotModal && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            >
+              <motion.div 
+                initial={{ scale: 0.98, y: 10 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.98, y: 10, opacity: 0 }}
+                transition={{ duration: 0.25, ease: "easeOut" }}
+                className="bg-[#0b0c10] border border-white/10 rounded-lg p-8 max-w-md w-full flex flex-col items-center relative"
+              >
+                <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-emerald-500/20 to-transparent"></div>
+                <h3 className="font-mono text-[9px] text-slate-500 tracking-widest uppercase mb-6 flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                  // SELECT BOT COUNT
+                </h3>
+                
+                <div className="flex gap-3 mb-8 w-full justify-center">
+                  {[1, 2, 3].map((count) => (
+                    <button
+                      key={count}
+                      onClick={() => {
+                        Sounds.buttonClick();
+                        setSelectedBotCount(count);
+                      }}
+                      className={`w-24 h-24 rounded-lg border flex flex-col items-center justify-center gap-1 transition-all duration-200 cursor-pointer ${
+                        selectedBotCount === count
+                          ? 'bg-emerald-950/20 border-emerald-500/50 text-emerald-400'
+                          : 'bg-black/20 border-white/10 text-slate-500 hover:border-white/20 hover:text-slate-300'
+                      }`}
+                    >
+                      <span className="font-mono text-3xl font-black">{count}</span>
+                      <span className="font-mono text-[9px] tracking-widest uppercase">BOTS</span>
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex gap-3 w-full border-t border-white/5 pt-5">
+                  <button onClick={() => setShowBotModal(false)}
+                    className="flex-1 py-3 bg-black/20 border border-white/10 text-[9px] font-mono font-bold text-slate-500 tracking-wider uppercase rounded-lg hover:border-red-500/30 hover:text-red-400 transition-all duration-200 cursor-pointer"
+                  >
+                    CANCEL
+                  </button>
+                  <button onClick={handleBotStart}
+                    className="flex-1 py-3 bg-emerald-950/25 border border-emerald-500/40 text-[9px] font-mono font-bold text-emerald-400 tracking-wider uppercase rounded-lg hover:bg-emerald-950/50 hover:border-emerald-500 transition-all duration-200 cursor-pointer"
+                  >
+                    START MISSION
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </>
   );
 }

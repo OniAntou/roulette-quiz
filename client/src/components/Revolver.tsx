@@ -7,454 +7,354 @@ interface RevolverProps {
   isSpinning: boolean;
   isFiring: boolean;
   alive: boolean;
+  rotationAngle: number;
 }
 
-export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, alive }: RevolverProps) {
+export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, alive, rotationAngle }: RevolverProps) {
   return (
     <div className="flex flex-col items-center justify-center space-y-6">
-      {/* Gun Container - Layout-free lying flat on table with drop-shadow */}
+      {/* Gun Container - Parent handles rotation to target */}
       <motion.div 
-        animate={isFiring ? { 
-          x: [0, -12, 3, -1, 0], 
-          y: [0, -6, 2, -1, 0], 
-          rotate: [-90, -85, -91, -90] 
-        } : {
-          rotate: -90
-        }}
-        transition={{ duration: 0.22, ease: "easeOut" }}
-        className="w-80 h-[220px] relative flex items-center justify-center pointer-events-none select-none"
+        animate={{ rotate: rotationAngle }}
+        transition={{ duration: 0.4, ease: "easeInOut" }}
+        className="w-[400px] h-[275px] relative flex items-center justify-center pointer-events-none select-none"
         style={{
-          filter: 'drop-shadow(-12px 0px 20px rgba(0, 0, 0, 0.6))'
+          transformOrigin: 'center center',
+          filter: 'drop-shadow(0px 8px 24px rgba(6, 182, 212, 0.15))'
         }}
       >
-        <svg className="w-full h-full text-slate-800" viewBox="0 0 320 220">
-          <defs>
-            {/* Matte Silver Steel Gradient for Raging Bull */}
-            <linearGradient id="ragingSteel" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#ffffff" />
-              <stop offset="15%" stopColor="#f3f4f6" />
-              <stop offset="45%" stopColor="#d1d5db" />
-              <stop offset="80%" stopColor="#9ca3af" />
-              <stop offset="100%" stopColor="#707682" />
-            </linearGradient>
+        {/* Inner container handles recoil animation locally */}
+        <motion.div
+          animate={isFiring ? { 
+            x: [0, -15, 4, -1, 0], 
+            y: [0, -6, 2, -1, 0], 
+            rotate: [0, 4, -1, 0] 
+          } : {
+            x: 0,
+            y: 0,
+            rotate: 0
+          }}
+          transition={{ duration: 0.22, ease: "easeOut" }}
+          className="w-full h-full relative flex items-center justify-center"
+        >
+          <svg className="w-full h-full text-cyan-500" viewBox="0 0 320 220">
+            <defs>
+              {/* CAD Hatch Pattern for Grip */}
+              <pattern id="gripCADHatch" width="6" height="6" patternUnits="userSpaceOnUse">
+                <line x1="0" y1="6" x2="6" y2="0" stroke="#0891b2" strokeWidth="0.8" opacity="0.3" />
+                <line x1="0" y1="0" x2="6" y2="6" stroke="#0891b2" strokeWidth="0.8" opacity="0.3" />
+              </pattern>
+            </defs>
 
-            {/* Dark metal for hammer, sights and mechanical joints */}
-            <linearGradient id="darkSteel" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#4b5563" />
-              <stop offset="50%" stopColor="#1f2937" />
-              <stop offset="100%" stopColor="#0d0e12" />
-            </linearGradient>
-
-            {/* Cylinder Steel with realistic rounded shading */}
-            <linearGradient id="cylinderSteel" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#ffffff" />
-              <stop offset="20%" stopColor="#e5e7eb" />
-              <stop offset="50%" stopColor="#9ca3af" />
-              <stop offset="80%" stopColor="#5a606d" />
-              <stop offset="100%" stopColor="#2c3038" />
-            </linearGradient>
-
-            {/* 3D Flute indentation gradient */}
-            <linearGradient id="fluteGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#08090b" />
-              <stop offset="35%" stopColor="#181a20" />
-              <stop offset="75%" stopColor="#676d7b" />
-              <stop offset="100%" stopColor="#d1d5db" />
-            </linearGradient>
-
-            {/* Rubber Grip black texture pattern */}
-            <pattern id="gripTexture" width="3" height="3" patternUnits="userSpaceOnUse">
-              <circle cx="1.5" cy="1.5" r="0.5" fill="#141518" />
-            </pattern>
-
-            {/* Cylinder Mask */}
-            <clipPath id="cylinderClip">
-              <rect x="92" y="78" width="54" height="44" rx="3" />
-            </clipPath>
-          </defs>
-
-          {/* =======================================================
-              TAURUS RAGING BULL REVOLVER (RIGHT-FACING)
-              ======================================================= */}
-
-          {/* 1. Black Rubber Grip with Red Cushion Spine, Finger Grooves & Textured Panel */}
-          {/* Main Grip Body (Black rubber) */}
-          <path 
-            d="M 78 126 
-               C 75 140, 70 160, 50 206 
-               C 48 212, 54 214, 62 214 
-               C 80 214, 94 212, 96 202 
-               C 98 188, 92 182, 94 172 
-               C 96 162, 90 156, 92 146 
-               C 94 138, 92 132, 88 126 Z" 
-            fill="#23252a" 
-            stroke="#111215" 
-            strokeWidth="1.5" 
-          />
-          {/* Red Cushion Backstrap */}
-          <path 
-            d="M 78 126 
-               C 75 140, 70 160, 50 206 
-               L 54 208 
-               C 73 164, 78 144, 81 126 Z" 
-            fill="#dc2626" 
-          />
-          {/* Grip Inner Shading Panel */}
-          <path 
-            d="M 83 135 
-               C 80 148, 75 165, 60 200 
-               C 62 202, 82 202, 86 195 
-               C 88 185, 84 180, 86 172 
-               C 88 162, 82 156, 84 148 
-               C 86 142, 85 138, 83 135 Z" 
-            fill="#181a1f" 
-          />
-          {/* Grip Dotted Textured Layer */}
-          <path 
-            d="M 83 135 
-               C 80 148, 75 165, 60 200 
-               C 62 202, 82 202, 86 195 
-               C 88 185, 84 180, 86 172 
-               C 88 162, 82 156, 84 148 
-               C 86 142, 85 138, 83 135 Z" 
-            fill="url(#gripTexture)" 
-          />
-          {/* Highlight line on rubber grip */}
-          <path 
-            d="M 84 136 C 82 148, 77 165, 63 198" 
-            fill="none" 
-            stroke="#3a3f4d" 
-            strokeWidth="0.8" 
-            opacity="0.5" 
-          />
-          {/* Brass Medallion at the bottom corner */}
-          <circle cx="88" cy="198" r="4.5" fill="#d4af37" stroke="#9a7b1c" strokeWidth="0.8" />
-          <circle cx="88" cy="198" r="2.5" fill="#111215" />
-          {/* Taurus emblem letter representation in medallion */}
-          <path d="M 87 197 Q 88.5 198, 87 199.5" fill="none" stroke="#d4af37" strokeWidth="0.6" />
-
-          {/* 2. Hammer (Búa gõ Raging Bull - Drawn behind frame) */}
-          <motion.g
-            style={{ transformOrigin: '76px 86px' }}
-            animate={{ 
-              rotate: isFiring ? [0, 35, -20, 0] : isSpinning ? 35 : 0 
-            }}
-            transition={{ 
-              duration: isFiring ? 0.22 : 0.15,
-              ease: "easeInOut"
-            }}
-          >
-            <path
-              d="M 76 82 
-                 Q 62 66 52 70 
-                 Q 60 84 72 86 Z"
-              fill="url(#darkSteel)"
-              stroke="#4b5563"
-              strokeWidth="0.8"
-            />
-            {/* Hammer spur serrations */}
-            <line x1="53" y1="69" x2="56" y2="67" stroke="#9ca3af" strokeWidth="0.6" />
-            <line x1="55" y1="71" x2="58" y2="69" stroke="#9ca3af" strokeWidth="0.6" />
-            <line x1="57" y1="73" x2="60" y2="71" stroke="#9ca3af" strokeWidth="0.6" />
-          </motion.g>
-
-          {/* 3. Main Frame (Thành súng thép - Drawn UNDER cylinder but OVER hammer base) */}
-          <path 
-            d="M 72 74 
-               C 72 74, 90 74, 145 74 
-               L 145 120 
-               C 118 120, 105 125, 92 128 
-               L 92 135 
-               L 72 120 Z" 
-            fill="url(#ragingSteel)" 
-            stroke="#4b5563" 
-            strokeWidth="1.2" 
-          />
-          {/* Sideplate split seam lines */}
-          <path d="M 88 120 C 88 108, 86 104, 76 104" fill="none" stroke="#787f8c" strokeWidth="0.8" opacity="0.6" />
-          
-          {/* Mechanical flat-head screws on Frame */}
-          {/* Screw 1: under cylinder area */}
-          <g transform="translate(138, 126)">
-            <circle cx="0" cy="0" r="2.5" fill="url(#ragingSteel)" stroke="#374151" strokeWidth="0.8" />
-            <line x1="-1.5" y1="-1" x2="1.5" y2="1" stroke="#374151" strokeWidth="0.6" />
-          </g>
-          {/* Screw 2: behind cylinder latch */}
-          <g transform="translate(86, 85)">
-            <circle cx="0" cy="0" r="2" fill="url(#ragingSteel)" stroke="#374151" strokeWidth="0.6" />
-            <line x1="-1.2" y1="1.2" x2="1.2" y2="-1.2" stroke="#374151" strokeWidth="0.5" />
-          </g>
-
-          {/* 4. Trigger Guard & Trigger */}
-          <path d="M 92 124 C 92 158, 142 158, 142 120 Z" fill="none" stroke="url(#ragingSteel)" strokeWidth="4.5" strokeLinecap="round" />
-          {/* Small screw on trigger guard base */}
-          <circle cx="132" cy="136" r="1.5" fill="#1f2937" />
-
-          {/* Trigger */}
-          <motion.path 
-            d="M 116 122 C 116 138, 108 144, 105 144" 
-            fill="none" 
-            stroke="#e5e7eb" 
-            strokeWidth="3.2" 
-            strokeLinecap="round"
-            animate={isFiring ? { rotate: [0, -15, 0] } : {}}
-            style={{ transformOrigin: '116px 122px' }}
-            transition={{ duration: 0.18 }}
-          />
-
-          {/* 5. Cylinder slot shadow & Ratchet (Drawn ON TOP of Main Frame) */}
-          <rect x="90" y="76" width="58" height="48" rx="2" fill="#0a0b0d" />
-
-          {/* Cylinder Ratchet Teeth */}
-          <rect x="90.5" y="80" width="1.5" height="40" fill="#2c3038" />
-          <line x1="90" y1="83" x2="92" y2="83" stroke="#08090b" strokeWidth="0.8" />
-          <line x1="90" y1="89" x2="92" y2="89" stroke="#08090b" strokeWidth="0.8" />
-          <line x1="90" y1="95" x2="92" y2="95" stroke="#08090b" strokeWidth="0.8" />
-          <line x1="90" y1="101" x2="92" y2="101" stroke="#08090b" strokeWidth="0.8" />
-          <line x1="90" y1="107" x2="92" y2="107" stroke="#08090b" strokeWidth="0.8" />
-          <line x1="90" y1="113" x2="92" y2="113" stroke="#08090b" strokeWidth="0.8" />
-
-          {/* 6. Cylinder Assembly (Drawn ON TOP of Main Frame & Cutout slot) */}
-          <g clipPath="url(#cylinderClip)">
-            {/* Base cylinder metal */}
-            <rect x="92" y="78" width="54" height="44" rx="3" fill="url(#cylinderSteel)" />
+            {/* =======================================================
+                CAD BLUEPRINT WEAPON SCHEMATIC (REVOLVER)
+                ======================================================= */}
             
-            {/* Spinning flutes */}
+            {/* Grid Coordinates markings in background */}
+            <line x1="10" y1="110" x2="310" y2="110" stroke="#0891b2" strokeWidth="0.5" strokeDasharray="2,8" opacity="0.2" />
+            <line x1="160" y1="10" x2="160" y2="210" stroke="#0891b2" strokeWidth="0.5" strokeDasharray="2,8" opacity="0.2" />
+
+            {/* 1. Grip (Báng súng) with CAD Hatching */}
+            <path 
+              d="M 78 126 
+                 C 72 140, 62 160, 42 206 
+                 C 40 212, 56 214, 68 214 
+                 C 84 214, 102 212, 104 202 
+                 C 106 188, 100 182, 102 172 
+                 C 104 162, 98 156, 100 146 
+                 C 102 138, 98 132, 88 126 Z" 
+              fill="url(#gripCADHatch)" 
+              stroke="#06b6d4" 
+              strokeWidth="1.2" 
+            />
+            {/* Grip Inner Border */}
+            <path 
+              d="M 81 133 
+                 C 76 145, 68 162, 48 198 
+                 C 50 200, 86 200, 90 193 
+                 C 92 183, 88 178, 90 170 
+                 C 92 160, 86 154, 88 146 
+                 C 90 140, 85 136, 81 133 Z" 
+              fill="none" 
+              stroke="#0891b2" 
+              strokeWidth="0.8" 
+              strokeDasharray="2,2" 
+              opacity="0.6"
+            />
+
+            {/* 2. Hammer (Búa gõ) */}
             <motion.g
+              style={{ transformOrigin: '76px 86px' }}
               animate={{ 
-                y: isSpinning 
-                  ? [0, -108] 
-                  : -(currentPosition * 18) 
+                rotate: isFiring ? [0, 35, -20, 0] : isSpinning ? 35 : 0 
               }}
               transition={{ 
-                duration: isSpinning ? 1.2 : 0.4, 
-                ease: isSpinning ? [0.16, 1, 0.3, 1] as const : "easeOut" 
+                duration: isFiring ? 0.22 : 0.15,
+                ease: "easeInOut"
               }}
             >
-              {[0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-                <g key={`flute-group-${i}`}>
-                  {/* Flute rounded groove */}
-                  <rect 
-                    x="94" 
-                    y={60 + (i * 18)} 
-                    width="48" 
-                    height="10" 
-                    rx="5" 
-                    fill="url(#fluteGradient)" 
-                  />
-                  {/* Flute bottom lip highlight */}
-                  <path 
-                    d={`M 96 ${60 + (i * 18) + 9.5} L 140 ${60 + (i * 18) + 9.5}`} 
-                    stroke="#ffffff" 
-                    strokeWidth="0.8" 
-                    opacity="0.45" 
-                    strokeLinecap="round" 
-                  />
-                  {/* Flute top lip shadow */}
-                  <path 
-                    d={`M 96 ${60 + (i * 18) + 0.5} L 140 ${60 + (i * 18) + 0.5}`} 
-                    stroke="#050608" 
-                    strokeWidth="0.8" 
-                    opacity="0.6" 
-                    strokeLinecap="round" 
-                  />
-                  {/* Lock notch */}
-                  <rect 
-                    x="95" 
-                    y={64 + (i * 18)} 
-                    width="4" 
-                    height="2" 
-                    fill="#111317" 
-                  />
-                  {/* Lock notch 3D highlight */}
-                  <line 
-                    x1="95" 
-                    y1={66 + (i * 18)} 
-                    x2="99" 
-                    y2={66 + (i * 18)} 
-                    stroke="#ffffff" 
-                    strokeWidth="0.5" 
-                    opacity="0.35" 
-                  />
-                </g>
-              ))}
+              <path
+                d="M 76 82 
+                   Q 62 66 52 70 
+                   Q 60 84 72 86 
+                   L 85 86 
+                   L 85 82 Z"
+                fill="#0b0f19"
+                stroke="#06b6d4"
+                strokeWidth="1.2"
+              />
+              <line x1="53" y1="69" x2="57" y2="72" stroke="#06b6d4" strokeWidth="0.8" />
+              <line x1="55" y1="71" x2="59" y2="74" stroke="#06b6d4" strokeWidth="0.8" />
             </motion.g>
 
-            {/* Cylinder axis rod */}
-            <rect x="92" y="99" width="54" height="3" fill="#1f2229" />
-            <rect x="92" y="100" width="54" height="1" fill="#4b5563" />
+            {/* 3. Main Frame (Thành súng) */}
+            <path 
+              d="M 72 74 
+                 L 145 74 
+                 L 145 120 
+                 C 118 120, 105 125, 92 128 
+                 L 92 135 
+                 L 72 120 
+                 L 72 105 
+                 C 76 95, 76 80, 72 74 Z" 
+              fill="#080c14" 
+              stroke="#06b6d4" 
+              strokeWidth="1.2" 
+            />
+            {/* Sideplate split seam lines */}
+            <path d="M 88 120 C 88 108, 86 104, 76 104" fill="none" stroke="#0891b2" strokeWidth="0.8" strokeDasharray="3,3" opacity="0.6" />
             
-            {/* Cylinder split gaps shadows */}
-            <line x1="145.5" y1="78" x2="145.5" y2="122" stroke="#111317" strokeWidth="1.2" opacity="0.8" />
-            <line x1="92" y1="78" x2="92" y2="122" stroke="#111317" strokeWidth="1.2" opacity="0.8" />
+            {/* Flat Screws on Frame */}
+            <circle cx="138" cy="126" r="2" fill="none" stroke="#06b6d4" strokeWidth="0.8" />
+            <line x1="136.5" y1="126.5" x2="139.5" y2="125.5" stroke="#06b6d4" strokeWidth="0.8" />
+            
+            <circle cx="86" cy="85" r="1.5" fill="none" stroke="#06b6d4" strokeWidth="0.8" />
+            <line x1="85" y1="86" x2="87" y2="84" stroke="#06b6d4" strokeWidth="0.8" />
 
-            {/* 3D cylindrical lighting reflection overlays */}
-            <rect x="92" y="78" width="54" height="3" fill="#ffffff" opacity="0.45" />
-            <rect x="92" y="119" width="54" height="3" fill="#111317" opacity="0.5" />
-            <line x1="92" y1="92" x2="146" y2="92" stroke="#ffffff" strokeWidth="1.2" opacity="0.2" />
-          </g>
+            {/* 4. Trigger Guard & Trigger */}
+            <path d="M 92 124 C 92 158, 142 158, 142 120 Z" fill="none" stroke="#06b6d4" strokeWidth="2.5" strokeLinecap="round" />
+            <circle cx="132" cy="136" r="1" fill="#06b6d4" />
 
-          {/* 7. Crane Arm seam (Drawn after cylinder to overlap it at bottom-front) */}
-          <path 
-            d="M 134 114 L 145 114 L 145 120 L 138 120 Z" 
-            fill="url(#ragingSteel)" 
-            stroke="#4b5563" 
-            strokeWidth="0.6" 
-          />
-          {/* Cylinder Stop Lever (Drawn after cylinder to lock it at bottom) */}
-          <path d="M 115 120 L 118 122 L 122 122 L 120 120 Z" fill="#374151" stroke="#111317" strokeWidth="0.5" />
+            {/* Trigger */}
+            <motion.path 
+              d="M 116 122 C 116 138, 108 144, 105 144" 
+              fill="none" 
+              stroke="#06b6d4" 
+              strokeWidth="2.5" 
+              strokeLinecap="round"
+              animate={isFiring ? { rotate: [0, -15, 0] } : {}}
+              style={{ transformOrigin: '116px 122px' }}
+              transition={{ duration: 0.18 }}
+            />
 
-          {/* 8. Cylinder Release Latch & Plate (Drawn on top of frame) */}
-          <rect x="75" y="93" width="16" height="10" rx="1.5" fill="url(#ragingSteel)" stroke="#4b5563" strokeWidth="0.8" />
-          <line x1="78" y1="95" x2="78" y2="101" stroke="#374151" strokeWidth="0.8" />
-          <line x1="81" y1="95" x2="81" y2="101" stroke="#374151" strokeWidth="0.8" />
-          <line x1="84" y1="95" x2="84" y2="101" stroke="#374151" strokeWidth="0.8" />
-          <circle cx="87" cy="98" r="1" fill="#111317" />
+            {/* 5. Cylinder Slot Cutout */}
+            <rect x="90" y="76" width="58" height="48" rx="1" fill="#05070a" stroke="#06b6d4" strokeWidth="0.8" strokeDasharray="2,2" />
 
-          {/* 9. Sights, Barrel, Ejector Rod */}
-          {/* Rear Sight */}
-          <path d="M 72 74 L 84 74 L 84 70 L 78 70 L 78 74" fill="#111317" stroke="#111317" strokeWidth="0.8" />
-          <circle cx="81" cy="72" r="0.8" fill="#9ca3af" />
-
-          {/* Massive Flat-Top Barrel */}
-          <path 
-            d="M 145 74 
-               L 285 74 
-               L 285 116 
-               L 145 116 Z" 
-            fill="url(#ragingSteel)" 
-            stroke="#4b5563" 
-            strokeWidth="1.2" 
-          />
-
-          {/* Polished highlight lines on barrel */}
-          <line x1="145" y1="75" x2="284" y2="75" stroke="#ffffff" strokeWidth="1" opacity="0.75" />
-          <line x1="145" y1="115" x2="284" y2="115" stroke="#ffffff" strokeWidth="0.8" opacity="0.6" />
-          <line x1="145" y1="74" x2="145" y2="116" stroke="#ffffff" strokeWidth="0.8" opacity="0.5" />
-
-          {/* Muzzle end cap */}
-          <ellipse cx="285" cy="95.5" rx="2.5" ry="20.5" fill="#111317" />
-
-          {/* Vented Rib Slots */}
-          {[155, 180, 205, 230, 255].map((x) => (
-            <g key={`vent-${x}`}>
-              <rect x={x} y="77" width="15" height="3.2" fill="#111317" />
-              <line x1={x} y1="80.2" x2={x + 15} y2="80.2" stroke="#ffffff" strokeWidth="0.5" opacity="0.35" />
-            </g>
-          ))}
-
-          {/* Front Sight Blade with Red Ramp Insert */}
-          <rect x="272" y="70" width="13" height="4" fill="#111317" />
-          <polygon points="273,74 277,70 280,70 276,74" fill="#ef4444" />
-
-          {/* Ejector Rod Slot & Rod */}
-          <rect x="145" y="106" width="70" height="6" rx="3" fill="#111317" />
-          <rect x="150" y="108" width="55" height="2" fill="url(#ragingSteel)" rx="0.5" />
-          <rect x="205" y="107.5" width="4" height="3" fill="#9ca3af" rx="0.5" />
-
-          {/* Engravings */}
-          <text x="143" y="126" fill="#787f8c" fontSize="4" fontFamily="monospace" fontWeight="bold" opacity="0.8">.44 MAGNUM</text>
-          <text x="143" y="131" fill="#787f8c" fontSize="3.5" fontFamily="monospace" opacity="0.7">TAURUS INT. BRAZIL</text>
-
-          {/* Engraved "RAGING BULL" Text */}
-          <text 
-            x="215.5" 
-            y="98.5" 
-            fill="#ffffff" 
-            fontSize="14" 
-            fontFamily="Impact, Arial Black, sans-serif" 
-            fontStyle="italic" 
-            fontWeight="black" 
-            letterSpacing="1.2" 
-            textAnchor="middle"
-            opacity="0.7"
-          >
-            RAGING BULL
-          </text>
-          <text 
-            x="215" 
-            y="98" 
-            fill="#3a3d47" 
-            fontSize="14" 
-            fontFamily="Impact, Arial Black, sans-serif" 
-            fontStyle="italic" 
-            fontWeight="black" 
-            letterSpacing="1.2" 
-            textAnchor="middle"
-          >
-            RAGING BULL
-          </text>
-
-        </svg>
-
-        {/* =======================================================
-            DYNAMIC MUZZLE FLASH & SPARKS (Phun sang PHẢI)
-            ======================================================= */}
-        <AnimatePresence>
-          {isFiring && !alive && (
-            <div className="absolute inset-0 pointer-events-none">
-              <svg className="w-full h-full" viewBox="0 0 320 220">
+            {/* 6. Cylinder Assembly (Ổ xoay đạn) */}
+            <g>
+              {/* Outer boundary */}
+              <rect x="92" y="78" width="54" height="44" rx="2" fill="#090d16" stroke="#06b6d4" strokeWidth="1.2" />
+              
+              {/* Spinning flutes & technical chamber labels */}
+              <g className="overflow-hidden" style={{ clipPath: 'inset(1px)' }}>
                 <motion.g
-                  initial={{ opacity: 0, scale: 0.4 }}
                   animate={{ 
-                    opacity: [0, 1, 1, 0], 
-                    scale: [0.6, 1.25, 1.1, 0.6] 
+                    y: isSpinning 
+                      ? [0, -108] 
+                      : -(currentPosition * 18) 
                   }}
-                  transition={{ duration: 0.45, ease: "easeOut" }}
-                  style={{ transformOrigin: '285px 96px' }}
+                  transition={{ 
+                    duration: isSpinning ? 1.2 : 0.4, 
+                    ease: isSpinning ? [0.16, 1, 0.3, 1] as const : "easeOut" 
+                  }}
                 >
-                  <path d="M 285 96 L 322 72 L 315 88 L 362 96 L 315 104 L 322 120 Z" fill="#ff7c1f" filter="drop-shadow(0 0 8px rgba(255,124,31,0.5))" />
-                  <path d="M 285 96 L 312 82 L 302 96 L 337 96 L 302 96 L 312 110 Z" fill="#ffeb3b" />
-                  <circle cx="285" cy="96" r="12" fill="#ffffff" />
+                  {[0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                    <g key={`flute-group-${i}`}>
+                      {/* Chamber bounding box */}
+                      <rect 
+                        x="94" 
+                        y={62 + (i * 18)} 
+                        width="48" 
+                        height="10" 
+                        rx="1" 
+                        fill="#05070a" 
+                        stroke="#0891b2" 
+                        strokeWidth="0.8"
+                      />
+                      {/* Technical text showing current chamber index */}
+                      <text 
+                        x="118" 
+                        y={62 + (i * 18) + 8} 
+                        fill="#22d3ee" 
+                        fontSize="6" 
+                        fontFamily="monospace" 
+                        textAnchor="middle"
+                        fontWeight="bold"
+                        opacity="0.85"
+                      >
+                        {`CH-0${(i % 6) + 1}`}
+                      </text>
+                      {/* Lock index notches */}
+                      <rect 
+                        x="95" 
+                        y={66 + (i * 18)} 
+                        width="3" 
+                        height="1.5" 
+                        fill="#06b6d4" 
+                      />
+                    </g>
+                  ))}
                 </motion.g>
+              </g>
 
-                {[...Array(8)].map((_, i) => {
-                  const sparkAngle = (Math.random() * 0.7 - 0.35);
-                  const sparkDistance = Math.random() * 90 + 50;
-                  const tx = Math.cos(sparkAngle) * sparkDistance;
-                  const ty = Math.sin(sparkAngle) * sparkDistance;
-                  
-                  return (
-                    <motion.line
-                      key={`spark-${i}`}
-                      x1="285"
-                      y1="96"
-                      x2="285"
-                      y2="96"
-                      animate={{ 
-                        x2: 285 + tx, 
-                        y2: 96 + ty, 
-                        opacity: [1, 0.8, 0] 
-                      }}
-                      transition={{ duration: 0.35, ease: "easeOut" }}
-                      stroke="#ff9f1a"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                    />
-                  );
-                })}
-              </svg>
-            </div>
-          )}
-        </AnimatePresence>
+              {/* Cylinder axle line */}
+              <line x1="92" y1="100" x2="146" y2="100" stroke="#06b6d4" strokeWidth="1" strokeDasharray="4,4" opacity="0.5" />
+            </g>
 
-        {/* 3. Small blue electric spark on surviving click (Hammer strike area: 92, 96) */}
-        <AnimatePresence>
-          {isFiring && alive && (
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: [0, 1, 0] }}
-              transition={{ duration: 0.2 }}
-              className="absolute inset-0 pointer-events-none"
-            >
-              <svg className="w-full h-full" viewBox="0 0 320 220">
-                <circle cx="92" cy="96" r="3" fill="#60a5fa" filter="drop-shadow(0 0 4px #3b82f6)" />
-                <line x1="92" y1="96" x2="87" y2="90" stroke="#93c5fd" strokeWidth="1" />
-                <line x1="92" y1="96" x2="97" y2="102" stroke="#93c5fd" strokeWidth="1" />
-              </svg>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            {/* 7. Massive flat barrel (Nòng súng) */}
+            <path 
+              d="M 145 74 
+                 L 285 74 
+                 L 285 116 
+                 L 145 116 Z" 
+              fill="#080c14" 
+              stroke="#06b6d4" 
+              strokeWidth="1.2" 
+            />
+
+            {/* Vented Rib Slots (Hollow line drawings) */}
+            {[155, 180, 205, 230, 255].map((x) => (
+              <rect key={`vent-${x}`} x={x} y="77" width="15" height="3" fill="none" stroke="#0891b2" strokeWidth="0.8" />
+            ))}
+
+            {/* Front Sight Blade (CAD flat-style) */}
+            <polygon points="272,74 272,69 283,69 285,74" fill="none" stroke="#06b6d4" strokeWidth="1" />
+            <rect x="274" y="70" width="3" height="3" fill="#ef4444" />
+
+            {/* Ejector Rod Slot */}
+            <rect x="145" y="106" width="70" height="6" rx="1" fill="none" stroke="#0891b2" strokeWidth="0.8" />
+            <line x1="150" y1="109" x2="205" y2="109" stroke="#06b6d4" strokeWidth="1" />
+
+            {/* Mechanical Text Markings */}
+            <text x="148" y="126" fill="#0891b2" fontSize="4.5" fontFamily="monospace" fontWeight="bold" opacity="0.9">CAL // .44 MAGNUM</text>
+            <text x="148" y="131" fill="#0891b2" fontSize="3.5" fontFamily="monospace" opacity="0.6">// MULTI-ROOM PROTOCOL // ONLINE</text>
+
+            {/* =======================================================
+                DIMENSION LINES & TECHNICAL LABELS (CAD Details)
+                ======================================================= */}
+            
+            {/* 1. Barrel Length Dimension line */}
+            <line x1="145" y1="74" x2="145" y2="45" stroke="#0891b2" strokeWidth="0.6" strokeDasharray="2,2" opacity="0.5" />
+            <line x1="285" y1="74" x2="285" y2="45" stroke="#0891b2" strokeWidth="0.6" strokeDasharray="2,2" opacity="0.5" />
+            <line x1="145" y1="48" x2="285" y2="48" stroke="#06b6d4" strokeWidth="0.8" opacity="0.8" />
+            {/* CAD end ticks */}
+            <line x1="142" y1="51" x2="148" y2="45" stroke="#06b6d4" strokeWidth="0.8" />
+            <line x1="282" y1="51" x2="288" y2="45" stroke="#06b6d4" strokeWidth="0.8" />
+            <text x="215" y="43" fill="#22d3ee" fontSize="6.5" fontFamily="monospace" textAnchor="middle" fontWeight="bold">L: 140.0mm [BARREL_AXIS]</text>
+
+            {/* 2. Cylinder Diameter Dimension line */}
+            <line x1="92" y1="120" x2="92" y2="152" stroke="#0891b2" strokeWidth="0.6" strokeDasharray="2,2" opacity="0.5" />
+            <line x1="146" y1="120" x2="146" y2="152" stroke="#0891b2" strokeWidth="0.6" strokeDasharray="2,2" opacity="0.5" />
+            <line x1="92" y1="148" x2="146" y2="148" stroke="#06b6d4" strokeWidth="0.8" opacity="0.8" />
+            {/* CAD ticks */}
+            <line x1="89" y1="151" x2="95" y2="145" stroke="#06b6d4" strokeWidth="0.8" />
+            <line x1="143" y1="151" x2="149" y2="145" stroke="#06b6d4" strokeWidth="0.8" />
+            <text x="119" y="155" fill="#22d3ee" fontSize="6.5" fontFamily="monospace" textAnchor="middle" fontWeight="bold">Ø: 44.0mm [CYLINDER]</text>
+
+            {/* 3. Height Dimension line */}
+            <line x1="285" y1="74" x2="306" y2="74" stroke="#0891b2" strokeWidth="0.6" strokeDasharray="2,2" opacity="0.5" />
+            <line x1="285" y1="116" x2="306" y2="116" stroke="#0891b2" strokeWidth="0.6" strokeDasharray="2,2" opacity="0.5" />
+            <line x1="302" y1="74" x2="302" y2="116" stroke="#06b6d4" strokeWidth="0.8" opacity="0.8" />
+            {/* CAD ticks */}
+            <line x1="299" y1="77" x2="305" y2="71" stroke="#06b6d4" strokeWidth="0.8" />
+            <line x1="299" y1="119" x2="305" y2="113" stroke="#06b6d4" strokeWidth="0.8" />
+            <text x="309" y="95" fill="#22d3ee" fontSize="6" fontFamily="monospace" transform="rotate(90, 309, 95)" textAnchor="middle" fontWeight="bold">H: 42.0mm</text>
+
+            {/* 4. Trigger Leader Label */}
+            <path d="M 112 135 L 132 165 L 175 165" fill="none" stroke="#0891b2" strokeWidth="0.8" opacity="0.8" />
+            <circle cx="112" cy="135" r="1.5" fill="#06b6d4" />
+            <text x="178" y="167" fill="#22d3ee" fontSize="6" fontFamily="monospace" textAnchor="start">ACTUATOR // TRIGGER_SYS</text>
+
+            {/* 5. Hammer Leader Label */}
+            <path d="M 68 76 L 56 60 L 25 60" fill="none" stroke="#0891b2" strokeWidth="0.8" opacity="0.8" />
+            <circle cx="68" cy="76" r="1.5" fill="#06b6d4" />
+            <text x="22" y="57" fill="#22d3ee" fontSize="6" fontFamily="monospace" textAnchor="start">HAMMER // COCK_STATUS</text>
+
+          </svg>
+
+          {/* =======================================================
+              BRUTALIST MUZZLE FLASH & SPARKS (Flat Drawing)
+              ======================================================= */}
+          <AnimatePresence>
+            {isFiring && !alive && (
+              <div className="absolute inset-0 pointer-events-none">
+                <svg className="w-full h-full" viewBox="0 0 320 220">
+                  <motion.g
+                    initial={{ opacity: 0, scale: 0.5 }}
+                    animate={{ 
+                      opacity: [0, 1, 1, 0], 
+                      scale: [0.7, 1.3, 1.1, 0.5] 
+                    }}
+                    transition={{ duration: 0.45, ease: "easeOut" }}
+                    style={{ transformOrigin: '285px 95px' }}
+                  >
+                    {/* Sharp geometric muzzle flash */}
+                    <path d="M 285 95 L 340 65 L 320 85 L 380 95 L 320 105 L 340 125 Z" fill="none" stroke="#ff7c1f" strokeWidth="2" />
+                    <path d="M 285 95 L 315 80 L 305 95 L 345 95 L 305 95 L 315 110 Z" fill="none" stroke="#ffeb3b" strokeWidth="1.5" />
+                    <circle cx="285" cy="95" r="8" fill="none" stroke="#ffffff" strokeWidth="1.5" />
+                  </motion.g>
+
+                  {/* Sharp mechanical sparks (Vector lines) */}
+                  {[...Array(6)].map((_, i) => {
+                    const sparkAngle = (Math.random() * 0.6 - 0.3);
+                    const sparkDistance = Math.random() * 80 + 40;
+                    const tx = Math.cos(sparkAngle) * sparkDistance;
+                    const ty = Math.sin(sparkAngle) * sparkDistance;
+                    
+                    return (
+                      <motion.line
+                        key={`spark-${i}`}
+                        x1="285"
+                        y1="95"
+                        x2="285"
+                        y2="95"
+                        animate={{ 
+                          x2: 285 + tx, 
+                          y2: 95 + ty, 
+                          opacity: [1, 0.8, 0] 
+                        }}
+                        transition={{ duration: 0.3, ease: "easeOut" }}
+                        stroke="#ff9f1a"
+                        strokeWidth="1"
+                        strokeDasharray="4,2"
+                      />
+                    );
+                  })}
+                </svg>
+              </div>
+            )}
+          </AnimatePresence>
+
+          {/* 3. Electric vector discharge on surviving click */}
+          <AnimatePresence>
+            {isFiring && alive && (
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: [0, 1, 0] }}
+                transition={{ duration: 0.2 }}
+                className="absolute inset-0 pointer-events-none"
+              >
+                <svg className="w-full h-full" viewBox="0 0 320 220">
+                  <circle cx="92" cy="95" r="2.5" fill="none" stroke="#22d3ee" strokeWidth="1" />
+                  {/* Schematic discharge lines */}
+                  <line x1="92" y1="95" x2="80" y2="85" stroke="#22d3ee" strokeWidth="0.8" />
+                  <line x1="80" y1="85" x2="72" y2="85" stroke="#22d3ee" strokeWidth="0.8" />
+                  <line x1="92" y1="95" x2="104" y2="108" stroke="#22d3ee" strokeWidth="0.8" />
+                </svg>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
       </motion.div>
     </div>
   );
