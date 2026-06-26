@@ -470,16 +470,15 @@ export function GameBoard({
         const pos = getOpponentPosition(opponent.id, opponentPlayers.length);
         
         return (
-          <div key={opponent.id} className={pos.className}>
+          <div key={opponent.id} className={`${pos.className} relative`}>
+            <AnimatePresence>
+              {renderProfileIndicator(opponent.id)}
+            </AnimatePresence>
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold font-mono text-text-theme-secondary tracking-wider relative z-10">
                 {opponent.name}
               </span>
               <div className="relative">
-                {/* Live decrypt status tag */}
-                <AnimatePresence>
-                  {renderProfileIndicator(opponent.id)}
-                </AnimatePresence>
                 
                 {/* Turn arrow indicator for opponent */}
                 <AnimatePresence>
@@ -840,14 +839,13 @@ export function GameBoard({
           )}
         </AnimatePresence>
 
-        <div className="flex items-center gap-4 bg-surface-2 border border-cyan-theme-muted rounded-none p-3 shadow-none">
+        <div className="flex items-center gap-4 bg-surface-2 border border-cyan-theme-muted rounded-none p-3 shadow-none relative">
+          <AnimatePresence>
+            {renderProfileIndicator(localId)}
+          </AnimatePresence>
           <div className={`w-12 h-12 rounded-none bg-surface-3 border flex items-center justify-center font-mono font-black text-base relative transition-all duration-300 ${
             !localPlayer.isAlive ? 'border-red-theme-border opacity-30 bg-red-theme-bg' : 'border-cyan-theme-light'
           }`}>
-            {/* Live decrypt status tag */}
-            <AnimatePresence>
-              {renderProfileIndicator(localId)}
-            </AnimatePresence>
  
             {localPlayer.name.substring(0, 2).toUpperCase()}
             {!localPlayer.isAlive ? (
