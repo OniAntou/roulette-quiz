@@ -14,6 +14,7 @@ export interface Player {
   hand: Question[];
   isAlive: boolean;
   left?: boolean;
+  shotsFired: number;
 }
 
 export interface Room {

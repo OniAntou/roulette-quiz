@@ -45,6 +45,7 @@ export class GameManager {
         name: p.name,
         cardsCount: 4,
         isAlive: true,
+        shotsFired: 0,
       })),
       round: gameState.round,
     });
@@ -101,6 +102,7 @@ export class GameManager {
         id: p.id,
         cardsCount: p.isAlive ? p.hand.length : 0,
         isAlive: p.isAlive,
+        shotsFired: p.shotsFired,
       })),
     });
 
@@ -175,7 +177,8 @@ export class GameManager {
     game.phase = 'trigger';
 
     setTimeout(() => {
-      if (game.phase === 'trigger') {
+      const current = this.games.get(roomId);
+      if (current && current.phase === 'trigger') {
         this.pullTrigger(roomId);
       }
     }, 2000);
@@ -212,10 +215,13 @@ export class GameManager {
     }
 
     setTimeout(() => {
-      if (game.phase === 'trigger') {
+      const current = this.games.get(roomId);
+      if (!current) return;
+
+      if (current.phase === 'trigger') {
         this.pullTrigger(roomId);
-      } else if (game.phase === 'choosing') {
-        const currentPlayer = game.players[game.currentTurn];
+      } else if (current.phase === 'choosing') {
+        const currentPlayer = current.players[current.currentTurn];
         if (currentPlayer.hand.length === 0) {
           this.dealCards(roomId);
         } else {
@@ -234,51 +240,61 @@ export class GameManager {
     gun.bulletsFired++;
     gun.currentPosition = (gun.currentPosition + 1) % 6;
 
+    const targetPlayer = game.players[game.targetPlayer!];
+    targetPlayer.shotsFired++;
+
     if (bullet) {
-      const deadPlayer = game.players[game.targetPlayer!];
-      deadPlayer.isAlive = false;
+      targetPlayer.isAlive = false;
 
       this.io.to(roomId).emit('game:trigger', {
         alive: false,
-        playerId: deadPlayer.id,
-        playerName: deadPlayer.name,
+        playerId: targetPlayer.id,
+        playerName: targetPlayer.name,
         bulletCount: 6 - gun.bulletsFired,
+        shotsFired: targetPlayer.shotsFired,
         nextRound: false,
       });
 
       const alivePlayers = game.players.filter(p => p.isAlive);
       if (alivePlayers.length === 1) {
         setTimeout(() => {
+          const current = this.games.get(roomId);
+          if (!current) return;
           this.io.to(roomId).emit('game:over', {
             winner: alivePlayers[0].name,
             winnerId: alivePlayers[0].id,
-            stats: game.stats,
+            stats: current.stats,
           });
           this.games.delete(roomId);
         }, 3000);
       } else {
         setTimeout(() => {
-          game.round++;
-          game.gun = this.createGun();
-          game.currentTurn = this.getNextAlivePlayer(game, game.targetPlayer!);
-          game.phase = 'choosing';
+          const current = this.games.get(roomId);
+          if (!current) return;
+          current.round++;
+          current.gun = this.createGun();
+          current.currentTurn = this.getNextAlivePlayer(current, current.targetPlayer!);
+          current.phase = 'choosing';
           this.dealCards(roomId);
-          this.io.to(roomId).emit('game:newRound', { round: game.round });
+          this.io.to(roomId).emit('game:newRound', { round: current.round });
         }, 3000);
       }
     } else {
       this.io.to(roomId).emit('game:trigger', {
         alive: true,
         bulletCount: 6 - gun.bulletsFired,
+        shotsFired: targetPlayer.shotsFired,
         nextRound: true,
       });
 
       setTimeout(() => {
-        game.round++;
-        game.currentTurn = game.targetPlayer!;
-        game.phase = 'choosing';
+        const current = this.games.get(roomId);
+        if (!current) return;
+        current.round++;
+        current.currentTurn = current.targetPlayer!;
+        current.phase = 'choosing';
         this.dealCards(roomId);
-        this.io.to(roomId).emit('game:newRound', { round: game.round });
+        this.io.to(roomId).emit('game:newRound', { round: current.round });
       }, 3000);
     }
   }
@@ -294,11 +310,7 @@ export class GameManager {
   }
 
   private getTimerDuration(difficulty: string): number {
-    const timers: Record<string, number> = {
-      easy: 10,
-      medium: 7,
-      hard: 5,
-    };
+    const timers: Record<string, number> = { easy: 10, medium: 7, hard: 5 };
     return timers[difficulty] || 10;
   }
 

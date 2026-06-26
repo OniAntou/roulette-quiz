@@ -5,16 +5,51 @@ export class RoomManager {
   private rooms: Map<string, Room> = new Map();
   private playerRooms: Map<string, string> = new Map();
 
+  private validatePlayerName(name: string): string {
+    let sanitized = (name || '').trim();
+    sanitized = sanitized.replace(/<[^>]*>/g, '');
+    sanitized = sanitized.replace(/[^a-zA-Z0-9 ]/g, '');
+    sanitized = sanitized.substring(0, 12);
+    if (!sanitized) {
+      return 'GUEST' + Math.floor(1000 + Math.random() * 9000);
+    }
+    return sanitized;
+  }
+
+  hasRoom(roomId: string): boolean {
+    return this.rooms.has(roomId);
+  }
+
+  cleanupStaleRooms(): void {
+    const now = Date.now();
+    const STALE_THRESHOLD = 10 * 60 * 1000;
+    for (const [roomId, room] of this.rooms.entries()) {
+      if (room.state === 'waiting' && (now - room.createdAt) > STALE_THRESHOLD) {
+        this.rooms.delete(roomId);
+        for (const player of room.players) {
+          this.playerRooms.delete(player.id);
+        }
+      }
+    }
+  }
+
   createRoom(socketId: string, playerName: string): Room {
-    const roomId = uuidv4().substring(0, 6).toUpperCase();
+    const sanitized = this.validatePlayerName(playerName);
+    let roomId: string;
+    let attempts = 0;
+    do {
+      roomId = uuidv4().substring(0, 6).toUpperCase();
+      attempts++;
+    } while (this.hasRoom(roomId) && attempts < 10);
     const room: Room = {
       id: roomId,
       players: [{
         id: socketId,
-        name: playerName,
+        name: sanitized,
         isReady: false,
         hand: [],
         isAlive: true,
+        shotsFired: 0,
       }],
       state: 'waiting',
       createdAt: Date.now(),
@@ -27,6 +62,7 @@ export class RoomManager {
   }
 
   joinRoom(roomId: string, socketId: string, playerName: string): { success: boolean; error?: string; players?: Player[] } {
+    const sanitized = this.validatePlayerName(playerName);
     const room = this.rooms.get(roomId);
 
     if (!room) {
@@ -45,12 +81,17 @@ export class RoomManager {
       return { success: false, error: 'Already in room' };
     }
 
+    if (room.players.some(p => p.name === sanitized)) {
+      return { success: false, error: 'Name already taken' };
+    }
+
     room.players.push({
       id: socketId,
-      name: playerName,
+      name: sanitized,
       isReady: false,
       hand: [],
       isAlive: true,
+      shotsFired: 0,
     });
 
     this.playerRooms.set(socketId, roomId);

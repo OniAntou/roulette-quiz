@@ -4,6 +4,7 @@ export interface Player {
   isReady?: boolean;
   cardsCount?: number;
   isAlive?: boolean;
+  shotsFired?: number;
 }
 
 export interface Question {
@@ -20,8 +21,8 @@ export interface CardData {
   topic: string;
   difficulty: string;
   question: string;
-  answers?: Record<string, string>;
-  correct?: string;
+  answers: Record<string, string>;
+  correct: string;
 }
 
 export interface ActiveQuestion {
@@ -40,6 +41,7 @@ export interface TriggerResult {
   playerId?: string;
   playerName?: string;
   bulletCount: number;
+  shotsFired?: number;
 }
 
 export interface WinnerInfo {

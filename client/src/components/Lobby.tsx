@@ -87,19 +87,19 @@ export function Lobby({ roomId, players, localId, error, disconnect }: LobbyProp
     <div className="w-full max-w-6xl px-6 md:px-12 grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-20 items-start z-10 relative py-8">
       <div className="flex flex-col space-y-8">
         <div className="flex flex-col space-y-2">
-          <span className="text-[10px] text-slate-500 font-extrabold tracking-widest uppercase">LOBBY // ROOM_WAITING_STATE</span>
-          <h2 className="text-sm font-extrabold text-slate-300">
+          <span className="text-[10px] text-text-theme-muted font-extrabold tracking-widest uppercase">LOBBY // ROOM_WAITING_STATE</span>
+          <h2 className="text-sm font-extrabold text-text-theme-secondary">
             {roomId ? 'PROTOCOL SECURED' : 'AWAITING PROTOCOL ACTION...'}
           </h2>
         </div>
 
-        <div className="relative border border-white/8 rounded-2xl p-8 bg-[#1c1f2a]/80 backdrop-blur-md flex flex-col justify-center items-center overflow-hidden max-w-sm w-full shadow-lg">
-          <div className="absolute top-2 left-2 w-3 h-3 border-t-2 border-l-2 border-red-500/50"></div>
-          <div className="absolute top-2 right-2 w-3 h-3 border-t-2 border-r-2 border-red-500/50"></div>
-          <div className="absolute bottom-2 left-2 w-3 h-3 border-b-2 border-l-2 border-red-500/50"></div>
-          <div className="absolute bottom-2 right-2 w-3 h-3 border-b-2 border-r-2 border-red-500/50"></div>
-          <span className="text-[9px] text-slate-500 font-extrabold tracking-widest uppercase mb-4">ROOM_ACCESS_CODE</span>
-          <span className="text-5xl font-black tracking-[8px] text-white select-text drop-shadow-[0_0_20px_rgba(255,255,255,0.05)]">
+        <div className="relative border border-border-theme rounded-2xl p-10 bg-panel-solid/80 backdrop-blur-md flex flex-col justify-center items-center overflow-hidden max-w-sm w-full shadow-lg">
+          <div className="absolute top-2 left-2 w-3 h-3 border-t-2 border-l-2 border-red-theme-border"></div>
+          <div className="absolute top-2 right-2 w-3 h-3 border-t-2 border-r-2 border-red-theme-border"></div>
+          <div className="absolute bottom-2 left-2 w-3 h-3 border-b-2 border-l-2 border-red-theme-border"></div>
+          <div className="absolute bottom-2 right-2 w-3 h-3 border-b-2 border-r-2 border-red-theme-border"></div>
+          <span className="text-[9px] text-text-theme-muted font-extrabold tracking-widest uppercase mb-4">ROOM_ACCESS_CODE</span>
+          <span className="text-7xl font-black tracking-[10px] text-text-theme select-text">
             {roomId || '------'}
           </span>
         </div>
@@ -109,22 +109,22 @@ export function Lobby({ roomId, players, localId, error, disconnect }: LobbyProp
             <>
               <button 
                 onClick={handleCreate}
-                className="group w-full py-4.5 bg-[#1c1f2a]/80 backdrop-blur-md border border-white/8 hover:border-red-500/40 hover:bg-slate-900 rounded-2xl text-[11px] font-bold text-slate-300 tracking-widest uppercase flex items-center justify-between px-6 transition-all duration-300 overflow-hidden"
+                className="group w-full py-6 bg-panel-solid/80 backdrop-blur-md border border-border-theme hover:border-red-theme-border hover:bg-surface-2 rounded-2xl text-base font-extrabold text-text-theme-secondary tracking-widest uppercase flex items-center justify-between px-8 transition-all duration-300 overflow-hidden"
               >
-                <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-red-500 scale-y-0 group-hover:scale-y-100 transition-transform duration-300 origin-center"></div>
+                <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-red-theme scale-y-0 group-hover:scale-y-100 transition-transform duration-300 origin-center"></div>
                 <span className="flex items-center gap-3 transition-transform duration-300 group-hover:translate-x-2">
-                  <Plus size={18} className="text-slate-500 group-hover:text-red-500 transition-colors" /> 
+                  <Plus size={24} className="text-text-theme-muted group-hover:text-red-theme transition-colors" /> 
                   CREATE PROTOCOL
                 </span>
                 <span className="group-hover:translate-x-1.5 transition-transform duration-300">↗</span>
               </button>
               <button 
                 onClick={openModal}
-                className="group w-full py-4.5 bg-[#1c1f2a]/80 backdrop-blur-md border border-white/8 hover:border-red-500/40 hover:bg-slate-900 rounded-2xl text-[11px] font-bold text-slate-300 tracking-widest uppercase flex items-center justify-between px-6 transition-all duration-300 overflow-hidden"
+                className="group w-full py-6 bg-panel-solid/80 backdrop-blur-md border border-border-theme hover:border-red-theme-border hover:bg-surface-2 rounded-2xl text-base font-extrabold text-text-theme-secondary tracking-widest uppercase flex items-center justify-between px-8 transition-all duration-300 overflow-hidden"
               >
-                <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-red-500 scale-y-0 group-hover:scale-y-100 transition-transform duration-300 origin-center"></div>
+                <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-red-theme scale-y-0 group-hover:scale-y-100 transition-transform duration-300 origin-center"></div>
                 <span className="flex items-center gap-3 transition-transform duration-300 group-hover:translate-x-2">
-                  <Shield size={18} className="text-slate-500 group-hover:text-red-500 transition-colors" /> 
+                  <Shield size={24} className="text-text-theme-muted group-hover:text-red-theme transition-colors" /> 
                   JOIN PROTOCOL
                 </span>
                 <span className="group-hover:translate-x-1.5 transition-transform duration-300">↗</span>
@@ -133,10 +133,10 @@ export function Lobby({ roomId, players, localId, error, disconnect }: LobbyProp
           ) : (
             <button 
               onClick={toggleReady}
-              className={`w-full py-4.5 rounded-2xl text-[11px] font-bold tracking-widest uppercase flex items-center justify-center transition-all duration-300 border cursor-pointer ${
+              className={`w-full py-6 rounded-2xl text-base font-extrabold tracking-widest uppercase flex items-center justify-center transition-all duration-300 border cursor-pointer ${
                 isReady 
-                  ? 'bg-emerald-950/40 border-emerald-500/50 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.12)] hover:bg-emerald-950/60' 
-                  : 'bg-red-950/20 border-red-500/30 text-red-400 hover:bg-red-950/40 hover:border-red-500/80 shadow-[0_0_20px_rgba(239,68,68,0.05)]'
+                  ? 'bg-emerald-theme-bg border-emerald-theme-border text-emerald-theme hover:bg-emerald-theme-bg-hover' 
+                  : 'bg-red-theme-bg border-red-theme-border text-red-theme hover:bg-red-theme-bg-hover'
               }`}
             >
               {isReady ? 'AWAITING PROTOCOL START...' : 'ENGAGE READY STATE'}
@@ -145,46 +145,46 @@ export function Lobby({ roomId, players, localId, error, disconnect }: LobbyProp
         </div>
 
         <button onClick={disconnect}
-          className="max-w-max flex items-center gap-2 text-slate-500 hover:text-white hover:translate-x-[-2px] transition-all text-[10px] font-bold tracking-wider uppercase cursor-pointer"
+          className="max-w-max flex items-center gap-2 text-text-theme-muted hover:text-text-theme hover:translate-x-[-2px] transition-all text-xs font-bold tracking-wider uppercase cursor-pointer"
         >
-          <ArrowLeft size={14} /> RETURN_TO_MENU
+          <ArrowLeft size={18} /> RETURN_TO_MENU
         </button>
       </div>
 
       <div className="flex flex-col space-y-4 w-full">
-        <span className="text-[10px] text-slate-500 font-extrabold tracking-widest uppercase mb-1">CONNECTED ENTITIES //</span>
+        <span className="text-xs text-text-theme-muted font-extrabold tracking-widest uppercase mb-1">CONNECTED ENTITIES //</span>
         <div className="flex flex-col space-y-3 w-full">
           {players.length === 0 ? (
-            <div className="text-slate-500 text-xs italic py-6 px-6 border border-dashed border-white/8 rounded-2xl bg-black/10 flex items-center gap-3">
-              <Users size={18} className="text-slate-600 animate-pulse" /> Connecting link is idle...
+            <div className="text-text-theme-muted text-xs italic py-6 px-6 border border-dashed border-border-theme rounded-2xl bg-input-theme flex items-center gap-3">
+              <Users size={18} className="text-text-theme-dim animate-pulse" /> Connecting link is idle...
             </div>
           ) : (
             players.map((player) => (
               <div key={player.id}
-                className="w-full bg-[#1c1f2a]/80 backdrop-blur-sm border border-white/8 rounded-2xl px-5 py-4 flex items-center justify-between shadow-sm hover:border-white/15 transition-colors"
+                className="w-full bg-panel-solid/80 backdrop-blur-sm border border-border-theme rounded-2xl px-6 py-5 flex items-center justify-between shadow-sm hover:border-border-theme-strong transition-colors"
               >
                 <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs ${
+                  <div className={`w-12 h-12 rounded-lg flex items-center justify-center font-black text-base ${
                     player.id === localId 
-                      ? 'bg-emerald-950 text-emerald-400 border border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.1)]' 
-                      : 'bg-red-950/40 text-red-400 border border-red-500/20'
+                      ? 'bg-emerald-theme-bg text-emerald-theme border border-emerald-theme-border' 
+                      : 'bg-red-theme-bg text-red-theme border border-red-theme-border'
                   }`}>
                     {player.name.substring(0, 2).toUpperCase()}
                   </div>
-                  <span className="text-sm font-extrabold text-white tracking-wide uppercase">
-                    {player.name} {player.id === localId && <span className="text-[9px] text-slate-500 font-normal italic">(YOU)</span>}
+                  <span className="text-base font-extrabold text-text-theme tracking-wide uppercase">
+                    {player.name} {player.id === localId && <span className="text-[11px] text-text-theme-muted font-normal italic">(YOU)</span>}
                   </span>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className={`text-[9px] font-extrabold tracking-wider ${
-                    player.isReady ? 'text-emerald-400 font-black' : 'text-red-400 font-black'
+                  <span className={`text-xs font-extrabold tracking-wider ${
+                    player.isReady ? 'text-emerald-theme font-black' : 'text-red-theme font-black'
                   }`}>
                     {player.isReady ? 'READY' : 'AWAITING'}
                   </span>
                   {player.isReady ? (
-                    <CheckCircle size={18} className="text-emerald-400" />
+                    <CheckCircle size={24} className="text-emerald-theme" />
                   ) : (
-                    <WarningCircle size={18} className="text-red-400 animate-pulse" />
+                    <WarningCircle size={24} className="text-red-theme animate-pulse" />
                   )}
                 </div>
               </div>
@@ -192,7 +192,7 @@ export function Lobby({ roomId, players, localId, error, disconnect }: LobbyProp
           )}
         </div>
         {error && (
-          <div className="text-[10px] text-red-500 font-extrabold tracking-widest uppercase border border-red-500/20 bg-red-950/20 px-4 py-3 rounded-xl max-w-sm mt-4 shadow-md">
+          <div className="text-[10px] text-red-theme font-extrabold tracking-widest uppercase border border-red-theme-border bg-red-theme-bg px-4 py-3 rounded-xl max-w-sm mt-4 shadow-md">
             EXCEPTION // {error}
           </div>
         )}
@@ -204,7 +204,7 @@ export function Lobby({ roomId, players, localId, error, disconnect }: LobbyProp
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-[#0c0d12]/90 backdrop-blur-md flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 bg-overlay-solid/90 backdrop-blur-md flex items-center justify-center z-50 p-4"
           >
             <motion.div 
               initial={{ scale: 0.95, y: 20 }}
@@ -213,9 +213,9 @@ export function Lobby({ roomId, players, localId, error, disconnect }: LobbyProp
               transition={{ type: shakeModal ? "keyframes" : "spring", stiffness: 350, damping: 25 }}
               className="glass-panel rounded-2xl p-8 max-w-md w-full flex flex-col items-center relative overflow-hidden"
             >
-              <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
-              <h3 className="text-[10px] text-slate-500 font-extrabold tracking-widest uppercase mb-6 flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
+              <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-border-theme-strong to-transparent"></div>
+              <h3 className="text-[10px] text-text-theme-muted font-extrabold tracking-widest uppercase mb-6 flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-theme animate-pulse"></span>
                 DECRYPT_ACCESS_CODE //
               </h3>
               <div className="flex space-x-2.5 mb-6" onPaste={handlePaste}>
@@ -224,8 +224,8 @@ export function Lobby({ roomId, players, localId, error, disconnect }: LobbyProp
                   const isActive = index === modalCode.length;
                   return (
                     <div key={index} 
-                      className={`w-11 h-11 bg-[#252833]/50 rounded-xl border flex items-center justify-center text-lg font-black text-red-500 transition-all duration-300 shadow-inner ${
-                        isActive ? 'border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.2)] scale-105' : 'border-white/8'
+                      className={`w-14 h-14 bg-surface-2 rounded-xl border flex items-center justify-center text-2xl font-black text-red-theme transition-all duration-300 shadow-inner ${
+                        isActive ? 'border-red-theme scale-105' : 'border-border-theme'
                       }`}
                     >
                       {char}
@@ -233,17 +233,17 @@ export function Lobby({ roomId, players, localId, error, disconnect }: LobbyProp
                   );
                 })}
               </div>
-              <span className="text-[9px] text-slate-600 font-semibold tracking-wide mb-6">
+              <span className="text-xs text-text-theme-dim font-semibold tracking-wide mb-6">
                 // Type 6 characters. Press ENTER to connect.
               </span>
               <div className="flex gap-4 w-full">
                 <button onClick={closeModal}
-                  className="flex-1 py-3 bg-[#252833]/50 border border-white/8 hover:border-red-500/30 text-[10px] font-extrabold text-slate-400 tracking-wider uppercase rounded-xl hover:text-white hover:bg-red-950/10 transition-all duration-300 cursor-pointer"
+                  className="flex-1 py-4 bg-surface-2 border border-border-theme hover:border-red-theme-border text-xs font-extrabold text-text-theme-muted tracking-wider uppercase rounded-xl hover:text-text-theme hover:bg-red-theme-bg transition-all duration-300 cursor-pointer"
                 >
                   CANCEL // ESC
                 </button>
                 <button onClick={handleJoinSubmit}
-                  className="flex-1 py-3 bg-red-950/20 border border-red-500/30 hover:border-red-500 text-[10px] font-extrabold text-red-400 tracking-wider uppercase rounded-xl hover:bg-red-950/40 transition-all duration-300 cursor-pointer shadow-[0_0_15px_rgba(239,68,68,0.05)]"
+                  className="flex-1 py-4 bg-red-theme-bg border border-red-theme-border hover:border-red-theme text-xs font-extrabold text-red-theme tracking-wider uppercase rounded-xl hover:bg-red-theme-bg-hover transition-all duration-300 cursor-pointer"
                 >
                   CONFIRM // ENTER
                 </button>

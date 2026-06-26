@@ -3,14 +3,25 @@ import http from 'http';
 import { Server } from 'socket.io';
 import { RoomManager } from './RoomManager';
 import { GameManager } from './GameManager';
-import { LANDiscovery } from './LANDiscovery';
 import cors from 'cors';
 
 const app = express();
 const server = http.createServer(app);
+const ALLOWED_ORIGINS = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://127.0.0.1:5173',
+  'http://127.0.0.1:3000',
+];
+
 const io = new Server(server, {
   cors: {
-    origin: '*',
+    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+      if (!origin) return callback(null, true);
+      if (origin.startsWith('file://')) return callback(null, true);
+      if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+      callback(new Error('Not allowed by CORS'));
+    },
     methods: ['GET', 'POST'],
   },
 });
@@ -18,9 +29,25 @@ const io = new Server(server, {
 const roomManager = new RoomManager();
 const gameManager = new GameManager(roomManager, io);
 
+const rateLimits = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT_WINDOW = 1000;
+const RATE_LIMIT_MAX = 10;
+
+function checkRateLimit(socketId: string): boolean {
+  const now = Date.now();
+  const limit = rateLimits.get(socketId);
+  if (!limit || now > limit.resetTime) {
+    rateLimits.set(socketId, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
+    return true;
+  }
+  if (limit.count >= RATE_LIMIT_MAX) {
+    return false;
+  }
+  limit.count++;
+  return true;
+}
+
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
-const lanDiscovery = new LANDiscovery(PORT);
-lanDiscovery.start();
 
 app.use(cors());
 app.use(express.static('public'));
@@ -30,11 +57,31 @@ app.get('/health', (_req, res) => {
 });
 
 app.get('/lan-servers', (_req, res) => {
-  res.json({ servers: lanDiscovery.getServers() });
+  res.json({ servers: [] });
 });
+
+setInterval(() => {
+  roomManager.cleanupStaleRooms();
+}, 60000);
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [socketId, limit] of rateLimits.entries()) {
+    if (now > limit.resetTime) {
+      rateLimits.delete(socketId);
+    }
+  }
+}, 30000);
 
 io.on('connection', (socket) => {
   console.log(`Player connected: ${socket.id}`);
+
+  socket.onAny((event: string, ...args: unknown[]) => {
+    if (!checkRateLimit(socket.id)) {
+      socket.emit('error', { message: 'Rate limit exceeded. Please slow down.' });
+      return;
+    }
+  });
 
   socket.on('room:create', (data: { playerName: string }) => {
     const { playerName } = data;

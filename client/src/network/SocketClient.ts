@@ -18,7 +18,6 @@ class SocketClient {
       this.socket.disconnect();
       this.socket = null;
       this.connected = false;
-      this.callbacks = {};
     }
 
     return new Promise((resolve, reject) => {
@@ -26,22 +25,50 @@ class SocketClient {
         reconnection: true,
         reconnectionAttempts: 5,
         reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000,
+        timeout: 10000,
       });
+
+      let settled = false;
 
       this.socket.on('connect', () => {
         this.connected = true;
         console.log('Connected to server');
-        resolve(this.socket!);
+        if (!settled) {
+          settled = true;
+          resolve(this.socket!);
+        }
+        this.emit('_reconnect', undefined);
       });
 
-      this.socket.on('disconnect', () => {
+      this.socket.on('disconnect', (reason) => {
         this.connected = false;
-        console.log('Disconnected from server');
+        console.log('Disconnected from server:', reason);
+        this.emit('_disconnect', reason);
       });
 
       this.socket.on('connect_error', (error: Error) => {
-        console.error('Connection error:', error);
-        reject(error);
+        console.error('Connection error:', error.message);
+        if (!settled) {
+          settled = true;
+          reject(error);
+        }
+        this.emit('_connect_error', error);
+      });
+
+      this.socket.io.on('reconnect_attempt', (attempt: number) => {
+        console.log(`Reconnection attempt ${attempt}`);
+        this.emit('_reconnect_attempt', attempt);
+      });
+
+      this.socket.io.on('reconnect', (attempt: number) => {
+        console.log(`Reconnected after ${attempt} attempts`);
+        this.emit('_reconnect', attempt);
+      });
+
+      this.socket.io.on('reconnect_failed', () => {
+        console.error('All reconnection attempts failed');
+        this.emit('_reconnect_failed', undefined);
       });
 
       this.setupEventListeners();
@@ -136,7 +163,10 @@ class SocketClient {
 
   disconnect(): void {
     if (this.socket) {
+      this.socket.removeAllListeners();
       this.socket.disconnect();
+      this.socket = null;
+      this.connected = false;
     }
   }
 }
