@@ -22,6 +22,7 @@ interface GameBoardProps {
   onCardChoice?: (cardId: string) => void;
   onAnswerSubmit?: (letter: string) => void;
   botHudMessage?: { text: string; color: string } | null;
+  isBotSpectating?: boolean;
 }
 
 interface HudMessage {
@@ -80,7 +81,8 @@ export function GameBoard({
   onLeaveAfterDeath,
   onCardChoice,
   onAnswerSubmit,
-  botHudMessage
+  botHudMessage,
+  isBotSpectating
 }: GameBoardProps) {
   
   const [bulletsFired, setBulletsFired] = useState<number>(0);
@@ -814,7 +816,7 @@ export function GameBoard({
               <div className="flex justify-between items-center mb-6">
                 <span className="text-[10px] text-cyan-theme-light font-bold tracking-widest uppercase flex items-center gap-2 font-mono">
                   <span className="w-1.5 h-1.5 rotate-45 bg-red-theme animate-pulse"></span>
-                  DECRYPTING PROTOCOL // {activeQuestion.card.topic.toUpperCase()}
+                  {isBotSpectating ? 'SPECTATING // DECRYPTING PROTOCOL' : 'DECRYPTING PROTOCOL'} // {activeQuestion.card.topic.toUpperCase()}
                 </span>
                 <span className={`text-lg font-mono font-bold tracking-widest ${
                   timeLeft <= 3 ? 'text-red-theme animate-pulse font-black' : 'text-text-theme-muted'
@@ -855,9 +857,9 @@ export function GameBoard({
                   return (
                     <button 
                       key={letter}
-                      disabled={questionResult !== null || isSpectating}
+                      disabled={questionResult !== null || isSpectating || isBotSpectating}
                       onClick={() => handleAnswerSubmit(letter)}
-                      className={`w-full py-5 px-8 border text-base font-bold tracking-widest uppercase rounded-none flex items-center gap-4 transition-all duration-200 relative overflow-hidden group ${isSpectating ? 'cursor-not-allowed' : 'cursor-pointer'} ${buttonStyle}`}
+                      className={`w-full py-5 px-8 border text-base font-bold tracking-widest uppercase rounded-none flex items-center gap-4 transition-all duration-200 relative overflow-hidden group ${isSpectating || isBotSpectating ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} ${buttonStyle}`}
                     >
                       <div className="w-8 h-8 rounded-none border border-cyan-theme-muted group-hover:border-text-theme bg-transparent flex items-center justify-center font-mono font-black text-xs text-cyan-theme group-hover:text-text-theme transition-colors duration-200">
                         {letter}

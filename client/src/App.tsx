@@ -49,6 +49,7 @@ export default function App() {
     handleBotCardChoice,
     handleBotModePlayerAnswer,
     botHudMessage,
+    isSpectating,
     syncHandCards,
     syncPlayers,
     syncPhase,
@@ -306,6 +307,7 @@ export default function App() {
           onCardChoice={botMode ? (cardId: string) => handleBotCardChoice(cardId, phase, currentTurnId, handCards) : undefined}
           onAnswerSubmit={botMode ? (letter: string) => handleBotModePlayerAnswer(letter, phase, activeQuestion) : undefined}
           botHudMessage={botMode ? botHudMessage : null}
+          isBotSpectating={botMode ? isSpectating : false}
         />
       )}
       {screen === 'gameover' && (
