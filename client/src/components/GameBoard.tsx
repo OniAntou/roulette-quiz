@@ -85,8 +85,6 @@ export function GameBoard({
   isBotSpectating
 }: GameBoardProps) {
   
-  const [bulletsFired, setBulletsFired] = useState<number>(0);
-  const [currentPosition, setCurrentPosition] = useState<number>(0);
   const [isSpinning, setIsSpinning] = useState<boolean>(false);
   const [isFiring, setIsFiring] = useState<boolean>(false);
   const [timeLeft, setTimeLeft] = useState<number>(10);
@@ -94,6 +92,8 @@ export function GameBoard({
   const [hudMessage, setHudMessage] = useState<HudMessage | null>(null);
   const [rotationAngle, setRotationAngle] = useState<number>(-90);
   const [isGunInCenter, setIsGunInCenter] = useState<boolean>(false);
+  const [displayedShots, setDisplayedShots] = useState<number>(0);
+  const [currentPositionState, setCurrentPositionState] = useState<number>(0);
 
   const [isDealing, setIsDealing] = useState<boolean>(false);
   const [revealedCards, setRevealedCards] = useState<Set<string>>(new Set());
@@ -101,6 +101,11 @@ export function GameBoard({
   const [hoveredCardIndex, setHoveredCardIndex] = useState<number | null>(null);
   const [tilt, setTilt] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [answerIndicator, setAnswerIndicator] = useState<{ playerId: string; correct: boolean } | null>(null);
+  const [isScreenShaking, setIsScreenShaking] = useState<boolean>(false);
+  const [showRedFlash, setShowRedFlash] = useState<boolean>(false);
+  const [showDeathOverlay, setShowDeathOverlay] = useState<boolean>(false);
+  const [isCrtShuttingDown, setIsCrtShuttingDown] = useState<boolean>(false);
+  const [deathMessage, setDeathMessage] = useState<string>('');
   const prevHandCardsLength = useRef<number>(0);
   const lastProcessedTriggerRef = useRef<string | null>(null);
   const lastMouseMoveRef = useRef<number>(0);
@@ -134,8 +139,6 @@ export function GameBoard({
   }, [phase, currentTurnId, localId, questionResult]);
 
   useEffect(() => {
-    setBulletsFired(0);
-    setCurrentPosition(0);
     setIsSpinning(false);
     setIsFiring(false);
     setRotationAngle(-90);
@@ -144,6 +147,9 @@ export function GameBoard({
     setRevealedCards(new Set());
     prevHandCardsLength.current = 0;
     lastProcessedTriggerRef.current = null;
+    setShowDeathOverlay(false);
+    setIsCrtShuttingDown(false);
+    setDeathMessage('');
   }, [round]);
 
   useEffect(() => {
@@ -187,6 +193,8 @@ export function GameBoard({
       if (lastProcessedTriggerRef.current === triggerKey) return;
       lastProcessedTriggerRef.current = triggerKey;
 
+      setDisplayedShots(triggerResult.bulletsFired || 0);
+      setCurrentPositionState(triggerResult.currentPosition ?? 0);
       setIsGunInCenter(true);
       setIsSpinning(true);
       Sounds.gunClick();
@@ -207,17 +215,33 @@ export function GameBoard({
       const spinTimer = setTimeout(() => {
         setIsSpinning(false);
         setIsFiring(true);
-        
-        const fired = 6 - triggerResult.bulletCount;
-        setBulletsFired(fired);
-        setCurrentPosition(prev => (prev + 1) % 6);
+
+        // Screen Shake & Red flash effect
+        setIsScreenShaking(true);
+        const shakeTimer = setTimeout(() => setIsScreenShaking(false), 450);
 
         if (triggerResult.alive) {
           Sounds.gunSurvive();
-          showHUDAlert('CLICK // COCK SURVIVED', 'text-amber-theme', 2000);
         } else {
           Sounds.gunFire();
-          showHUDAlert('BANG // PROTOCOL FAULT', 'text-red-theme', 3000);
+          setShowRedFlash(true);
+          setTimeout(() => setShowRedFlash(false), 600);
+
+          // Death visual upgrades
+          const isLocalDeath = triggerResult.playerId === localId;
+          const targetName = triggerResult.playerName || 'PLAYER';
+          setDeathMessage(isLocalDeath 
+            ? "CRITICAL ERROR // LIFE SIGNALS LOST" 
+            : `TARGET ELIMINATED // ${targetName.toUpperCase()} TERMINATED`
+          );
+          setShowDeathOverlay(true);
+
+          if (isLocalDeath) {
+            // Trigger CRT screen collapse shutdown for local player after 1.2s
+            setTimeout(() => {
+              setIsCrtShuttingDown(true);
+            }, 1200);
+          }
         }
 
         const resetFireTimer = setTimeout(() => {
@@ -226,7 +250,10 @@ export function GameBoard({
           setIsGunInCenter(false);
         }, 2000);
 
-        return () => clearTimeout(resetFireTimer);
+        return () => {
+          clearTimeout(resetFireTimer);
+          clearTimeout(shakeTimer);
+        };
       }, 1200);
 
       return () => clearTimeout(spinTimer);
@@ -336,19 +363,81 @@ export function GameBoard({
     return 'text-text-theme-secondary';
   };
 
+  const getTargetPlayer = () => {
+    const currentTurnIndex = players.findIndex(p => p.id === currentTurnId);
+    if (currentTurnIndex === -1) return null;
+    
+    let next = (currentTurnIndex + 1) % players.length;
+    let checked = 0;
+    while (!players[next].isAlive && checked < players.length) {
+      next = (next + 1) % players.length;
+      checked++;
+    }
+    return players[next];
+  };
+
+  const renderProfileIndicator = (playerId: string) => {
+    const target = getTargetPlayer();
+    if (!target || target.id !== playerId) return null;
+
+    if (phase === 'questioning' || phase === 'answering') {
+      return (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8, y: 10 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0 }}
+          className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-0.5 border border-amber-theme-border bg-surface text-amber-theme font-mono text-[7px] font-black tracking-wider uppercase rounded shadow-[0_0_10px_rgba(245,158,11,0.15)] whitespace-nowrap z-30 animate-pulse flex items-center gap-1"
+        >
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-theme" />
+          DECRYPTING...
+        </motion.div>
+      );
+    }
+
+    if ((phase === 'result' || phase === 'trigger') && questionResult) {
+      if (questionResult.correct) {
+        return (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-0.5 border border-emerald-theme-border bg-surface text-emerald-theme font-mono text-[7px] font-black tracking-wider uppercase rounded shadow-[0_0_10px_rgba(16,185,129,0.15)] whitespace-nowrap z-30 flex items-center gap-1"
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-theme animate-ping" />
+            SUCCESS!
+          </motion.div>
+        );
+      } else {
+        return (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-0.5 border border-red-theme-border bg-surface text-red-theme font-mono text-[7px] font-black tracking-wider uppercase rounded shadow-[0_0_10px_rgba(239,68,68,0.15)] whitespace-nowrap z-30 flex items-center gap-1"
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-red-theme animate-ping" />
+            FAILED!
+          </motion.div>
+        );
+      }
+    }
+
+    return null;
+  };
+
   return (
-    <div className="w-full h-full flex flex-col items-center justify-between py-6 px-12 z-10 select-none relative">
-      <div className="w-full flex items-center justify-between pb-4 border-b border-border-theme z-30">
-        <span className="text-xs font-bold text-text-theme tracking-widest uppercase">
-          PROTOCOL // 0{round}
-        </span>
-        <span className="text-xs font-bold text-emerald-theme tracking-wider">
-          ● LINK SECURED
-        </span>
-        <span className={`text-xs font-bold tracking-widest uppercase ${getHUDPhaseColor()}`}>
-          {getHUDPhaseLabel()}
-        </span>
-      </div>
+    <motion.div 
+      animate={isScreenShaking ? (
+        triggerResult?.alive 
+          ? { x: [0, -3, 3, -3, 3, 0], y: [0, 2, -2, 2, -2, 0] }
+          : { x: [0, -12, 12, -10, 10, -6, 6, 0], y: [0, 10, -10, 8, -8, 4, -4, 0] }
+      ) : {
+        x: 0,
+        y: 0,
+      }}
+      transition={{ duration: 0.4 }}
+      className={`w-full h-full flex flex-col items-center justify-between py-6 px-12 z-10 select-none relative ${isCrtShuttingDown ? 'animate-crt-shutdown' : ''}`}
+    >
 
       {/* Turn Indicator Banner - Removed, using arrow indicator instead */}
 
@@ -365,9 +454,14 @@ export function GameBoard({
                 {opponent.name}
               </span>
               <div className="relative">
-              {/* Turn arrow indicator for opponent */}
-              <AnimatePresence>
-                {(phase === 'choosing' || phase === 'answering') && isCurrentTurn && opponent.isAlive && (
+                {/* Live decrypt status tag */}
+                <AnimatePresence>
+                  {renderProfileIndicator(opponent.id)}
+                </AnimatePresence>
+                
+                {/* Turn arrow indicator for opponent */}
+                <AnimatePresence>
+                  {(phase === 'choosing' || phase === 'answering') && isCurrentTurn && opponent.isAlive && (
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -457,11 +551,6 @@ export function GameBoard({
                     : `CARDS // [0${cardCount}]`
               }
             </span>
-            {opponent.isAlive && (
-              <span className={`text-[8px] font-mono tracking-wider ${(opponent.shotsFired || 0) >= 4 ? 'text-red-theme' : (opponent.shotsFired || 0) >= 2 ? 'text-amber-theme' : 'text-text-theme-muted'}`}>
-                SHOTS // {opponent.shotsFired || 0}/6
-              </span>
-            )}
           </div>
         );
       })}
@@ -479,20 +568,6 @@ export function GameBoard({
 
       {/* 2. Center Table */}
       <div className="absolute top-[48%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[720px] h-[340px] rounded-none bg-surface-3/70 border border-cyan-theme-muted backdrop-blur-md flex items-center justify-center gap-16 px-12 z-10 overflow-visible">
-        {/* Source Deck - Left side */}
-        <div className="absolute -left-40 top-1/2 -translate-y-1/2 flex flex-col items-center space-y-2 z-20">
-          <div className="w-32 h-44 bg-surface-2 border border-cyan-theme-light rounded-none flex items-center justify-center relative overflow-hidden group hover:border-cyan-theme transition-all duration-300">
-            <span className="absolute top-1 left-1.5 text-[8px] font-mono text-cyan-theme-light select-none font-normal">+</span>
-            <span className="absolute top-1 right-1.5 text-[8px] font-mono text-cyan-theme-light select-none font-normal">+</span>
-            <span className="absolute bottom-1 left-1.5 text-[8px] font-mono text-cyan-theme-light select-none font-normal">+</span>
-            <span className="absolute bottom-1 right-1.5 text-[8px] font-mono text-cyan-theme-light select-none font-normal">+</span>
-            <span className="text-[10px] font-bold text-cyan-theme-light tracking-widest uppercase text-center leading-relaxed font-mono">
-              SOURCE //
-              <br />
-              DECK
-            </span>
-          </div>
-        </div>
 
         {/* Discard Pile / Played Card */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20">
@@ -574,17 +649,35 @@ export function GameBoard({
           scale: isGunInCenter ? 1.5 : 1.25
         }}
         transition={{ duration: 0.6, type: "spring", bounce: 0.2 }}
-        className="absolute -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none"
+        className="absolute -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none flex flex-col items-center"
       >
         <Revolver 
-          bulletsFired={bulletsFired}
-          currentPosition={currentPosition}
+          bulletsFired={displayedShots}
+          currentPosition={currentPositionState}
           isSpinning={isSpinning}
           isFiring={isFiring}
           alive={triggerResult ? triggerResult.alive : true}
           rotationAngle={rotationAngle}
         />
       </motion.div>
+
+      {/* Shots fired indicator - fixed position below gun default location */}
+      <div
+        className="absolute z-50 pointer-events-none"
+        style={{ left: 'calc(50% + 480px)', top: 'calc(48% + 180px)', transform: 'translateX(-50%)' }}
+      >
+        <div
+          className={`px-4 py-2 border rounded-none font-mono text-sm font-bold tracking-widest ${
+            displayedShots >= 4
+              ? 'border-red-theme-border text-red-theme bg-red-theme-bg'
+              : displayedShots >= 2
+                ? 'border-amber-theme-border text-amber-theme bg-amber-theme-bg'
+                : 'border-cyan-theme-muted text-cyan-theme bg-surface-3'
+          }`}
+        >
+          SHOTS // {displayedShots}/6
+        </div>
+      </div>
 
       {/* 3. Bottom Area: Hand Cards */}
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center space-y-2 z-20 w-full max-w-2xl">
@@ -729,6 +822,11 @@ export function GameBoard({
           <div className={`w-12 h-12 rounded-none bg-surface-3 border flex items-center justify-center font-mono font-black text-base relative transition-all duration-300 ${
             !localPlayer.isAlive ? 'border-red-theme-border opacity-30 bg-red-theme-bg' : 'border-cyan-theme-light'
           }`}>
+            {/* Live decrypt status tag */}
+            <AnimatePresence>
+              {renderProfileIndicator(localId)}
+            </AnimatePresence>
+ 
             {localPlayer.name.substring(0, 2).toUpperCase()}
             {!localPlayer.isAlive ? (
               <div className="absolute inset-0 bg-red-theme-bg rounded-none flex items-center justify-center">
@@ -753,11 +851,6 @@ export function GameBoard({
                     : 'LINK STATE // SECURED'
               }
             </span>
-            {localPlayer.isAlive && (
-              <span className={`text-[8px] font-mono tracking-wider mt-1 ${(localPlayer.shotsFired || 0) >= 4 ? 'text-red-theme' : (localPlayer.shotsFired || 0) >= 2 ? 'text-amber-theme' : 'text-text-theme-muted'}`}>
-                SHOTS // {localPlayer.shotsFired || 0}/6
-              </span>
-            )}
           </div>
           {!localPlayer.isAlive && (
             <button 
@@ -869,6 +962,54 @@ export function GameBoard({
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+
+      {/* Red flash alert overlay when player gets shot */}
+      <AnimatePresence>
+        {showRedFlash && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: [0, 0.75, 0.2, 0.6, 0] }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.6 }}
+            className="fixed inset-0 bg-red-600/30 z-[99] pointer-events-none"
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Death Static Noise Glitch and Warning Banner */}
+      <AnimatePresence>
+        {showDeathOverlay && (
+          <>
+            {/* Tivi noise overlay */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.95 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 static-glitch z-[90] pointer-events-none"
+            />
+            
+            {/* Warning card block - Only show if it's NOT local player's death */}
+            {triggerResult && triggerResult.playerId !== localId && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9, x: '-50%', y: '-40%' }}
+                animate={{ opacity: 1, scale: 1, x: '-50%', y: '-50%' }}
+                exit={{ opacity: 0, scale: 0.9, x: '-50%', y: '-40%' }}
+                className="fixed top-1/2 left-1/2 z-[95] bg-surface border-2 border-red-theme-border px-10 py-6 text-center shadow-[0_0_50px_rgba(239,68,68,0.25)] min-w-[340px]"
+                style={{ transform: 'translate(-50%, -50%)' }}
+              >
+                <span className="block font-mono text-[8px] text-red-theme/60 tracking-widest mb-1">// CRITICAL_SYSTEM_ALERT</span>
+                <h2 className="font-mono text-xs font-black text-red-theme tracking-wider uppercase animate-pulse">
+                  {deathMessage}
+                </h2>
+                <div className="mt-4 flex justify-center items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-theme animate-ping" />
+                  <span className="font-mono text-[8px] text-text-theme-muted tracking-widest">TRANSMISSION SEVERED</span>
+                </div>
+              </motion.div>
+            )}
+          </>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 }
