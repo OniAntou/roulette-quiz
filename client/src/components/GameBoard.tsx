@@ -22,6 +22,7 @@ interface GameBoardProps {
   onCardChoice?: (cardId: string) => void;
   onAnswerSubmit?: (letter: string) => void;
   botHudMessage?: { text: string; color: string } | null;
+  isBotSpectating?: boolean;
 }
 
 interface HudMessage {
@@ -34,34 +35,34 @@ interface OpponentPos {
   angle: number;
 }
 
-const getOpponentPosition = (index: number, total: number): OpponentPos => {
+const getOpponentPosition = (playerId: string, total: number): OpponentPos => {
+  const posMap: Record<string, OpponentPos> = {
+    'bot-0': {
+      className: "absolute left-8 top-[48%] -translate-y-1/2 flex flex-col items-center space-y-2 z-20",
+      angle: 180
+    },
+    'bot-1': {
+      className: "absolute top-20 left-1/2 -translate-x-1/2 flex flex-col items-center space-y-2 z-20",
+      angle: -90
+    },
+    'bot-2': {
+      className: "absolute right-8 top-[48%] -translate-y-1/2 flex flex-col items-center space-y-2 z-20",
+      angle: 0
+    },
+  };
+
+  if (posMap[playerId]) return posMap[playerId];
+
   if (total === 1) {
     return {
       className: "absolute top-20 left-1/2 -translate-x-1/2 flex flex-col items-center space-y-2 z-20",
       angle: -90
     };
   }
-  if (total === 2) {
-    if (index === 0) return {
-      className: "absolute left-8 top-[48%] -translate-y-1/2 flex flex-col items-center space-y-2 z-20",
-      angle: 180
-    };
-    return {
-      className: "absolute right-8 top-[48%] -translate-y-1/2 flex flex-col items-center space-y-2 z-20",
-      angle: 0
-    };
-  }
-  if (index === 0) return {
-    className: "absolute left-8 top-[48%] -translate-y-1/2 flex flex-col items-center space-y-2 z-20",
-    angle: 180
-  };
-  if (index === 1) return {
+
+  return {
     className: "absolute top-20 left-1/2 -translate-x-1/2 flex flex-col items-center space-y-2 z-20",
     angle: -90
-  };
-  return {
-    className: "absolute right-8 top-[48%] -translate-y-1/2 flex flex-col items-center space-y-2 z-20",
-    angle: 0
   };
 };
 
@@ -80,7 +81,8 @@ export function GameBoard({
   onLeaveAfterDeath,
   onCardChoice,
   onAnswerSubmit,
-  botHudMessage
+  botHudMessage,
+  isBotSpectating
 }: GameBoardProps) {
   
   const [bulletsFired, setBulletsFired] = useState<number>(0);
@@ -196,12 +198,8 @@ export function GameBoard({
         if (playerId === localId) {
           targetAngle = 90;
         } else {
-          const opponentPlayersList = players.filter(p => p.id !== localId);
-          const oppIndex = opponentPlayersList.findIndex(p => p.id === playerId);
-          if (oppIndex !== -1) {
-            const oppPos = getOpponentPosition(oppIndex, opponentPlayersList.length);
-            targetAngle = oppPos.angle;
-          }
+          const oppPos = getOpponentPosition(playerId, opponentPlayers.length);
+          targetAngle = oppPos.angle;
         }
       }
       setRotationAngle(targetAngle);
@@ -355,10 +353,10 @@ export function GameBoard({
       {/* Turn Indicator Banner - Removed, using arrow indicator instead */}
 
       {/* 1. Opponents positioned absolute around the table */}
-      {opponentPlayers.map((opponent, index) => {
+      {opponentPlayers.map((opponent) => {
         const cardCount = opponent.cardsCount || 0;
         const isCurrentTurn = currentTurnId === opponent.id;
-        const pos = getOpponentPosition(index, opponentPlayers.length);
+        const pos = getOpponentPosition(opponent.id, opponentPlayers.length);
         
         return (
           <div key={opponent.id} className={pos.className}>
@@ -814,7 +812,7 @@ export function GameBoard({
               <div className="flex justify-between items-center mb-6">
                 <span className="text-[10px] text-cyan-theme-light font-bold tracking-widest uppercase flex items-center gap-2 font-mono">
                   <span className="w-1.5 h-1.5 rotate-45 bg-red-theme animate-pulse"></span>
-                  DECRYPTING PROTOCOL // {activeQuestion.card.topic.toUpperCase()}
+                  {isBotSpectating ? 'SPECTATING // DECRYPTING PROTOCOL' : 'DECRYPTING PROTOCOL'} // {activeQuestion.card.topic.toUpperCase()}
                 </span>
                 <span className={`text-lg font-mono font-bold tracking-widest ${
                   timeLeft <= 3 ? 'text-red-theme animate-pulse font-black' : 'text-text-theme-muted'
@@ -855,9 +853,9 @@ export function GameBoard({
                   return (
                     <button 
                       key={letter}
-                      disabled={questionResult !== null || isSpectating}
+                      disabled={questionResult !== null || isSpectating || isBotSpectating}
                       onClick={() => handleAnswerSubmit(letter)}
-                      className={`w-full py-5 px-8 border text-base font-bold tracking-widest uppercase rounded-none flex items-center gap-4 transition-all duration-200 relative overflow-hidden group ${isSpectating ? 'cursor-not-allowed' : 'cursor-pointer'} ${buttonStyle}`}
+                      className={`w-full py-5 px-8 border text-base font-bold tracking-widest uppercase rounded-none flex items-center gap-4 transition-all duration-200 relative overflow-hidden group ${isSpectating || isBotSpectating ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} ${buttonStyle}`}
                     >
                       <div className="w-8 h-8 rounded-none border border-cyan-theme-muted group-hover:border-text-theme bg-transparent flex items-center justify-center font-mono font-black text-xs text-cyan-theme group-hover:text-text-theme transition-colors duration-200">
                         {letter}

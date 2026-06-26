@@ -49,11 +49,17 @@ export default function App() {
     handleBotCardChoice,
     handleBotModePlayerAnswer,
     botHudMessage,
+    isSpectating,
     syncHandCards,
     syncPlayers,
     syncPhase,
     syncCurrentTurn,
   } = useBotGame(playerName, botCallbacks);
+
+  const handleStartBotGame = useCallback((count: number) => {
+    setLocalPlayerId('local-player');
+    startBotGame(count);
+  }, [startBotGame]);
 
   // Sync state to bot refs
   useEffect(() => { syncHandCards(handCards); }, [handCards, syncHandCards]);
@@ -275,7 +281,7 @@ export default function App() {
       {screen === 'menu' && (
         <MainMenu
           connect={connectToServer}
-          startBot={startBotGame}
+          startBot={handleStartBotGame}
           error={errorMsg}
           status={connectionStatus}
         />
@@ -306,6 +312,7 @@ export default function App() {
           onCardChoice={botMode ? (cardId: string) => handleBotCardChoice(cardId, phase, currentTurnId, handCards) : undefined}
           onAnswerSubmit={botMode ? (letter: string) => handleBotModePlayerAnswer(letter, phase, activeQuestion) : undefined}
           botHudMessage={botMode ? botHudMessage : null}
+          isBotSpectating={botMode ? isSpectating : false}
         />
       )}
       {screen === 'gameover' && (
