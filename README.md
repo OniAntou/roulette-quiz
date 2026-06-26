@@ -16,6 +16,14 @@ Players use question cards to attack opponents. A wrong answer or timeout means 
 - **Server:** Node.js + Express + TypeScript
 - **Shared Utilities:** Shared TypeScript constants and schemas
 
+## Key Features & Visual Effects
+
+- 🔫 **Realistic Revolver Animation:** 3D side-view cylinder rotation animation on trigger pull and spins.
+- ⚡ **Minimalist Cyberpunk UI:** Removed cluttered headers, focusing entire layout on clean grid lines and blueprint grids.
+- 🏷️ **Dynamic Turn & Action Indicators:** Live status badges (`DECRYPTING...`, `SUCCESS!`, `FAILED!`, `PULL TRIGGER!`) render seamlessly right above the active player's profile container.
+- 💥 **Tactical Death Effects:** Screen shake, red emergency flashes, static TV screen glitch, and a collapsing CRT shutdown animation when the local player is terminated.
+- 🔊 **Web Audio Synthesis:** Custom mechanical UI beeps, revolver clicks, survive clicks, timer ticks, and warning signals synthesized directly using the Web Audio API.
+
 ## Quick Start
 
 ### Prerequisites
@@ -168,7 +176,7 @@ roulette-quiz/
 
 ## Known Issues
 
-- 🔇 **Audio:** Currently uses placeholder references; actual audio files are missing.
+- 🔊 **Audio:** Synthesized sound effects (Web Audio API) are integrated natively in the client code, resolving the missing physical audio files issue.
 - 🛜 **Networking:** No real LAN discovery (UDP broadcast) is implemented yet.
 - 💬 **Input:** Player name input uses basic sanitization and could be further hardened against XSS.
 
