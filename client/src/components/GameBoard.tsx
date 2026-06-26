@@ -376,6 +376,9 @@ export function GameBoard({
     return players[next];
   };
 
+  const targetPlayer = getTargetPlayer();
+  const isBotTarget = targetPlayer ? targetPlayer.id.startsWith('bot-') : false;
+
   const renderProfileIndicator = (playerId: string) => {
     // 1. Answering phase
     if (phase === 'questioning' || phase === 'answering') {
@@ -903,7 +906,7 @@ export function GameBoard({
       </AnimatePresence>
 
       <AnimatePresence>
-        {isAnswering && activeQuestion && (
+        {isAnswering && activeQuestion && !isBotTarget && (
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
