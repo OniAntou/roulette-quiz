@@ -269,8 +269,8 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
             EST. CONNECTION // SECURE
           </motion.div>
 
-          <div className="select-none flex flex-col items-start" style={{ transform: 'scaleX(1.25)', transformOrigin: 'left' }}>
-            <h1 className="text-7xl sm:text-8xl lg:text-9xl font-mono font-black tracking-[0.12em] leading-[0.9] text-text-theme">
+          <div className="select-none flex flex-col items-start">
+            <h1 className="text-7xl sm:text-8xl lg:text-9xl font-mono font-black tracking-[0.2em] leading-[0.9] text-text-theme">
               {titleChars.map((char, i) => (
                 <span
                   key={i}
@@ -290,7 +290,7 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.9, duration: 0.5, ease: 'easeOut' }}
-              className="block text-7xl sm:text-8xl lg:text-9xl font-mono font-normal tracking-[0.12em] leading-[0.9] text-text-theme-muted mt-1"
+              className="block text-7xl sm:text-8xl lg:text-9xl font-mono font-normal tracking-[0.2em] leading-[0.9] text-text-theme-muted mt-1"
             >
               PROTOCOL
             </motion.span>
