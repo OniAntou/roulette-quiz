@@ -353,7 +353,6 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
           botTimerRef.current = answerTimer;
         } else {
           setIsSpectating(true);
-          showHUDAlert(`${targetName} // DECRYPTING CHALLENGE`, 'text-cyan-theme', 2000);
           const botAnswerDelay = 2500 + Math.random() * 1500;
           const answerTimer = setTimeout(() => {
             const isCorrect = Math.random() < 0.65;
@@ -402,7 +401,6 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
     });
     callbacks.setPhase('answering');
     setIsSpectating(true);
-    showHUDAlert(`${targetName} // DECRYPTING CHALLENGE`, 'text-cyan-theme', 2000);
 
     const isTargetBot = targetId !== 'local-player';
 
