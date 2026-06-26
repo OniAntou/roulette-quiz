@@ -470,7 +470,7 @@ export function GameBoard({
         const pos = getOpponentPosition(opponent.id, opponentPlayers.length);
         
         return (
-          <div key={opponent.id} className={`${pos.className} relative`}>
+          <div key={opponent.id} className={pos.className}>
             <AnimatePresence>
               {renderProfileIndicator(opponent.id)}
             </AnimatePresence>
