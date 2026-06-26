@@ -377,46 +377,68 @@ export function GameBoard({
   };
 
   const renderProfileIndicator = (playerId: string) => {
-    const target = getTargetPlayer();
-    if (!target || target.id !== playerId) return null;
-
+    // 1. Answering phase
     if (phase === 'questioning' || phase === 'answering') {
-      return (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8, y: 10 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0 }}
-          className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-0.5 border border-amber-theme-border bg-surface text-amber-theme font-mono text-[7px] font-black tracking-wider uppercase rounded shadow-[0_0_10px_rgba(245,158,11,0.15)] whitespace-nowrap z-30 animate-pulse flex items-center gap-1"
-        >
-          <span className="w-1.5 h-1.5 rounded-full bg-amber-theme" />
-          DECRYPTING...
-        </motion.div>
-      );
-    }
-
-    if ((phase === 'result' || phase === 'trigger') && questionResult) {
-      if (questionResult.correct) {
+      const target = getTargetPlayer();
+      if (target && target.id === playerId) {
         return (
           <motion.div
             initial={{ opacity: 0, scale: 0.8, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-0.5 border border-emerald-theme-border bg-surface text-emerald-theme font-mono text-[7px] font-black tracking-wider uppercase rounded shadow-[0_0_10px_rgba(16,185,129,0.15)] whitespace-nowrap z-30 flex items-center gap-1"
+            className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-0.5 border border-amber-theme-border bg-surface text-amber-theme font-mono text-[7px] font-black tracking-wider uppercase rounded shadow-[0_0_10px_rgba(245,158,11,0.15)] whitespace-nowrap z-30 animate-pulse flex items-center gap-1"
           >
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-theme animate-ping" />
-            SUCCESS!
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-theme" />
+            DECRYPTING...
           </motion.div>
         );
-      } else {
+      }
+    }
+
+    // 2. Result phase
+    if (phase === 'result' && questionResult) {
+      const target = getTargetPlayer();
+      if (target && target.id === playerId) {
+        if (questionResult.correct) {
+          return (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-0.5 border border-emerald-theme-border bg-surface text-emerald-theme font-mono text-[7px] font-black tracking-wider uppercase rounded shadow-[0_0_10px_rgba(16,185,129,0.15)] whitespace-nowrap z-30 flex items-center gap-1"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-theme animate-ping" />
+              SUCCESS!
+            </motion.div>
+          );
+        } else {
+          return (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-0.5 border border-red-theme-border bg-surface text-red-theme font-mono text-[7px] font-black tracking-wider uppercase rounded shadow-[0_0_10px_rgba(239,68,68,0.15)] whitespace-nowrap z-30 flex items-center gap-1"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-red-theme animate-ping" />
+              FAILED!
+            </motion.div>
+          );
+        }
+      }
+    }
+
+    // 3. Trigger phase
+    if (phase === 'trigger' && triggerResult) {
+      if (triggerResult.playerId === playerId) {
         return (
           <motion.div
             initial={{ opacity: 0, scale: 0.8, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-0.5 border border-red-theme-border bg-surface text-red-theme font-mono text-[7px] font-black tracking-wider uppercase rounded shadow-[0_0_10px_rgba(239,68,68,0.15)] whitespace-nowrap z-30 flex items-center gap-1"
+            className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-0.5 border border-red-theme-border bg-surface text-red-theme font-mono text-[7px] font-black tracking-wider uppercase rounded shadow-[0_0_15px_rgba(239,68,68,0.25)] whitespace-nowrap z-30 animate-pulse flex items-center gap-1"
           >
             <span className="w-1.5 h-1.5 rounded-full bg-red-theme animate-ping" />
-            FAILED!
+            PULL TRIGGER!
           </motion.div>
         );
       }
