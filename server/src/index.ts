@@ -4,6 +4,7 @@ import { Server } from 'socket.io';
 import { RoomManager } from './RoomManager';
 import { GameManager } from './GameManager';
 import cors from 'cors';
+import dgram from 'dgram';
 
 const app = express();
 const server = http.createServer(app);
@@ -56,8 +57,14 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', rooms: roomManager.getRoomCount() });
 });
 
+const discoveredServers = new Map<string, { ip: string, port: number, name: string, lastSeen: number }>();
+
 app.get('/lan-servers', (_req, res) => {
-  res.json({ servers: [] });
+  const now = Date.now();
+  const activeServers = Array.from(discoveredServers.values())
+    .filter(s => now - s.lastSeen < 10000)
+    .map(s => ({ ip: s.ip, port: s.port, name: s.name }));
+  res.json({ servers: activeServers });
 });
 
 setInterval(() => {
@@ -78,7 +85,7 @@ io.on('connection', (socket) => {
 
   socket.onAny((event: string, ...args: unknown[]) => {
     if (!checkRateLimit(socket.id)) {
-      socket.emit('error', { message: 'Rate limit exceeded. Please slow down.' });
+      socket.emit('error', { code: 'RATE_LIMIT_EXCEEDED', message: 'Rate limit exceeded. Please slow down.' });
       return;
     }
   });
@@ -107,7 +114,7 @@ io.on('connection', (socket) => {
       io.to(roomId).emit('room:players', { players: result.players });
       console.log('[JOIN] Emitted room:players to room');
     } else {
-      socket.emit('error', { message: result.error });
+      socket.emit('error', { code: 'JOIN_ROOM_FAILED', message: result.error });
     }
   });
 
@@ -169,4 +176,45 @@ io.on('connection', (socket) => {
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`LAN: http://localhost:${PORT}`);
+  
+  // UDP Broadcast for LAN discovery
+  const UDP_PORT = 41234;
+  const broadcaster = dgram.createSocket('udp4');
+  
+  broadcaster.on('listening', () => {
+    broadcaster.setBroadcast(true);
+    console.log(`UDP Broadcaster running on port ${UDP_PORT}`);
+  });
+  
+  // Start binding the UDP socket to any available ephemeral port for sending
+  broadcaster.bind();
+
+  const listener = dgram.createSocket({ type: 'udp4', reuseAddr: true });
+  listener.on('message', (msg, rinfo) => {
+    try {
+      const data = JSON.parse(msg.toString());
+      if (data.type === 'ROULETTE_QUIZ_SERVER') {
+        discoveredServers.set(`${rinfo.address}:${data.port}`, {
+          ip: rinfo.address,
+          port: data.port,
+          name: `SERVER-${rinfo.address.split('.').pop()}`,
+          lastSeen: Date.now()
+        });
+      }
+    } catch(e) {}
+  });
+  listener.bind(UDP_PORT);
+  
+  setInterval(() => {
+    try {
+      const message = Buffer.from(JSON.stringify({ 
+        type: 'ROULETTE_QUIZ_SERVER', 
+        port: PORT, 
+        rooms: roomManager.getRoomCount() 
+      }));
+      broadcaster.send(message, 0, message.length, UDP_PORT, '255.255.255.255');
+    } catch (err) {
+      // Ignore broadcast errors
+    }
+  }, 2000);
 });

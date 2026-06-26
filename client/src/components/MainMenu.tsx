@@ -65,6 +65,22 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
   const [titleChars, setTitleChars] = useState(() => 'ROULETTE'.split('').map(() => SCRAMBLE_CHARS[0]));
   const [titleSettled, setTitleSettled] = useState(() => Array(8).fill(false));
   const scrambleTimers = useRef<ReturnType<typeof setInterval>[]>([]);
+  const [shakingBox, setShakingBox] = useState<number | null>(null);
+
+  // Random box shake effect
+  useEffect(() => {
+    const triggerShake = () => {
+      const boxIndex = Math.floor(Math.random() * 4); // 0=input, 1-3=buttons
+      setShakingBox(boxIndex);
+      setTimeout(() => setShakingBox(null), 400);
+    };
+
+    const interval = setInterval(() => {
+      if (Math.random() > 0.5) triggerShake();
+    }, 2500 + Math.random() * 3500);
+
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const target = 'ROULETTE';
@@ -190,10 +206,13 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
       </div>
 
       {/* Tactical Blueprint Ambient Background */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none -z-10 bg-surface">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none -z-10 bg-surface blood-glitch-active">
         {/* Breathing grid */}
         <div className="absolute inset-0 bg-[linear-gradient(var(--grid-line)_1px,transparent_1px),linear-gradient(90deg,var(--grid-line)_1px,transparent_1px)] bg-[size:32px_32px] grid-breathe" />
         <div className="absolute inset-0 bg-gradient-to-t from-bg-body via-transparent to-bg-body opacity-40" />
+        
+        {/* Static */}
+        <div className="absolute inset-0 static-glitch opacity-15" />
 
         {/* SVG technical lines */}
         <svg className="absolute inset-0 w-full h-full opacity-[0.035]" xmlns="http://www.w3.org/2000/svg">
@@ -208,7 +227,7 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
         </svg>
 
         {/* Technical Blueprint Scope/Crosshair Graphic */}
-        <div className="absolute right-[5%] bottom-[10%] w-[380px] h-[380px] opacity-[0.05] text-cyan-theme pointer-events-none select-none">
+        <div className="absolute right-[5%] bottom-[10%] w-[380px] h-[380px] opacity-[0.12] text-cyan-theme pointer-events-none select-none">
           <motion.svg 
             animate={{ rotate: 360 }}
             transition={{ duration: 45, repeat: Infinity, ease: "linear" }}
@@ -314,7 +333,7 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
           className="flex flex-col space-y-8"
         >
           {/* Username input with focus glow */}
-          <div className="border border-border-theme rounded-xl p-8 flex flex-col space-y-4 bg-input-theme animate-pulse-glow transition-all duration-300">
+          <div className={`border border-border-theme rounded-xl p-8 flex flex-col space-y-4 bg-input-theme animate-pulse-glow transition-all duration-300 ${shakingBox === 0 ? 'box-shake' : ''}`}>
             <label className="font-mono text-[9px] text-text-theme-muted tracking-widest">
               // USER_IDENTIFICATION_KEY
             </label>
@@ -350,7 +369,7 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
                   }}
                   onClick={() => handleButtonClick(btn.onClick)}
                   disabled={status === 'connecting'}
-                  className={`btn-shimmer flex items-center justify-between px-8 py-5 bg-input-theme border border-border-theme rounded-lg font-mono text-sm font-bold text-text-theme-muted tracking-widest uppercase cursor-pointer transition-all duration-200 ${btn.borderHover} ${btn.bgHover} ${btn.textHover}`}
+                  className={`btn-shimmer flex items-center justify-between px-8 py-5 bg-input-theme border border-border-theme rounded-lg font-mono text-sm font-bold text-text-theme-muted tracking-widest uppercase cursor-pointer transition-all duration-200 ${btn.borderHover} ${btn.bgHover} ${btn.textHover} ${shakingBox === i + 1 ? 'box-shake' : ''}`}
                 >
                   <span className="flex items-center gap-3">
                     <Icon size={18} className="text-text-theme-muted" />

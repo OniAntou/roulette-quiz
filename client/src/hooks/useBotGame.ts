@@ -132,8 +132,14 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
       const winnerName = aliveBots.length > 0 ? aliveBots[0].name : playerName;
       cb.setWinnerInfo({ winner: winnerName, isLocalWinner: aliveBots.length === 0 });
       cb.setPhase('game_over');
-      if (aliveBots.length === 0) Sounds.victory();
-      setTimeout(() => cb.setScreen('gameover'), 3000);
+      
+      if (aliveBots.length === 0) {
+        Sounds.victory();
+        setTimeout(() => cb.setScreen('gameover'), 3000);
+      } else {
+        // Player died, go to gameover screen immediately after black screen ends
+        setTimeout(() => cb.setScreen('gameover'), 1000);
+      }
       return true;
     }
     return false;
@@ -176,8 +182,7 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
 
         if (isBotEmpty || isPlayerEmpty) {
           cb.setRound(prev => prev + 1);
-          bulletsFiredCountRef.current = 0;
-          setBotGun(createBotGun());
+          // KHÔNG reset đạn khi chỉ hết bài, súng chỉ reset khi có người chết.
           setBots(prev => {
             const updated = prev.map(b => b.isAlive ? { ...b, hand: [generateBotQuestion(), generateBotQuestion(), generateBotQuestion(), generateBotQuestion()], cardsCount: 4 } : b);
             botsRef.current = updated;
@@ -245,15 +250,7 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
       gun.currentPosition = (gun.currentPosition + 1) % 6;
       const bulletCount = 6 - bulletsFiredCountRef.current;
 
-      Sounds.gunClick();
-
       setTimeout(() => {
-        if (alive) {
-          Sounds.gunSurvive();
-        } else {
-          Sounds.gunFire();
-        }
-
         cb.setPlayers(prev => prev.map(p => {
           if (p.id === targetId) {
             return { ...p, shotsFired: (p.shotsFired || 0) + 1 };
@@ -281,6 +278,8 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
             if (targetId === 'local-player') {
               cb.setPlayers(prev => prev.map(p => p.id === 'local-player' ? { ...p, isAlive: false } : p));
               cb.setHandCards([]);
+              // Cập nhật ref ngay lập tức để logic phía sau chạy đúng
+              playersRef.current = playersRef.current.map(p => p.id === 'local-player' ? { ...p, isAlive: false } : p);
             } else {
               setBots(prev => {
                 const updated = prev.map(b => b.id === targetId ? { ...b, isAlive: false } : b);
@@ -288,6 +287,8 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
                 return updated;
               });
               cb.setPlayers(prev => prev.map(p => p.id === targetId ? { ...p, isAlive: false } : p));
+              // Cập nhật ref ngay lập tức
+              playersRef.current = playersRef.current.map(p => p.id === targetId ? { ...p, isAlive: false } : p);
             }
           }
 
@@ -298,9 +299,12 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
           } else {
             bulletsFiredCountRef.current = 0;
             setBotGun(createBotGun());
-            const isLocalAlive = playersRef.current.find(p => p.id === 'local-player')?.isAlive;
-            const aliveBots = botsRef.current.filter(b => b.isAlive);
-            const nextId = isLocalAlive ? 'local-player' : (aliveBots[0]?.id || 'local-player');
+            
+            // Reset round và BGM khi có người chết
+            cb.setRound(prev => prev + 1);
+            Sounds.newRound();
+            
+            const nextId = getNextAliveTarget(targetId);
             scheduleNextTurnRef.current(nextId, 500);
           }
         }, 3000);
@@ -328,6 +332,12 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
       });
 
       const cb = callbacksRef.current;
+      
+      // Update the global players array so HUD reflects new card count
+      cb.setPlayers(prev => prev.map(p =>
+        p.id === botId ? { ...p, cardsCount: newHand.length } : p
+      ));
+
       cb.setPlayedCard(card);
 
       const targetId = getNextAliveTarget(botId);
@@ -385,8 +395,10 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
 
     clearAllTimers();
 
-    Sounds.cardPlay();
     callbacks.setHandCards(prev => prev.filter(c => c.id !== cardId));
+    callbacks.setPlayers(prev => prev.map(p =>
+      p.id === 'local-player' ? { ...p, cardsCount: Math.max(0, (p.cardsCount || 0) - 1) } : p
+    ));
     callbacks.setPlayedCard(card);
 
     const targetId = getNextAliveTarget('local-player');

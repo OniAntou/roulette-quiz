@@ -50,8 +50,8 @@ export class GameManager {
       round: gameState.round,
     });
 
-    setTimeout(() => {
-      this.dealCards(roomId);
+    setTimeout(async () => {
+      await this.dealCards(roomId);
       const game = this.games.get(roomId);
       if (!game) return;
       game.phase = 'choosing';
@@ -71,21 +71,21 @@ export class GameManager {
     };
   }
 
-  private dealCards(roomId: string): void {
+  private async dealCards(roomId: string): Promise<void> {
     const game = this.games.get(roomId);
     if (!game) return;
 
-    const totalQuestions = this.questionManager.questions.length;
+    const totalQuestions = this.questionManager.getTotalQuestions();
     if (game.usedCards.length > totalQuestions - 16) {
       game.usedCards = [];
     }
 
-    game.players.forEach(player => {
+    for (const player of game.players) {
       if (player.isAlive && player.hand.length === 0) {
-        player.hand = this.questionManager.getCards(4, game.usedCards);
+        player.hand = await this.questionManager.getCards(4, game.usedCards);
         game.usedCards.push(...player.hand.map(c => c.id));
       }
-    });
+    }
 
     game.players.forEach(player => {
       if (player.isAlive && player.hand.length === 4) {
@@ -216,8 +216,11 @@ export class GameManager {
         this.pullTrigger(roomId);
       } else if (current.phase === 'choosing') {
         const currentPlayer = current.players[current.currentTurn];
-        this.dealCards(roomId);
-        this.io.to(roomId).emit('game:turn', { playerId: currentPlayer.id });
+        this.dealCards(roomId).then(() => {
+          this.io.to(roomId).emit('game:turn', { playerId: currentPlayer.id });
+        }).catch(err => {
+          this.io.to(roomId).emit('error', { code: 'DEAL_CARDS_FAILED', message: 'Failed to deal cards' });
+        });
       }
     }, 2000);
   }
@@ -268,9 +271,10 @@ export class GameManager {
           current.gun = this.createGun();
           current.currentTurn = this.getNextAlivePlayer(current, current.targetPlayer!);
           current.phase = 'choosing';
-          this.dealCards(roomId);
-          this.io.to(roomId).emit('game:newRound', { round: current.round });
-          this.io.to(roomId).emit('game:turn', { playerId: current.players[current.currentTurn].id });
+          this.dealCards(roomId).then(() => {
+            this.io.to(roomId).emit('game:newRound', { round: current.round });
+            this.io.to(roomId).emit('game:turn', { playerId: current.players[current.currentTurn].id });
+          });
         }, 3000);
       }
     } else {
@@ -289,9 +293,10 @@ export class GameManager {
         current.round++;
         current.currentTurn = current.targetPlayer!;
         current.phase = 'choosing';
-        this.dealCards(roomId);
-        this.io.to(roomId).emit('game:newRound', { round: current.round });
-        this.io.to(roomId).emit('game:turn', { playerId: current.players[current.currentTurn].id });
+        this.dealCards(roomId).then(() => {
+          this.io.to(roomId).emit('game:newRound', { round: current.round });
+          this.io.to(roomId).emit('game:turn', { playerId: current.players[current.currentTurn].id });
+        });
       }, 3000);
     }
   }

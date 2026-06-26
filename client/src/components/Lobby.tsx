@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { socketClient } from '../network/SocketClient';
-import { ArrowLeft, Plus, Users, Shield, CheckCircle, WarningCircle } from '@phosphor-icons/react';
+import { ArrowLeft, Plus, Users, Shield, CheckCircle, WarningCircle, Copy } from '@phosphor-icons/react';
 import { Player } from '../types';
 import { Sounds } from '../audio/Sounds';
+import { ThemeToggle } from './ThemeToggle';
 
 interface LobbyProps {
   roomId: string;
@@ -18,6 +19,14 @@ export function Lobby({ roomId, players, localId, error, disconnect }: LobbyProp
   const [modalCode, setModalCode] = useState<string>('');
   const [shakeModal, setShakeModal] = useState<boolean>(false);
   const [isReady, setIsReady] = useState<boolean>(false);
+  const [copied, setCopied] = useState<boolean>(false);
+
+  const handleCopyCode = async () => {
+    if (!roomId) return;
+    await navigator.clipboard.writeText(roomId);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -84,7 +93,9 @@ export function Lobby({ roomId, players, localId, error, disconnect }: LobbyProp
   };
 
   return (
-    <div className="w-full max-w-6xl px-6 md:px-12 grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-20 items-start z-10 relative py-8">
+    <>
+      <div className="fixed top-5 right-5 z-50"><ThemeToggle /></div>
+      <div className="w-full max-w-6xl px-6 md:px-12 grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-20 items-start z-10 relative py-8">
       <div className="flex flex-col space-y-8">
         <div className="flex flex-col space-y-2">
           <span className="text-[10px] text-text-theme-muted font-extrabold tracking-widest uppercase">LOBBY // ROOM_WAITING_STATE</span>
@@ -102,6 +113,22 @@ export function Lobby({ roomId, players, localId, error, disconnect }: LobbyProp
           <span className="text-7xl font-black tracking-[10px] text-text-theme select-text">
             {roomId || '------'}
           </span>
+          {roomId && (
+            <button
+              onClick={() => { handleCopyCode(); Sounds.buttonClick(); }}
+              className={`mt-4 px-4 py-2 text-[10px] font-extrabold tracking-widest uppercase rounded-lg border transition-all duration-300 cursor-pointer flex items-center gap-2 ${
+                copied
+                  ? 'border-emerald-theme-border text-emerald-theme'
+                  : 'border-border-theme text-text-theme-muted hover:border-cyan-theme hover:text-cyan-theme'
+              }`}
+            >
+              {copied ? (
+                <><CheckCircle size={14} /><span>COPIED!</span></>
+              ) : (
+                <><Copy size={14} /><span>COPY</span></>
+              )}
+            </button>
+          )}
         </div>
 
         <div className="flex flex-col space-y-4 max-w-sm w-full">
@@ -252,6 +279,7 @@ export function Lobby({ roomId, players, localId, error, disconnect }: LobbyProp
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+      </div>
+    </>
   );
 }

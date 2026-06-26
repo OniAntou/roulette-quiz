@@ -59,32 +59,34 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
             <line x1="160" y1="10" x2="160" y2="210" stroke="var(--cyan-theme)" strokeWidth="0.5" strokeDasharray="2,8" opacity="0.2" />
 
             {/* 1. Grip (Báng súng) with CAD Hatching */}
-            <path 
-              d="M 78 126 
-                 C 72 140, 62 160, 42 206 
-                 C 40 212, 56 214, 68 214 
-                 C 84 214, 102 212, 104 202 
-                 C 106 188, 100 182, 102 172 
-                 C 104 162, 98 156, 100 146 
-                 C 102 138, 98 132, 88 126 Z" 
-              fill="url(#gripCADHatch)" 
-              stroke="var(--cyan-theme)" 
-              strokeWidth="1.2" 
-            />
-            {/* Grip Inner Border */}
-            <path 
-              d="M 81 133 
-                 C 76 145, 68 162, 48 198 
-                 C 50 200, 86 200, 90 193 
-                 C 92 183, 88 178, 90 170 
-                 C 92 160, 86 154, 88 146 
-                 C 90 140, 85 136, 81 133 Z" 
-              fill="none" 
-              stroke="var(--cyan-theme)" 
-              strokeWidth="0.8" 
-              strokeDasharray="2,2" 
-              opacity="0.6"
-            />
+            <g transform="translate(-10, -2)">
+              <path 
+                d="M 78 126 
+                   C 70 140, 58 160, 34 200 
+                   C 32 206, 56 214, 68 214 
+                   C 84 214, 102 212, 104 202 
+                   C 106 188, 100 182, 102 172 
+                   C 104 162, 98 156, 100 146 
+                   C 102 138, 98 132, 88 126 Z" 
+                fill="url(#gripCADHatch)" 
+                stroke="var(--cyan-theme)" 
+                strokeWidth="1.2" 
+              />
+              {/* Grip Inner Border */}
+              <path 
+                d="M 81 133 
+                   C 73 145, 61 162, 40 192 
+                   C 42 194, 86 200, 90 193 
+                   C 92 183, 88 178, 90 170 
+                   C 92 160, 86 154, 88 146 
+                   C 90 140, 85 136, 81 133 Z" 
+                fill="none" 
+                stroke="var(--cyan-theme)" 
+                strokeWidth="0.8" 
+                strokeDasharray="2,2" 
+                opacity="0.6"
+              />
+            </g>
 
             {/* 2. Hammer (Búa gõ) */}
             <motion.g
@@ -111,16 +113,16 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
               <line x1="55" y1="71" x2="59" y2="74" stroke="var(--cyan-theme)" strokeWidth="0.8" />
             </motion.g>
 
-            {/* 3. Main Frame (Thành súng) */}
+            {/* 3. Main Frame (Thân súng) */}
             <path 
               d="M 72 74 
                  L 145 74 
                  L 145 120 
                  C 118 120, 105 125, 92 128 
                  L 92 135 
-                 L 72 120 
-                 L 72 105 
-                 C 76 95, 76 80, 72 74 Z" 
+                 L 64 120 
+                 L 64 105 
+                 C 72 95, 72 80, 72 74 Z" 
               fill="var(--bg-surface)" 
               stroke="var(--cyan-theme)" 
               strokeWidth="1.2" 
@@ -136,12 +138,12 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
             <line x1="85" y1="86" x2="87" y2="84" stroke="var(--cyan-theme)" strokeWidth="0.8" />
 
             {/* 4. Trigger Guard & Trigger */}
-            <path d="M 92 124 C 92 158, 142 158, 142 120 Z" fill="none" stroke="var(--cyan-theme)" strokeWidth="2.5" strokeLinecap="round" />
+            <path d="M 92 124 C 92 158, 142 158, 142 120" fill="none" stroke="var(--cyan-theme)" strokeWidth="2.5" strokeLinecap="round" />
             <circle cx="132" cy="136" r="1" fill="var(--cyan-theme)" />
 
             {/* Trigger */}
             <motion.path 
-              d="M 116 122 C 116 138, 108 144, 105 144" 
+              d="M 116 122 C 116 138, 124 144, 127 144" 
               fill="none" 
               stroke="var(--cyan-theme)" 
               strokeWidth="2.5" 
@@ -301,46 +303,83 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
               ======================================================= */}
           <AnimatePresence>
             {isFiring && !alive && (
-              <div className="absolute inset-0 pointer-events-none">
-                <svg className="w-full h-full" viewBox="0 0 320 220">
-                  <motion.g
-                    initial={{ opacity: 0, scale: 0.5 }}
-                    animate={{ 
-                      opacity: [0, 1, 1, 0], 
-                      scale: [0.7, 1.3, 1.1, 0.5] 
-                    }}
-                    transition={{ duration: 0.45, ease: "easeOut" }}
+              <div className="absolute inset-0 pointer-events-none z-50">
+                <svg className="w-full h-full overflow-visible" viewBox="0 0 320 220">
+                  <defs>
+                    <filter id="muzzle-glow" x="-50%" y="-50%" width="200%" height="200%">
+                      <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur1" />
+                      <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur2" />
+                      <feMerge>
+                        <feMergeNode in="blur2" />
+                        <feMergeNode in="blur1" />
+                        <feMergeNode in="SourceGraphic" />
+                      </feMerge>
+                    </filter>
+                  </defs>
+
+                  {/* 1. Supersonic Shockwave */}
+                  <motion.circle
+                    cx="285" cy="95" r="10"
+                    fill="none" stroke="#ffeb3b"
+                    initial={{ scale: 0.5, opacity: 1, strokeWidth: 6 }}
+                    animate={{ scale: 5, opacity: 0, strokeWidth: 0 }}
+                    transition={{ duration: 0.2, ease: "easeOut" }}
                     style={{ transformOrigin: '285px 95px' }}
+                  />
+
+                  {/* 2. Layered Core Muzzle Flash (Solid, Glowing) */}
+                  <motion.g
+                    initial={{ opacity: 1, scale: 0.2, x: -10 }}
+                    animate={{ 
+                      opacity: [1, 1, 0], 
+                      scale: [0.8, 1.8, 0],
+                      x: [0, 15, 30]
+                    }}
+                    transition={{ duration: 0.12, ease: "easeOut" }}
+                    style={{ transformOrigin: '285px 95px' }}
+                    filter="url(#muzzle-glow)"
                   >
-                    {/* Sharp geometric muzzle flash */}
-                    <path d="M 285 95 L 340 65 L 320 85 L 380 95 L 320 105 L 340 125 Z" fill="none" stroke="#ff7c1f" strokeWidth="2" />
-                    <path d="M 285 95 L 315 80 L 305 95 L 345 95 L 305 95 L 315 110 Z" fill="none" stroke="#ffeb3b" strokeWidth="1.5" />
-                    <circle cx="285" cy="95" r="8" fill="none" stroke="#ffffff" strokeWidth="1.5" />
+                    {/* Outer red/orange aura */}
+                    <path d="M 285 95 L 360 40 L 330 85 L 430 95 L 330 105 L 360 150 Z" fill="#ef4444" opacity="0.8" />
+                    {/* Mid yellow heat layer */}
+                    <path d="M 285 95 L 330 65 L 310 85 L 380 95 L 310 105 L 330 125 Z" fill="#ffb703" />
+                    {/* Inner white hot core */}
+                    <path d="M 285 95 L 310 80 L 300 90 L 350 95 L 300 100 L 310 110 Z" fill="#ffffff" />
+                    <circle cx="285" cy="95" r="12" fill="#ffffff" />
                   </motion.g>
 
-                  {/* Sharp mechanical sparks (Vector lines) */}
-                  {[...Array(6)].map((_, i) => {
-                    const sparkAngle = (Math.random() * 0.6 - 0.3);
-                    const sparkDistance = Math.random() * 80 + 40;
-                    const tx = Math.cos(sparkAngle) * sparkDistance;
-                    const ty = Math.sin(sparkAngle) * sparkDistance;
+                  {/* 3. High-speed Glowing Sparks */}
+                  {[...Array(14)].map((_, i) => {
+                    const sparkAngle = (Math.random() * 0.8 - 0.4); // Focus mostly forwards
+                    const sparkDistance = Math.random() * 120 + 50;
+                    const length = Math.random() * 15 + 10;
                     
+                    const endX = Math.cos(sparkAngle) * sparkDistance;
+                    const endY = Math.sin(sparkAngle) * sparkDistance;
+                    const tailX = Math.cos(sparkAngle) * (sparkDistance - length);
+                    const tailY = Math.sin(sparkAngle) * (sparkDistance - length);
+
                     return (
                       <motion.line
                         key={`spark-${i}`}
-                        x1="285"
-                        y1="95"
-                        x2="285"
-                        y2="95"
-                        animate={{ 
-                          x2: 285 + tx, 
-                          y2: 95 + ty, 
-                          opacity: [1, 0.8, 0] 
+                        initial={{ 
+                          x1: 285, y1: 95, 
+                          x2: 285 + Math.cos(sparkAngle)*10, 
+                          y2: 95 + Math.sin(sparkAngle)*10, 
+                          opacity: 1 
                         }}
-                        transition={{ duration: 0.3, ease: "easeOut" }}
-                        stroke="#ff9f1a"
-                        strokeWidth="1"
-                        strokeDasharray="4,2"
+                        animate={{ 
+                          x1: 285 + tailX, 
+                          y1: 95 + tailY, 
+                          x2: 285 + endX, 
+                          y2: 95 + endY, 
+                          opacity: [1, 1, 0] 
+                        }}
+                        transition={{ duration: 0.15 + Math.random() * 0.15, ease: "easeOut" }}
+                        stroke={i % 2 === 0 ? "#ffb703" : "#ffffff"}
+                        strokeWidth={Math.random() > 0.5 ? 2.5 : 1.5}
+                        strokeLinecap="round"
+                        filter="url(#muzzle-glow)"
                       />
                     );
                   })}

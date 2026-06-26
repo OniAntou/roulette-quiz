@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { socketClient } from '../network/SocketClient';
 import { Revolver } from './Revolver';
+import { ThemeToggle } from './ThemeToggle';
 import { Check, X, ShieldWarning, ArrowLeft } from '@phosphor-icons/react';
 import { GamePhase, Player, CardData, ActiveQuestion, QuestionResult, TriggerResult } from '../types';
 import { Sounds } from '../audio/Sounds';
@@ -92,6 +93,11 @@ export function GameBoard({
   const [hudMessage, setHudMessage] = useState<HudMessage | null>(null);
   const [rotationAngle, setRotationAngle] = useState<number>(-90);
   const [isGunInCenter, setIsGunInCenter] = useState<boolean>(false);
+  
+  // Tính tổng số phát đã bắn trong round
+  const currentShotsFired = players.reduce((sum, p) => sum + (p.shotsFired || 0), 0);
+
+  // Hiệu ứng đếm số (rolling number)
   const [displayedShots, setDisplayedShots] = useState<number>(0);
   const [currentPositionState, setCurrentPositionState] = useState<number>(0);
 
@@ -105,13 +111,57 @@ export function GameBoard({
   const [showRedFlash, setShowRedFlash] = useState<boolean>(false);
   const [showDeathOverlay, setShowDeathOverlay] = useState<boolean>(false);
   const [isCrtShuttingDown, setIsCrtShuttingDown] = useState<boolean>(false);
+  const [isCrtTurningOn, setIsCrtTurningOn] = useState<boolean>(false);
+  const [isSpectatorModeVisual, setIsSpectatorModeVisual] = useState<boolean>(false);
   const [deathMessage, setDeathMessage] = useState<string>('');
+  const [isPresentationMode, setIsPresentationMode] = useState<boolean>(false);
+  
   const prevHandCardsLength = useRef<number>(0);
   const lastProcessedTriggerRef = useRef<string | null>(null);
   const lastMouseMoveRef = useRef<number>(0);
 
   const prevPhase = useRef<GamePhase>(phase);
+  // BGM Effect
+  const isDead = players.find(p => p.id === localId)?.isAlive === false;
+  // BGM chỉ nên tắt khi người chơi thực sự CHẾT, hoặc đang trong bóng đen tắt TV
+  const isDeadSpectating = isSpectatorModeVisual || isDead || isCrtShuttingDown;
   
+  useEffect(() => {
+    if (isDeadSpectating) {
+      Sounds.stopBGM();
+    } else {
+      Sounds.startBGM();
+    }
+    return () => Sounds.stopBGM();
+  }, [isDeadSpectating]);
+
+  // Heartbeat Effect (căng thẳng tăng dần theo số đạn đã bắn)
+  useEffect(() => {
+    if (displayedShots < 2 || isPresentationMode || phase === 'gameover' || isCrtShuttingDown || isDeadSpectating) return;
+
+    let intervalTime = 1200;
+    let volume = 0.2; // Nhỏ lại
+
+    if (displayedShots === 3) {
+      intervalTime = 900;
+      volume = 0.3;
+    } else if (displayedShots === 4) {
+      intervalTime = 600;
+      volume = 0.45;
+    } else if (displayedShots >= 5) {
+      intervalTime = 400;
+      volume = 0.7;
+    }
+
+    const intervalId = setInterval(() => {
+      Sounds.heartbeat(volume);
+    }, intervalTime);
+
+    Sounds.heartbeat(volume);
+
+    return () => clearInterval(intervalId);
+  }, [displayedShots, isPresentationMode, phase, isCrtShuttingDown, isDeadSpectating]);
+
   useEffect(() => {
     const prev = prevPhase.current;
     prevPhase.current = phase;
@@ -149,6 +199,13 @@ export function GameBoard({
     lastProcessedTriggerRef.current = null;
     setShowDeathOverlay(false);
     setIsCrtShuttingDown(false);
+    
+    // Only reset spectator mode if the local player is actually alive
+    const isLocalDead = !players.find(p => p.id === localId)?.isAlive;
+    if (!isLocalDead) {
+      setIsSpectatorModeVisual(false);
+    }
+    
     setDeathMessage('');
   }, [round]);
 
@@ -194,6 +251,14 @@ export function GameBoard({
       lastProcessedTriggerRef.current = triggerKey;
 
       setDisplayedShots(triggerResult.bulletsFired || 0);
+      
+      // If the bullet is lethal, the round will reset. Reset the HUD counter immediately after the shot is fired.
+      if (!triggerResult.alive) {
+        setTimeout(() => {
+          setDisplayedShots(0);
+        }, 1400); // 1200ms spin + 150ms fire delay + 50ms buffer
+      }
+
       setCurrentPositionState(triggerResult.currentPosition ?? 0);
       setIsGunInCenter(true);
       setIsSpinning(true);
@@ -216,43 +281,69 @@ export function GameBoard({
         setIsSpinning(false);
         setIsFiring(true);
 
-        // Screen Shake & Red flash effect
-        setIsScreenShaking(true);
-        const shakeTimer = setTimeout(() => setIsScreenShaking(false), 450);
-
-        if (triggerResult.alive) {
-          Sounds.gunSurvive();
-        } else {
-          Sounds.gunFire();
-          setShowRedFlash(true);
-          setTimeout(() => setShowRedFlash(false), 600);
-
-          // Death visual upgrades
-          const isLocalDeath = triggerResult.playerId === localId;
-          const targetName = triggerResult.playerName || 'PLAYER';
-          setDeathMessage(isLocalDeath 
-            ? "CRITICAL ERROR // LIFE SIGNALS LOST" 
-            : `TARGET ELIMINATED // ${targetName.toUpperCase()} TERMINATED`
-          );
-          setShowDeathOverlay(true);
-
-          if (isLocalDeath) {
-            // Trigger CRT screen collapse shutdown for local player after 1.2s
-            setTimeout(() => {
-              setIsCrtShuttingDown(true);
-            }, 1200);
+        const fireDelayTimer = setTimeout(() => {
+          // Screen Shake & Red flash effect
+          if (!isPresentationMode) {
+            setIsScreenShaking(true);
+            setTimeout(() => setIsScreenShaking(false), 450);
           }
-        }
+
+          if (triggerResult.alive) {
+            Sounds.gunSurvive();
+            setDeathMessage('MAY MẮN.');
+            setTimeout(() => setShowDeathOverlay(false), 2000);
+          } else {
+            Sounds.gunFire();
+            setShowRedFlash(true);
+            setTimeout(() => setShowRedFlash(false), 600);
+
+            const isLocalDeath = triggerResult.playerId === localId;
+            const targetName = triggerResult.playerName || 'PLAYER';
+            
+            setDeathMessage(isLocalDeath 
+              ? "CRITICAL ERROR // LIFE SIGNALS LOST" 
+              : `TARGET ELIMINATED // ${targetName.toUpperCase()} TERMINATED`
+            );
+            
+            setShowDeathOverlay(true);
+            
+            if (isLocalDeath) {
+              // Lập tức màn hình đen xì
+              setIsCrtShuttingDown(true);
+
+              // Đợi 2.5 giây trong bóng đen
+              setTimeout(() => {
+                setIsCrtShuttingDown(false);
+                
+                // Tránh bật CRT nếu game đã kết thúc (1v1 chết)
+                if (prevPhase.current !== 'game_over' && prevPhase.current !== 'gameover') {
+                  if (!isPresentationMode) setIsCrtTurningOn(true);
+                  setIsSpectatorModeVisual(true);
+                  
+                  // Xoá class hiệu ứng bật tivi sau khi hoàn thành
+                  setTimeout(() => {
+                    setIsCrtTurningOn(false);
+                  }, 1000);
+                }
+              }, 2500); // Kéo dài thời gian đen xì
+            } else {
+              // Nếu người khác chết thì báo lỗi đỏ 3 giây rồi tắt
+              setTimeout(() => {
+                setShowDeathOverlay(false);
+              }, 3000);
+            }
+          }
+          setRotationAngle(-90);
+          setIsGunInCenter(false);
+        }, 150);
 
         const resetFireTimer = setTimeout(() => {
           setIsFiring(false);
-          setRotationAngle(-90);
-          setIsGunInCenter(false);
         }, 2000);
 
         return () => {
           clearTimeout(resetFireTimer);
-          clearTimeout(shakeTimer);
+          clearTimeout(fireDelayTimer);
         };
       }, 1200);
 
@@ -274,9 +365,7 @@ export function GameBoard({
             Sounds.timerWarning();
             return 0;
           }
-          if (prev <= 3) {
-            Sounds.tick();
-          }
+          Sounds.countdown(prev - 1 <= 3);
           return prev - 1;
         });
       }, 1000);
@@ -290,9 +379,14 @@ export function GameBoard({
     setTimeout(() => setHudMessage(null), duration);
   };
 
+  useEffect(() => {
+    if (playedCard) {
+      Sounds.cardPlay();
+    }
+  }, [playedCard]);
+
   const handleCardClick = (card: CardData) => {
     if (phase !== 'choosing' || currentTurnId !== localId) return;
-    Sounds.cardPlay();
     if (onCardChoice) {
       onCardChoice(card.id);
     } else {
@@ -316,7 +410,7 @@ export function GameBoard({
 
   const handleCardMouseMove = (e: React.MouseEvent<HTMLDivElement>, index: number) => {
     const now = performance.now();
-    if (now - lastMouseMoveRef.current < 16) return; // ~60fps throttle
+    if (now - lastMouseMoveRef.current < 50) return; // ~20fps throttle to prevent React re-render flooding
     lastMouseMoveRef.current = now;
 
     const rect = e.currentTarget.getBoundingClientRect();
@@ -389,9 +483,9 @@ export function GameBoard({
             initial={{ opacity: 0, scale: 0.8, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-0.5 border border-amber-theme-border bg-surface text-amber-theme font-mono text-[7px] font-black tracking-wider uppercase rounded shadow-[0_0_10px_rgba(245,158,11,0.15)] whitespace-nowrap z-30 animate-pulse flex items-center gap-1"
+            className="absolute -top-10 left-1/2 -translate-x-1/2 px-3 py-1 border border-amber-theme-border bg-surface text-amber-theme font-mono text-[10px] font-black tracking-wider uppercase rounded shadow-[0_0_10px_rgba(245,158,11,0.15)] whitespace-nowrap z-30 animate-pulse flex items-center gap-1.5"
           >
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-theme" />
+            <span className="w-2 h-2 rounded-full bg-amber-theme" />
             DECRYPTING...
           </motion.div>
         );
@@ -408,9 +502,9 @@ export function GameBoard({
               initial={{ opacity: 0, scale: 0.8, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-0.5 border border-emerald-theme-border bg-surface text-emerald-theme font-mono text-[7px] font-black tracking-wider uppercase rounded shadow-[0_0_10px_rgba(16,185,129,0.15)] whitespace-nowrap z-30 flex items-center gap-1"
+              className="absolute -top-10 left-1/2 -translate-x-1/2 px-3 py-1 border border-emerald-theme-border bg-surface text-emerald-theme font-mono text-[10px] font-black tracking-wider uppercase rounded shadow-[0_0_10px_rgba(16,185,129,0.15)] whitespace-nowrap z-30 flex items-center gap-1.5"
             >
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-theme animate-ping" />
+              <span className="w-2 h-2 rounded-full bg-emerald-theme animate-ping" />
               SUCCESS!
             </motion.div>
           );
@@ -420,9 +514,9 @@ export function GameBoard({
               initial={{ opacity: 0, scale: 0.8, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-0.5 border border-red-theme-border bg-surface text-red-theme font-mono text-[7px] font-black tracking-wider uppercase rounded shadow-[0_0_10px_rgba(239,68,68,0.15)] whitespace-nowrap z-30 flex items-center gap-1"
+              className="absolute -top-10 left-1/2 -translate-x-1/2 px-3 py-1 border border-red-theme-border bg-surface text-red-theme font-mono text-[10px] font-black tracking-wider uppercase rounded shadow-[0_0_10px_rgba(239,68,68,0.15)] whitespace-nowrap z-30 flex items-center gap-1.5"
             >
-              <span className="w-1.5 h-1.5 rounded-full bg-red-theme animate-ping" />
+              <span className="w-2 h-2 rounded-full bg-red-theme animate-ping" />
               FAILED!
             </motion.div>
           );
@@ -438,9 +532,9 @@ export function GameBoard({
             initial={{ opacity: 0, scale: 0.8, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-0.5 border border-red-theme-border bg-surface text-red-theme font-mono text-[7px] font-black tracking-wider uppercase rounded shadow-[0_0_15px_rgba(239,68,68,0.25)] whitespace-nowrap z-30 animate-pulse flex items-center gap-1"
+            className="absolute -top-10 left-1/2 -translate-x-1/2 px-3 py-1 border border-red-theme-border bg-surface text-red-theme font-mono text-[10px] font-black tracking-wider uppercase rounded shadow-[0_0_15px_rgba(239,68,68,0.25)] whitespace-nowrap z-30 animate-pulse flex items-center gap-1.5"
           >
-            <span className="w-1.5 h-1.5 rounded-full bg-red-theme animate-ping" />
+            <span className="w-2 h-2 rounded-full bg-red-theme animate-ping" />
             PULL TRIGGER!
           </motion.div>
         );
@@ -450,9 +544,26 @@ export function GameBoard({
     return null;
   };
 
+  const getPlayedCardInitial = () => {
+    const fromId = activeQuestion?.from;
+    const base = { scale: 2.5, opacity: 0, filter: 'blur(10px)' };
+    if (fromId === localId) return { ...base, y: 150, rotate: -15 };
+    if (fromId === 'bot-0') return { ...base, x: -200, y: -50, rotate: -45 };
+    if (fromId === 'bot-1') return { ...base, y: -200, rotate: 180 };
+    if (fromId === 'bot-2') return { ...base, x: 200, y: -50, rotate: 45 };
+    // Generic opponent fallback
+    if (fromId && fromId !== localId) return { ...base, y: -200, rotate: 180 };
+    return { ...base, rotate: -15 };
+  };
+
   return (
+    <>
+    {/* Nền đen kịt nằm sau GameBoard để khi hiệu ứng CRT bật lên (thu nhỏ GameBoard) thì người chơi vẫn thấy bóng tối bao trùm */}
+    {isCrtTurningOn && (
+      <div className="fixed inset-0 bg-black z-0 pointer-events-none" />
+    )}
     <motion.div 
-      animate={isScreenShaking ? (
+      animate={isScreenShaking && !isPresentationMode ? (
         triggerResult?.alive 
           ? { x: [0, -3, 3, -3, 3, 0], y: [0, 2, -2, 2, -2, 0] }
           : { x: [0, -12, 12, -10, 10, -6, 6, 0], y: [0, 10, -10, 8, -8, 4, -4, 0] }
@@ -461,8 +572,67 @@ export function GameBoard({
         y: 0,
       }}
       transition={{ duration: 0.4 }}
-      className={`w-full h-full flex flex-col items-center justify-between py-6 px-12 z-10 select-none relative ${isCrtShuttingDown ? 'animate-crt-shutdown' : ''}`}
+      className={`w-full h-full flex flex-col items-center justify-between py-6 px-12 z-10 select-none relative ${isCrtShuttingDown && !isPresentationMode ? 'animate-crt-shutdown' : ''} ${isCrtTurningOn && !isPresentationMode ? 'animate-crt-turn-on' : ''} ${isPresentationMode ? 'presentation-mode' : ''}`}
     >
+      {/* Top action bar: Leave & Theme */}
+      <div className="absolute top-6 left-6 z-[120] flex items-center gap-4">
+        <button 
+          onClick={onLeaveAfterDeath}
+          className="px-4 py-2 bg-red-theme/10 hover:bg-red-theme/20 border border-red-theme/50 text-red-theme font-mono text-xs font-bold tracking-[0.1em] transition-colors shadow-[0_0_15px_rgba(239,68,68,0.15)] backdrop-blur-sm"
+          title="Bỏ cuộc / Rời phòng"
+        >
+          [ RỜI TRẬN ]
+        </button>
+        <div className="border border-cyan-theme/30 p-1.5 shadow-[0_0_15px_rgba(34,211,238,0.1)] bg-bg-surface/50 backdrop-blur-sm rounded-sm">
+          <ThemeToggle />
+        </div>
+        <button
+          onClick={() => setIsPresentationMode(!isPresentationMode)}
+          className={`px-3 py-2 border font-mono text-xs font-bold tracking-widest uppercase transition-colors backdrop-blur-sm ${
+            isPresentationMode 
+              ? 'border-amber-theme text-amber-theme bg-amber-theme-bg shadow-[0_0_15px_rgba(245,158,11,0.2)]' 
+              : 'border-cyan-theme/30 text-cyan-theme/70 bg-surface/50 hover:text-cyan-theme'
+          }`}
+        >
+          {isPresentationMode ? 'PRESENTATION: ON' : 'PRESENTATION: OFF'}
+        </button>
+      </div>
+
+      {/* Spectator Mode Visual Overlay */}
+      {isSpectatorModeVisual && (
+        <div className="absolute inset-0 z-[100] pointer-events-none overflow-hidden rounded-sm">
+          {/* Subtle dark tint */}
+          <div className="absolute inset-0 bg-black/30 backdrop-blur-[1px]"></div>
+          
+          {/* Old TV Static Noise */}
+          <div 
+            className="absolute -inset-[100%] opacity-15 mix-blend-screen"
+            style={{ 
+              backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+              animation: 'static-noise 0.15s steps(2) infinite'
+            }}
+          />
+          
+          {/* Scanlines */}
+          <div 
+            className="absolute inset-0 opacity-[0.15]"
+            style={{ 
+              background: 'repeating-linear-gradient(transparent, transparent 2px, rgba(0,0,0,0.8) 2px, rgba(0,0,0,0.8) 4px)'
+            }}
+          />
+
+          {/* Glitch border */}
+          <div className="absolute inset-0 border-[1px] border-[#ffb703]/20 shadow-[inset_0_0_50px_rgba(255,183,3,0.1)]"></div>
+
+          {/* SPECTATOR MODE LABEL - Moved to top right */}
+          <div className="absolute top-4 right-4 px-3 py-1.5 border border-[#ffb703]/40 bg-black/80 backdrop-blur-md shadow-[0_0_15px_rgba(255,183,3,0.15)] flex items-center gap-3">
+            <div className="w-2 h-2 rounded-full bg-[#ffb703] animate-pulse shadow-[0_0_8px_#ffb703]"></div>
+            <p className="text-[#ffb703] font-mono font-bold tracking-[0.15em] text-[11px] opacity-90">
+              REC // SPECTATOR LINK
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Turn Indicator Banner - Removed, using arrow indicator instead */}
 
@@ -625,11 +795,11 @@ export function GameBoard({
               {playedCard ? (
                 <motion.div 
                   key={playedCard.id}
-                  initial={{ scale: 0.7, opacity: 0, rotate: -10 }}
-                  animate={{ scale: 1, opacity: 1, rotate: 0 }}
-                  exit={{ scale: 0.7, opacity: 0 }}
-                  transition={{ type: "spring", stiffness: 220, damping: 18 }}
-                  className={`w-32 h-44 border rounded-none p-3 flex flex-col justify-between relative shadow-none overflow-hidden bg-card-theme ${
+                  initial={getPlayedCardInitial()}
+                  animate={{ x: 0, y: 0, scale: 1, opacity: 1, rotate: 0, filter: 'blur(0px)' }}
+                  exit={{ scale: 0.5, opacity: 0, filter: 'blur(10px)' }}
+                  transition={{ type: "spring", stiffness: 350, damping: 25, mass: 0.8 }}
+                  className={`w-32 h-44 border rounded-none p-3 flex flex-col justify-between relative shadow-[0_0_30px_rgba(34,211,238,0.15)] overflow-hidden bg-card-theme ${
                     playedCard.difficulty === 'easy' 
                       ? 'border-emerald-theme-border text-emerald-theme' 
                       : playedCard.difficulty === 'medium' 
@@ -647,10 +817,6 @@ export function GameBoard({
                     <p className="text-xs font-extrabold leading-normal text-left tracking-wide uppercase font-mono">
                       {playedCard.question.substring(0, 36) + (playedCard.question.length > 36 ? '...' : '')}
                     </p>
-                  </div>
-                  <div className="flex justify-between items-center w-full border-t border-border-theme pt-1 text-[8px] font-mono tracking-widest opacity-50">
-                    <span className="uppercase truncate max-w-[50px]">{playedCard.topic.substring(0, 8)}</span>
-                    <span>FP // 0{playedCard.difficulty === 'easy' ? '1' : playedCard.difficulty === 'medium' ? '2' : '3'}</span>
                   </div>
                 </motion.div>
               ) : (
@@ -748,6 +914,7 @@ export function GameBoard({
                   }}
                   exit={{ opacity: 0, y: -40 }}
                   transition={{ type: "spring", stiffness: 200, damping: 20 }}
+                  onMouseEnter={() => Sounds.cardSelect()}
                   onMouseMove={(e) => isPlayable && handleCardMouseMove(e, index)}
                   onMouseLeave={handleCardMouseLeave}
                   onClick={() => handleCardClick(card)}
@@ -780,10 +947,6 @@ export function GameBoard({
                         }`}>
                           {card.question.substring(0, isHovered ? 70 : 56) + (card.question.length > (isHovered ? 70 : 56) ? '...' : '')}
                         </p>
-                      </div>
-                      <div className="flex justify-between items-center w-full border-t border-border-theme pt-1.5 text-[9px] font-mono tracking-widest opacity-50">
-                        <span className="uppercase truncate max-w-[80px]">{card.topic.substring(0, 10)}</span>
-                        <span>FP // 0{card.difficulty === 'easy' ? '1' : card.difficulty === 'medium' ? '2' : '3'}</span>
                       </div>
                       {/* Hover: difficulty icon overlay */}
                       {isHovered && (
@@ -946,7 +1109,7 @@ export function GameBoard({
                 />
               </div>
 
-              <h2 className="text-xl md:text-2xl font-bold text-text-theme text-center mb-8 leading-relaxed max-w-3xl mx-auto uppercase tracking-wider font-mono">
+              <h2 className={`${isPresentationMode ? 'text-3xl' : 'text-xl md:text-2xl'} font-bold text-text-theme text-center mb-8 leading-relaxed max-w-3xl mx-auto uppercase tracking-wider font-mono`}>
                 {activeQuestion.card.question}
               </h2>
 
@@ -973,10 +1136,10 @@ export function GameBoard({
                       onClick={() => handleAnswerSubmit(letter)}
                       className={`w-full py-5 px-8 border text-base font-bold tracking-widest uppercase rounded-none flex items-center gap-4 transition-all duration-200 relative overflow-hidden group ${isSpectating || isBotSpectating ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} ${buttonStyle}`}
                     >
-                      <div className="w-8 h-8 rounded-none border border-cyan-theme-muted group-hover:border-text-theme bg-transparent flex items-center justify-center font-mono font-black text-xs text-cyan-theme group-hover:text-text-theme transition-colors duration-200">
+                      <div className={`w-8 h-8 rounded-none border border-cyan-theme-muted group-hover:border-text-theme bg-transparent flex items-center justify-center font-mono font-black ${isPresentationMode ? 'text-lg' : 'text-xs'} text-cyan-theme group-hover:text-text-theme transition-colors duration-200`}>
                         {letter}
                       </div>
-                      <span className="text-left leading-normal font-bold font-mono">{answer}</span>
+                      <span className={`text-left leading-normal font-bold font-mono ${isPresentationMode ? 'text-xl' : ''}`}>{answer}</span>
                     </button>
                   );
                 })}
@@ -985,6 +1148,32 @@ export function GameBoard({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Dynamic Atmosphere based on displayedShots */}
+      {!isPresentationMode && displayedShots > 0 && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ 
+            opacity: Math.min(displayedShots / 5, 1) * 0.9,
+          }}
+          transition={{ duration: 1.5 }}
+          className="absolute inset-0 pointer-events-none z-[50]"
+          style={{
+            background: 'radial-gradient(ellipse at center, transparent 0%, rgba(0, 0, 0, 0.6) 70%, rgba(0, 0, 0, 0.95) 100%)'
+          }}
+        >
+          {/* Subtle static noise overlay that gets stronger with more shots */}
+          <motion.div
+            animate={{ opacity: [0.1, 0.3, 0.1] }}
+            transition={{ 
+              duration: Math.max(1.8 - displayedShots * 0.3, 0.6), 
+              repeat: Infinity, 
+              ease: "linear" 
+            }}
+            className="absolute inset-0 static-glitch mix-blend-overlay"
+          />
+        </motion.div>
+      )}
 
       {/* Red flash alert overlay when player gets shot */}
       <AnimatePresence>
@@ -1008,7 +1197,7 @@ export function GameBoard({
               initial={{ opacity: 0 }}
               animate={{ opacity: 0.95 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 static-glitch z-[90] pointer-events-none"
+              className="absolute inset-0 static-glitch z-[90] pointer-events-none"
             />
             
             {/* Warning card block - Only show if it's NOT local player's death */}
@@ -1017,7 +1206,7 @@ export function GameBoard({
                 initial={{ opacity: 0, scale: 0.9, x: '-50%', y: '-40%' }}
                 animate={{ opacity: 1, scale: 1, x: '-50%', y: '-50%' }}
                 exit={{ opacity: 0, scale: 0.9, x: '-50%', y: '-40%' }}
-                className="fixed top-1/2 left-1/2 z-[95] bg-surface border-2 border-red-theme-border px-10 py-6 text-center shadow-[0_0_50px_rgba(239,68,68,0.25)] min-w-[340px]"
+                className="absolute top-1/2 left-1/2 z-[100] bg-surface/90 backdrop-blur-md border-2 border-red-theme-border px-10 py-6 text-center shadow-[0_0_50px_rgba(239,68,68,0.25)] min-w-[340px]"
                 style={{ transform: 'translate(-50%, -50%)' }}
               >
                 <span className="block font-mono text-[8px] text-red-theme/60 tracking-widest mb-1">// CRITICAL_SYSTEM_ALERT</span>
@@ -1034,5 +1223,13 @@ export function GameBoard({
         )}
       </AnimatePresence>
     </motion.div>
+    {/* Pure Blackout Overlay on local death before CRT turning back on */}
+    {isCrtShuttingDown && (
+      <div 
+        className="fixed inset-0 z-[9999] w-screen h-screen flex flex-col items-center justify-center bg-black"
+        style={{ pointerEvents: 'all' }}
+      />
+    )}
+    </>
   );
 }
