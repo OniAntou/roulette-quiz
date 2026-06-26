@@ -641,7 +641,7 @@ export function GameBoard({
                     }>{playedCard.difficulty.toUpperCase()}</span>
                   </div>
                   <div className="flex-1 flex items-center justify-center py-1 overflow-y-auto pr-0.5">
-                    <p className="text-[10px] font-extrabold leading-normal text-left tracking-wide uppercase font-mono">
+                    <p className="text-xs font-extrabold leading-normal text-left tracking-wide uppercase font-mono">
                       {playedCard.question.substring(0, 36) + (playedCard.question.length > 36 ? '...' : '')}
                     </p>
                   </div>
@@ -772,7 +772,7 @@ export function GameBoard({
                         }`}>{card.difficulty.toUpperCase()}</span>
                       </div>
                       <div className="flex-1 flex items-center justify-center py-2 overflow-y-auto pr-0.5">
-                        <p className={`text-xs font-bold leading-normal text-left tracking-wide font-mono uppercase transition-colors duration-300 ${
+                        <p className={`text-sm font-bold leading-normal text-left tracking-wide font-mono uppercase transition-colors duration-300 ${
                           isHovered ? 'text-text-theme' : 'text-text-theme-secondary'
                         }`}>
                           {card.question.substring(0, isHovered ? 70 : 56) + (card.question.length > (isHovered ? 70 : 56) ? '...' : '')}
