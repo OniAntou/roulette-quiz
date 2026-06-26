@@ -106,4 +106,12 @@ export const Sounds = {
   buttonClick() {
     beep(700, 0.04, 'sine', 0.1);
   },
+
+  buttonHover() {
+    try {
+      beep(1100, 0.015, 'sine', 0.04);
+    } catch (e) {
+      // Ignored if audio context is not allowed to start yet
+    }
+  },
 };

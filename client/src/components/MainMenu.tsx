@@ -103,6 +103,52 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
     return () => scrambleTimers.current.forEach(clearInterval);
   }, []);
 
+  // Periodic Glitch effect for ROULETTE title
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (Math.random() > 0.3) {
+        const glitchCount = 1 + Math.floor(Math.random() * 2);
+        const glitchIndices = Array.from({ length: glitchCount }, () => Math.floor(Math.random() * 8));
+        const originalChars: string[] = [];
+
+        setTitleChars(prev => {
+          const next = [...prev];
+          glitchIndices.forEach(idx => {
+            originalChars[idx] = next[idx];
+            next[idx] = SCRAMBLE_CHARS[Math.floor(Math.random() * SCRAMBLE_CHARS.length)];
+          });
+          return next;
+        });
+        setTitleSettled(prev => {
+          const next = [...prev];
+          glitchIndices.forEach(idx => {
+            next[idx] = false;
+          });
+          return next;
+        });
+
+        setTimeout(() => {
+          setTitleChars(prev => {
+            const next = [...prev];
+            glitchIndices.forEach(idx => {
+              next[idx] = 'ROULETTE'[idx];
+            });
+            return next;
+          });
+          setTitleSettled(prev => {
+            const next = [...prev];
+            glitchIndices.forEach(idx => {
+              next[idx] = true;
+            });
+            return next;
+          });
+        }, 120 + Math.random() * 80);
+      }
+    }, 3500);
+
+    return () => clearInterval(interval);
+  }, []);
+
   const handleSubmit = (mode: string, ip?: string) => {
     Sounds.buttonClick();
     const finalName = name.trim().toUpperCase() || getRandomName();
@@ -160,6 +206,26 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
           <circle cx="5%" cy="88%" r="8" fill="none" stroke="currentColor" strokeWidth="1" className="text-text-theme" />
           <circle cx="95%" cy="88%" r="8" fill="none" stroke="currentColor" strokeWidth="1" className="text-text-theme" />
         </svg>
+
+        {/* Technical Blueprint Scope/Crosshair Graphic */}
+        <div className="absolute right-[5%] bottom-[10%] w-[380px] h-[380px] opacity-[0.05] text-cyan-theme pointer-events-none select-none">
+          <motion.svg 
+            animate={{ rotate: 360 }}
+            transition={{ duration: 45, repeat: Infinity, ease: "linear" }}
+            className="w-full h-full" 
+            viewBox="0 0 200 200"
+          >
+            <circle cx="100" cy="100" r="95" fill="none" stroke="currentColor" strokeWidth="0.8" strokeDasharray="4,8" />
+            <circle cx="100" cy="100" r="70" fill="none" stroke="currentColor" strokeWidth="0.5" />
+            <circle cx="100" cy="100" r="45" fill="none" stroke="currentColor" strokeWidth="0.8" strokeDasharray="2,4" />
+            <circle cx="100" cy="100" r="20" fill="none" stroke="currentColor" strokeWidth="0.5" />
+            <line x1="0" y1="100" x2="200" y2="100" stroke="currentColor" strokeWidth="0.5" strokeDasharray="3,3" />
+            <line x1="100" y1="0" x2="100" y2="200" stroke="currentColor" strokeWidth="0.5" strokeDasharray="3,3" />
+            <path d="M 10 100 L 25 100 M 175 100 L 190 100 M 100 10 L 100 25 M 100 175 L 100 190" stroke="currentColor" strokeWidth="1.2" />
+            <text x="105" y="25" fill="currentColor" fontSize="6" fontFamily="monospace" opacity="0.8">AZM // 090</text>
+            <text x="105" y="175" fill="currentColor" fontSize="6" fontFamily="monospace" opacity="0.8">RNG // MAX</text>
+          </motion.svg>
+        </div>
 
         {/* Multiple scan beams */}
         <div className="absolute top-[20%] left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-cyan-theme to-transparent opacity-30 scan-beam pointer-events-none" />
@@ -277,6 +343,11 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
                   transition={{ delay: 0.5 + i * 0.12, duration: 0.35 }}
                   whileHover={{ x: 6, boxShadow: `0 0 20px 4px ${btn.glowColor}` }}
                   whileTap={{ scale: 0.98 }}
+                  onMouseEnter={() => {
+                    try {
+                      Sounds.buttonHover();
+                    } catch (e) {}
+                  }}
                   onClick={() => handleButtonClick(btn.onClick)}
                   disabled={status === 'connecting'}
                   className={`btn-shimmer flex items-center justify-between px-8 py-5 bg-input-theme border border-border-theme rounded-lg font-mono text-sm font-bold text-text-theme-muted tracking-widest uppercase cursor-pointer transition-all duration-200 ${btn.borderHover} ${btn.bgHover} ${btn.textHover}`}
@@ -351,6 +422,11 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
                     lanServers.map((server, i) => (
                       <button
                         key={i}
+                        onMouseEnter={() => {
+                          try {
+                            Sounds.buttonHover();
+                          } catch (e) {}
+                        }}
                         onClick={() => { setShowLanModal(false); handleSubmit('lan', `${server.ip}:${server.port}`); }}
                         className="flex items-center justify-between p-4 bg-input-theme border border-border-theme rounded-lg hover:border-emerald-theme-border hover:bg-emerald-theme-bg transition-all duration-200 cursor-pointer group"
                       >
@@ -378,6 +454,11 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
                     className="flex-1 bg-input-theme border border-border-theme rounded-lg px-4 py-3 text-sm text-text-theme placeholder-text-theme-dim focus:outline-none focus:border-border-theme-hover font-mono uppercase"
                   />
                   <button
+                    onMouseEnter={() => {
+                      try {
+                        Sounds.buttonHover();
+                      } catch (e) {}
+                    }}
                     onClick={() => {
                       if(manualIp) {
                         setShowLanModal(false);
@@ -391,7 +472,13 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
                 </div>
 
                 <div className="flex justify-end border-t border-border-theme pt-4">
-                  <button onClick={() => setShowLanModal(false)}
+                  <button 
+                    onClick={() => setShowLanModal(false)}
+                    onMouseEnter={() => {
+                      try {
+                        Sounds.buttonHover();
+                      } catch (e) {}
+                    }}
                     className="px-5 py-2 bg-input-theme border border-border-theme hover:border-red-theme-border text-[9px] font-mono font-bold text-text-theme-muted tracking-wider uppercase rounded-lg hover:text-text-theme hover:bg-red-theme-bg transition-all duration-200 cursor-pointer"
                   >
                     ABORT
@@ -428,6 +515,11 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
                   {[1, 2, 3].map((count) => (
                     <button
                       key={count}
+                      onMouseEnter={() => {
+                        try {
+                          Sounds.buttonHover();
+                        } catch (e) {}
+                      }}
                       onClick={() => {
                         Sounds.buttonClick();
                         setSelectedBotCount(count);
@@ -445,12 +537,24 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
                 </div>
 
                 <div className="flex gap-3 w-full border-t border-border-theme pt-5">
-                  <button onClick={() => setShowBotModal(false)}
+                  <button 
+                    onClick={() => setShowBotModal(false)}
+                    onMouseEnter={() => {
+                      try {
+                        Sounds.buttonHover();
+                      } catch (e) {}
+                    }}
                     className="flex-1 py-3 bg-input-theme border border-border-theme text-[9px] font-mono font-bold text-text-theme-muted tracking-wider uppercase rounded-lg hover:border-red-theme-border hover:text-red-theme transition-all duration-200 cursor-pointer"
                   >
                     CANCEL
                   </button>
-                  <button onClick={handleBotStart}
+                  <button 
+                    onClick={handleBotStart}
+                    onMouseEnter={() => {
+                      try {
+                        Sounds.buttonHover();
+                      } catch (e) {}
+                    }}
                     className="flex-1 py-3 bg-emerald-theme-bg border border-emerald-theme-border text-[9px] font-mono font-bold text-emerald-theme tracking-wider uppercase rounded-lg hover:bg-emerald-theme-bg-hover hover:border-emerald-theme transition-all duration-200 cursor-pointer"
                   >
                     START MISSION

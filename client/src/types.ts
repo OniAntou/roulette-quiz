@@ -41,6 +41,8 @@ export interface TriggerResult {
   playerId?: string;
   playerName?: string;
   bulletCount: number;
+  currentPosition?: number;
+  bulletsFired?: number;
   shotsFired?: number;
 }
 

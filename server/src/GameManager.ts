@@ -52,6 +52,11 @@ export class GameManager {
 
     setTimeout(() => {
       this.dealCards(roomId);
+      const game = this.games.get(roomId);
+      if (!game) return;
+      game.phase = 'choosing';
+      const currentPlayer = game.players[game.currentTurn];
+      this.io.to(roomId).emit('game:turn', { playerId: currentPlayer.id });
     }, 1000);
   }
 
@@ -75,24 +80,18 @@ export class GameManager {
       game.usedCards = [];
     }
 
-    console.log('Dealing cards for room:', roomId);
-
     game.players.forEach(player => {
-      if (player.isAlive) {
+      if (player.isAlive && player.hand.length === 0) {
         player.hand = this.questionManager.getCards(4, game.usedCards);
         game.usedCards.push(...player.hand.map(c => c.id));
-        console.log(`Dealt 4 cards to ${player.name}`);
       }
     });
 
     game.players.forEach(player => {
-      if (player.isAlive) {
+      if (player.isAlive && player.hand.length === 4) {
         const socket = this.io.sockets.sockets.get(player.id);
         if (socket) {
-          console.log(`Sending cards to ${player.name}`);
           socket.emit('game:deal', { cards: player.hand });
-        } else {
-          console.log(`Socket not found for ${player.name}`);
         }
       }
     });
@@ -105,11 +104,6 @@ export class GameManager {
         shotsFired: p.shotsFired,
       })),
     });
-
-    game.phase = 'choosing';
-    
-    const currentPlayer = game.players[game.currentTurn];
-    this.io.to(roomId).emit('game:turn', { playerId: currentPlayer.id });
   }
 
   handleCardChoice(roomId: string, socketId: string, cardId: string): void {
@@ -222,11 +216,8 @@ export class GameManager {
         this.pullTrigger(roomId);
       } else if (current.phase === 'choosing') {
         const currentPlayer = current.players[current.currentTurn];
-        if (currentPlayer.hand.length === 0) {
-          this.dealCards(roomId);
-        } else {
-          this.io.to(roomId).emit('game:turn', { playerId: currentPlayer.id });
-        }
+        this.dealCards(roomId);
+        this.io.to(roomId).emit('game:turn', { playerId: currentPlayer.id });
       }
     }, 2000);
   }
@@ -251,6 +242,8 @@ export class GameManager {
         playerId: targetPlayer.id,
         playerName: targetPlayer.name,
         bulletCount: 6 - gun.bulletsFired,
+        currentPosition: gun.currentPosition,
+        bulletsFired: gun.bulletsFired,
         shotsFired: targetPlayer.shotsFired,
         nextRound: false,
       });
@@ -277,12 +270,15 @@ export class GameManager {
           current.phase = 'choosing';
           this.dealCards(roomId);
           this.io.to(roomId).emit('game:newRound', { round: current.round });
+          this.io.to(roomId).emit('game:turn', { playerId: current.players[current.currentTurn].id });
         }, 3000);
       }
     } else {
       this.io.to(roomId).emit('game:trigger', {
         alive: true,
         bulletCount: 6 - gun.bulletsFired,
+        currentPosition: gun.currentPosition,
+        bulletsFired: gun.bulletsFired,
         shotsFired: targetPlayer.shotsFired,
         nextRound: true,
       });
@@ -295,6 +291,7 @@ export class GameManager {
         current.phase = 'choosing';
         this.dealCards(roomId);
         this.io.to(roomId).emit('game:newRound', { round: current.round });
+        this.io.to(roomId).emit('game:turn', { playerId: current.players[current.currentTurn].id });
       }, 3000);
     }
   }

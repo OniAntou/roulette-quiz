@@ -1,470 +1,470 @@
 [
   {
     "id": "q_001",
-    "topic": "science",
+    "topic": "cybersecurity",
     "difficulty": "easy",
-    "question": "Hình dạng của Trái Đất?",
+    "question": "Mật khẩu mạnh nên chứa những gì?",
     "answers": {
-      "A": "Tròn",
-      "B": "Phẳng",
-      "C": "Vuông",
-      "D": "Tam giác"
+      "A": "Chỉ chữ thường",
+      "B": "Chữ, số và ký tự đặc biệt",
+      "C": "Chỉ số",
+      "D": "Tên sinh nhật"
     },
-    "correct": "A"
+    "correct": "B"
   },
   {
     "id": "q_002",
-    "topic": "science",
+    "topic": "cybersecurity",
     "difficulty": "easy",
-    "question": "Nước sôi ở bao nhiêu độ C?",
+    "question": "Phishing là gì?",
     "answers": {
-      "A": "90°C",
-      "B": "100°C",
-      "C": "110°C",
-      "D": "120°C"
+      "A": "Bắt cá trực tuyến",
+      "B": "Chiêu lừa đảo giả mạo để đánh cắp thông tin",
+      "C": "Một loại virus",
+      "D": "Phần mềm diệt virus"
     },
     "correct": "B"
   },
   {
     "id": "q_003",
-    "topic": "science",
-    "difficulty": "medium",
-    "question": "Tốc độ ánh sáng là bao nhiêu?",
+    "topic": "cybersecurity",
+    "difficulty": "easy",
+    "question": "HTTPS bảo vệ dữ liệu bằng cách nào?",
     "answers": {
-      "A": "300,000 km/s",
-      "B": "150,000 km/s",
-      "C": "500,000 km/s",
-      "D": "1,000,000 km/s"
+      "A": "Mã hóa dữ liệu",
+      "B": "Xóa dữ liệu",
+      "C": "Chia nhỏ dữ liệu",
+      "D": "Gửi dữ liệu nhanh hơn"
     },
     "correct": "A"
   },
   {
     "id": "q_004",
-    "topic": "science",
-    "difficulty": "medium",
-    "question": "Hành tinh nào lớn nhất trong Hệ Mặt Trời?",
+    "topic": "cybersecurity",
+    "difficulty": "easy",
+    "question": "Firewall dùng để làm gì?",
     "answers": {
-      "A": "Sao Hỏa",
-      "B": "Sao Thổ",
-      "C": "Sao Mộc",
-      "D": "Sao Thiên Vương"
+      "A": "Tăng tốc internet",
+      "B": "Lọc và chặn truy cập mạng trái phép",
+      "C": "Tạo website",
+      "D": "Lưu trữ dữ liệu"
     },
-    "correct": "C"
+    "correct": "B"
   },
   {
     "id": "q_005",
-    "topic": "science",
-    "difficulty": "hard",
-    "question": "Nguyên tố nào chiếm phần lớn trong vũ trụ?",
+    "topic": "cybersecurity",
+    "difficulty": "easy",
+    "question": "Malformed email chứa file đính kèm đáng ngờ được gọi là gì?",
     "answers": {
-      "A": "Oxygen",
-      "B": "Carbon",
-      "C": "Hydrogen",
-      "D": "Helium"
+      "A": "Spam",
+      "B": "Email phishing",
+      "C": "Newsletter",
+      "D": "Email marketing"
     },
-    "correct": "C"
+    "correct": "B"
   },
   {
     "id": "q_006",
-    "topic": "science",
-    "difficulty": "hard",
-    "question": "Công thức hóa học của nước là?",
+    "topic": "cybersecurity",
+    "difficulty": "easy",
+    "question": "2FA là viết tắt của gì?",
     "answers": {
-      "A": "H2O",
-      "B": "CO2",
-      "C": "NaCl",
-      "D": "O2"
+      "A": "Two Factor Authentication",
+      "B": "First File Access",
+      "C": "Free Firewall Agent",
+      "D": "Fast Data Attack"
     },
     "correct": "A"
   },
   {
     "id": "q_007",
-    "topic": "geography",
-    "difficulty": "easy",
-    "question": "Thủ đô của Việt Nam là gì?",
+    "topic": "cybersecurity",
+    "difficulty": "medium",
+    "question": "SQL Injection tấn công vào đâu?",
     "answers": {
-      "A": "Hồ Chí Minh",
-      "B": "Hà Nội",
-      "C": "Đà Nẵng",
-      "D": "Hải Phòng"
+      "A": "Mạng WiFi",
+      "B": "Cơ sở dữ liệu qua input chưa được lọc",
+      "C": "CPU của máy tính",
+      "D": "Màn hình hiển thị"
     },
     "correct": "B"
   },
   {
     "id": "q_008",
-    "topic": "geography",
-    "difficulty": "easy",
-    "question": "Châu lục nào lớn nhất thế giới?",
+    "topic": "cybersecurity",
+    "difficulty": "medium",
+    "question": "Ransomware làm gì với dữ liệu của nạn nhân?",
     "answers": {
-      "A": "Châu Phi",
-      "B": "Châu Á",
-      "C": "Châu Âu",
-      "D": "Châu Mỹ"
+      "A": "Xóa hoàn toàn",
+      "B": "Mã hóa và yêu cầu tiền chuộc",
+      "C": "Sao chép để chia sẻ",
+      "D": "Tăng tốc máy tính"
     },
     "correct": "B"
   },
   {
     "id": "q_009",
-    "topic": "geography",
+    "topic": "cybersecurity",
     "difficulty": "medium",
-    "question": "Sông dài nhất thế giới là?",
+    "question": "DDoS là dạng tấn công gì?",
     "answers": {
-      "A": "Amazon",
-      "B": "Yangtze",
-      "C": "Nile",
-      "D": "Mississippi"
+      "A": "Đánh cắp mật khẩu",
+      "B": "Tấn công từ chối dịch vụ bằng lưu lượng khổng lồ",
+      "C": "Gửi email spam",
+      "D": "Hack webcam"
     },
-    "correct": "C"
+    "correct": "B"
   },
   {
     "id": "q_010",
-    "topic": "geography",
+    "topic": "cybersecurity",
     "difficulty": "medium",
-    "question": "Núi cao nhất thế giới là?",
+    "question": "Keylogger là gì?",
     "answers": {
-      "A": "K2",
-      "B": "Kangchenjunga",
-      "C": "Lhotse",
-      "D": "Everest"
-    },
-    "correct": "D"
-  },
-  {
-    "id": "q_011",
-    "topic": "geography",
-    "difficulty": "hard",
-    "question": "Quốc gia nào có nhiều đảo nhất?",
-    "answers": {
-      "A": "Indonesia",
-      "B": "Philippines",
-      "C": "Nhật Bản",
-      "D": "Thụy Điển"
-    },
-    "correct": "D"
-  },
-  {
-    "id": "q_012",
-    "topic": "geography",
-    "difficulty": "hard",
-    "question": "Thành phố nào đông dân nhất thế giới?",
-    "answers": {
-      "A": "Tokyo",
-      "B": "Delhi",
-      "C": "Shanghai",
-      "D": "São Paulo"
+      "A": "Phần mềm ghi lại thao tác bàn phím",
+      "B": "Một loại khóa cửa thông minh",
+      "C": "Phần mềm diệt virus",
+      "D": "Trình quản lý mật khẩu"
     },
     "correct": "A"
   },
   {
-    "id": "q_013",
-    "topic": "history",
-    "difficulty": "easy",
-    "question": "Năm chiến tranh thế giới II kết thúc?",
+    "id": "q_011",
+    "topic": "cybersecurity",
+    "difficulty": "medium",
+    "question": "Man-in-the-middle attack diễn ra như thế nào?",
     "answers": {
-      "A": "1943",
-      "B": "1944",
-      "C": "1945",
-      "D": "1946"
+      "A": "Tấn công trực tiếp vào server",
+      "B": "Kẻ tấn công chặn và nghe lén giao tiếp giữa hai bên",
+      "C": "Gửi virus qua USB",
+      "D": "Tắt hệ thống mạng"
     },
-    "correct": "C"
+    "correct": "B"
+  },
+  {
+    "id": "q_012",
+    "topic": "cybersecurity",
+    "difficulty": "medium",
+    "question": "VPN giúp bảo vệ người dùng bằng cách nào?",
+    "answers": {
+      "A": "Tăng tốc mạng",
+      "B": "Mã hóa kết nối internet và ẩn địa chỉ IP",
+      "C": "Xóa cookie trình duyệt",
+      "D": "Cài đặt phần mềm diệt virus"
+    },
+    "correct": "B"
+  },
+  {
+    "id": "q_013",
+    "topic": "cybersecurity",
+    "difficulty": "hard",
+    "question": "Zero-day exploit lợi dụng lỗ hổng nào?",
+    "answers": {
+      "A": "Lỗ hổng đã được vá",
+      "B": "Lỗ hổng chưa được nhà phát triển phát hiện và vá",
+      "C": "Lỗ hổng trên phần cứng",
+      "D": "Lỗ hổng trên mạng WiFi"
+    },
+    "correct": "B"
   },
   {
     "id": "q_014",
-    "topic": "history",
-    "difficulty": "easy",
-    "question": "Ai là người phát minh ra đèn điện?",
+    "topic": "cybersecurity",
+    "difficulty": "hard",
+    "question": "Cross-Site Scripting (XSS) tấn công bằng cách nào?",
     "answers": {
-      "A": "Nikola Tesla",
-      "B": "Thomas Edison",
-      "C": "Albert Einstein",
-      "D": "Isaac Newton"
+      "A": "Chèn mã độc vào cơ sở dữ liệu",
+      "B": "Chèn mã JavaScript độc hại vào trang web tin cậy",
+      "C": "Tắt firewall của nạn nhân",
+      "D": "Đánh cắp cookie qua USB"
     },
     "correct": "B"
   },
   {
     "id": "q_015",
-    "topic": "history",
-    "difficulty": "medium",
-    "question": "Năm Việt Nam độc lập?",
-    "answers": {
-      "A": "1944",
-      "B": "1945",
-      "C": "1946",
-      "D": "1947"
-    },
-    "correct": "B"
-  },
-  {
-    "id": "q_016",
-    "topic": "history",
-    "difficulty": "medium",
-    "question": "Đế chế La Mã sụp đổ vào thế kỷ nào?",
-    "answers": {
-      "A": "Thế kỷ 3",
-      "B": "Thế kỷ 4",
-      "C": "Thế kỷ 5",
-      "D": "Thế kỷ 6"
-    },
-    "correct": "C"
-  },
-  {
-    "id": "q_017",
-    "topic": "history",
+    "topic": "cybersecurity",
     "difficulty": "hard",
-    "question": "Ai là vị vua đầu tiên của Việt Nam?",
+    "question": "Buffer Overflow exploited bằng cách nào?",
     "answers": {
-      "A": "Hùng Vương",
-      "B": "An Dương Vương",
-      "C": "Triệu Đà",
-      "D": "Lê Lợi"
+      "A": "Gửi dữ liệu vượt quá bộ nhớ đệm được cấp phát",
+      "B": "Xóa toàn bộ RAM",
+      "C": "Tăng tốc CPU",
+      "D": "Thay đổi địa chỉ IP"
     },
     "correct": "A"
   },
   {
-    "id": "q_018",
-    "topic": "history",
+    "id": "q_016",
+    "topic": "cybersecurity",
     "difficulty": "hard",
-    "question": "Năm nào diễn ra Cách mạng Pháp?",
+    "question": "Hashing khác Encryption ở điểm nào?",
     "answers": {
-      "A": "1776",
-      "B": "1789",
-      "C": "1804",
-      "D": "1815"
+      "A": "Hashing có thể giải mã, Encryption không",
+      "B": "Hashing là một chiều không thể đảo, Encryption có thể giải mã",
+      "C": "Không khác nhau",
+      "D": "Hashing nhanh hơn Encryption"
+    },
+    "correct": "B"
+  },
+  {
+    "id": "q_017",
+    "topic": "cybersecurity",
+    "difficulty": "hard",
+    "question": "Brute Force Attack hoạt động như thế nào?",
+    "answers": {
+      "A": "Tấn công tâm lý nạn nhân",
+      "B": "Thử liên tục các tổ hợp mật khẩu cho đến khi đúng",
+      "C": "Gửi virus qua email",
+      "D": "Hack qua Bluetooth"
+    },
+    "correct": "B"
+  },
+  {
+    "id": "q_018",
+    "topic": "cybersecurity",
+    "difficulty": "hard",
+    "question": "Social Engineering tấn công vào yếu tố nào?",
+    "answers": {
+      "A": "Phần cứng máy tính",
+      "B": "Yếu tố con người - tâm lý và lòng tin",
+      "C": "Mạng WiFi",
+      "D": "Cơ sở dữ liệu"
     },
     "correct": "B"
   },
   {
     "id": "q_019",
-    "topic": "entertainment",
+    "topic": "cybersecurity",
     "difficulty": "easy",
-    "question": "Phim Avatar do đạo diễn nào?",
+    "question": "Worm khác Virus ở điểm nào?",
     "answers": {
-      "A": "Steven Spielberg",
-      "B": "James Cameron",
-      "C": "Christopher Nolan",
-      "D": "Martin Scorsese"
+      "A": "Worm tự nhân bản và lây lan mà không cần file host",
+      "B": "Worm chỉ tấn công Windows",
+      "C": "Virus nhanh hơn Worm",
+      "D": "Không khác nhau"
     },
-    "correct": "B"
+    "correct": "A"
   },
   {
     "id": "q_020",
-    "topic": "entertainment",
+    "topic": "cybersecurity",
     "difficulty": "easy",
-    "question": "Bộ phim nào có nhân vật Darth Vader?",
+    "question": "Proxy server dùng để làm gì?",
     "answers": {
-      "A": "Star Trek",
-      "B": "Star Wars",
-      "C": "Marvel",
-      "D": "DC"
+      "A": "Tăng dung lượng ổ cứng",
+      "B": "Trung gian giữa client và server, ẩn danh và lọc nội dung",
+      "C": "Tạo mật khẩu mới",
+      "D": "Lưu trữ email"
     },
     "correct": "B"
   },
   {
     "id": "q_021",
-    "topic": "entertainment",
+    "topic": "cybersecurity",
     "difficulty": "medium",
-    "question": "Phim nào đoạt giải Oscar 2024 cho Phim hay nhất?",
+    "question": "Phishing qua SMS được gọi là gì?",
     "answers": {
-      "A": "Oppenheimer",
-      "B": "Killers of the Flower Moon",
-      "C": "Poor Things",
-      "D": "The Holdovers"
+      "A": "Smishing",
+      "B": "Vishing",
+      "C": "Pharming",
+      "D": "Spoofing"
     },
     "correct": "A"
   },
   {
     "id": "q_022",
-    "topic": "entertainment",
+    "topic": "cybersecurity",
     "difficulty": "medium",
-    "question": "Ca sĩ nào hát bài 'Thriller'?",
+    "question": "Spoofing là hành động gì?",
     "answers": {
-      "A": "Prince",
-      "B": "Michael Jackson",
-      "C": "Elvis Presley",
-      "D": "Freddie Mercury"
+      "A": "Giả mạo danh tính để đánh lừa hệ thống",
+      "B": "Tạo mật khẩu mới",
+      "C": "Cập nhật phần mềm",
+      "D": "Sao lưu dữ liệu"
+    },
+    "correct": "A"
+  },
+  {
+    "id": "q_023",
+    "topic": "cybersecurity",
+    "difficulty": "medium",
+    "question": "Rootkit được thiết kế để làm gì?",
+    "answers": {
+      "A": "Tăng tốc máy tính",
+      "B": "Ẩn giấu sự tồn tại của mã độc trong hệ thống",
+      "C": "Quản lý file",
+      "D": "Tạo mật khẩu"
     },
     "correct": "B"
   },
   {
-    "id": "q_023",
-    "topic": "entertainment",
-    "difficulty": "hard",
-    "question": "Album bán chạy nhất mọi thời đại là?",
-    "answers": {
-      "A": "Thriller",
-      "B": "Back in Black",
-      "C": "The Dark Side of the Moon",
-      "D": "Bat Out of Hell"
-    },
-    "correct": "A"
-  },
-  {
     "id": "q_024",
-    "topic": "entertainment",
+    "topic": "cybersecurity",
     "difficulty": "hard",
-    "question": "Phim nào thắng giải Phim hay nhất tại Cannes 2023?",
+    "question": "Advanced Persistent Threat (APT) có đặc điểm gì?",
     "answers": {
-      "A": "Anatomy of a Fall",
-      "B": "The Zone of Interest",
-      "C": "Oppenheimer",
-      "D": "Poor Things"
+      "A": "Tấn công nhanh rồi bỏ",
+      "B": "Tấn công tinh vi, ẩn匿 lâu dài trong hệ thống",
+      "C": "Chỉ tấn công bằng virus",
+      "D": "Không cần kết nối mạng"
     },
-    "correct": "A"
+    "correct": "B"
   },
   {
     "id": "q_025",
-    "topic": "gaming",
-    "difficulty": "easy",
-    "question": "Nhân vật chính của Mario tên đầy đủ là?",
+    "topic": "cybersecurity",
+    "difficulty": "hard",
+    "question": "HMAC dùng để làm gì trong bảo mật?",
     "answers": {
-      "A": "Mario Mario",
-      "B": "Luigi Mario",
-      "C": "Mario Brothers",
-      "D": "Mario Peach"
+      "A": "Mã hóa toàn bộ dữ liệu",
+      "B": "Xác thực tính toàn vẹn và nguồn gốc của tin nhắn",
+      "C": "Tạo mật khẩu mới",
+      "D": "Tăng tốc mạng"
     },
-    "correct": "A"
+    "correct": "B"
   },
   {
     "id": "q_026",
-    "topic": "gaming",
+    "topic": "cybersecurity",
     "difficulty": "easy",
-    "question": "Game nào có nhân vật tên là Link?",
+    "question": "Antivirus hoạt động bằng cách nào?",
     "answers": {
-      "A": "Mario",
-      "B": "Zelda",
-      "C": "Pokemon",
-      "D": "Sonic"
+      "A": "Chặn tất cả kết nối mạng",
+      "B": "Phát hiện và loại bỏ mã độc dựa trên mẫu nhận diện",
+      "C": "Tăng tốc CPU",
+      "D": "Lưu trữ dữ liệu đám mây"
     },
     "correct": "B"
   },
   {
     "id": "q_027",
-    "topic": "gaming",
+    "topic": "cybersecurity",
     "difficulty": "medium",
-    "question": "Game bán chạy nhất mọi thời đại là?",
+    "question": "Port scanning dùng để làm gì?",
     "answers": {
-      "A": "Tetris",
-      "B": "Minecraft",
-      "C": "GTA V",
-      "D": "Wii Sports"
+      "A": "Quét tìm các cổng mở trên mục tiêu để tìm lỗ hổng",
+      "B": "Tăng tốc mạng",
+      "C": "Tạo mật khẩu mới",
+      "D": "Lưu trữ dữ liệu"
     },
-    "correct": "B"
+    "correct": "A"
   },
   {
     "id": "q_028",
-    "topic": "gaming",
+    "topic": "cybersecurity",
     "difficulty": "medium",
-    "question": "Studio nào tạo ra game Dark Souls?",
+    "question": "Backdoor là gì?",
     "answers": {
-      "A": "FromSoftware",
-      "B": "Nintendo",
-      "C": "Sony",
-      "D": "Microsoft"
+      "A": "Cửa sau cho phép truy cập trái phép bỏ qua xác thực",
+      "B": "Phần mềm diệt virus",
+      "C": "Trình duyệt web",
+      "D": "Hệ điều hành"
     },
     "correct": "A"
   },
   {
     "id": "q_029",
-    "topic": "gaming",
+    "topic": "cybersecurity",
     "difficulty": "hard",
-    "question": "Năm nào game The Legend of Zelda ra mắt?",
+    "question": "PKI (Public Key Infrastructure) quản lý gì?",
     "answers": {
-      "A": "1985",
-      "B": "1986",
-      "C": "1987",
-      "D": "1988"
+      "A": "Mật khẩu WiFi",
+      "B": "Chứng chỉ số và quản lý khóa công khai/private",
+      "C": "File trên ổ cứng",
+      "D": "Cài đặt phần mềm"
     },
     "correct": "B"
   },
   {
     "id": "q_030",
-    "topic": "gaming",
+    "topic": "cybersecurity",
     "difficulty": "hard",
-    "question": "Game nào có doanh thu cao nhất trong ngày đầu ra mắt?",
+    "question": "Evasion technique trong malware dùng để làm gì?",
     "answers": {
-      "A": "GTA V",
-      "B": "Cyberpunk 2077",
-      "C": "Red Dead Redemption 2",
-      "D": "Call of Duty: Modern Warfare II"
+      "A": "Tăng tốc tấn công",
+      "B": "Trốn tránh phát hiện bởi phần mềm bảo mật",
+      "C": "Mã hóa dữ liệu",
+      "D": "Tạo mật khẩu"
     },
-    "correct": "C"
+    "correct": "B"
   },
   {
     "id": "q_031",
-    "topic": "technology",
+    "topic": "cybersecurity",
     "difficulty": "easy",
-    "question": "iPhone ra mắt năm nào?",
+    "question": "Cookie trên trình duyệt có thể bị đánh cắp để làm gì?",
     "answers": {
-      "A": "2005",
-      "B": "2006",
-      "C": "2007",
-      "D": "2008"
+      "A": "Tăng tốc duyệt web",
+      "B": "Đăng nhập trái phép vào tài khoản người dùng",
+      "C": "Tạo website mới",
+      "D": "Cập nhật phần mềm"
     },
-    "correct": "C"
+    "correct": "B"
   },
   {
     "id": "q_032",
-    "topic": "technology",
-    "difficulty": "easy",
-    "question": "Google được thành lập năm nào?",
+    "topic": "cybersecurity",
+    "difficulty": "medium",
+    "question": "Bcrypt được dùng để làm gì?",
     "answers": {
-      "A": "1996",
-      "B": "1998",
-      "C": "2000",
-      "D": "2002"
+      "A": "Tạo website",
+      "B": "Băm mật khẩu với cơ chế làm chậm để chống brute force",
+      "C": "Quản lý email",
+      "D": "Tăng tốc mạng"
     },
     "correct": "B"
   },
   {
     "id": "q_033",
-    "topic": "technology",
+    "topic": "cybersecurity",
     "difficulty": "medium",
-    "question": "Người sáng lập Facebook là?",
+    "question": "Credential stuffing là gì?",
     "answers": {
-      "A": "Bill Gates",
-      "B": "Steve Jobs",
-      "C": "Mark Zuckerberg",
-      "D": "Elon Musk"
+      "A": "Tạo mật khẩu mới",
+      "B": "Dùng danh sách username/password bị rò rỉ để thử đăng nhập vào tài khoản khác",
+      "C": "Lưu trữ mật khẩu",
+      "D": "Xóa cookie"
     },
-    "correct": "C"
+    "correct": "B"
   },
   {
     "id": "q_034",
-    "topic": "technology",
-    "difficulty": "medium",
-    "question": "Năm nào Twitter ra mắt?",
+    "topic": "cybersecurity",
+    "difficulty": "hard",
+    "question": "Sandboxing trong bảo mật dùng để làm gì?",
     "answers": {
-      "A": "2004",
-      "B": "2005",
-      "C": "2006",
-      "D": "2007"
+      "A": "Lưu trữ dữ liệu đám mây",
+      "B": "Chạy phần mềm trong môi trường cách ly để phân tích mã độc",
+      "C": "Tăng tốc mạng",
+      "D": "Tạo mật khẩu mới"
     },
-    "correct": "C"
+    "correct": "B"
   },
   {
     "id": "q_035",
-    "topic": "technology",
+    "topic": "cybersecurity",
     "difficulty": "hard",
-    "question": "Ngôn ngữ lập trình nào được tạo ra đầu tiên?",
+    "question": "Supply Chain Attack nhắm vào đâu?",
     "answers": {
-      "A": "C",
-      "B": "Python",
-      "C": "Java",
-      "D": "Fortran"
+      "A": "Máy tính cá nhân",
+      "B": "Chuỗi cung ứng phần mềm để tấn công hàng loạt nạn nhân",
+      "C": "Mạng WiFi",
+      "D": "Ổ cứng"
     },
-    "correct": "D"
+    "correct": "B"
   },
   {
     "id": "q_036",
-    "topic": "technology",
-    "difficulty": "hard",
-    "question": "CPU đầu tiên của Intel tên là?",
+    "topic": "cybersecurity",
+    "difficulty": "easy",
+    "question": "SSH dùng để làm gì?",
     "answers": {
-      "A": "Intel 4004",
-      "B": "Intel 8008",
-      "C": "Intel 8080",
-      "D": "Intel 8086"
+      "A": "Lướt web",
+      "B": "Kết nối và điều khiển máy tính từ xa qua kênh mã hóa",
+      "C": "Gửi email",
+      "D": "Tạo website"
     },
-    "correct": "A"
+    "correct": "B"
   }
 ]

@@ -22,9 +22,13 @@ export class RoomManager {
 
   cleanupStaleRooms(): void {
     const now = Date.now();
-    const STALE_THRESHOLD = 10 * 60 * 1000;
+    const WAITING_THRESHOLD = 5 * 60 * 1000;
+    const PLAYING_THRESHOLD = 30 * 60 * 1000;
     for (const [roomId, room] of this.rooms.entries()) {
-      if (room.state === 'waiting' && (now - room.createdAt) > STALE_THRESHOLD) {
+      const age = now - room.createdAt;
+      const isStale = (room.state === 'waiting' && age > WAITING_THRESHOLD) ||
+                      (room.state === 'playing' && age > PLAYING_THRESHOLD);
+      if (isStale) {
         this.rooms.delete(roomId);
         for (const player of room.players) {
           this.playerRooms.delete(player.id);
@@ -62,7 +66,7 @@ export class RoomManager {
   }
 
   joinRoom(roomId: string, socketId: string, playerName: string): { success: boolean; error?: string; players?: Player[] } {
-    const sanitized = this.validatePlayerName(playerName);
+    let sanitized = this.validatePlayerName(playerName);
     const room = this.rooms.get(roomId);
 
     if (!room) {
@@ -82,7 +86,11 @@ export class RoomManager {
     }
 
     if (room.players.some(p => p.name === sanitized)) {
-      return { success: false, error: 'Name already taken' };
+      let counter = 2;
+      while (room.players.some(p => p.name === `${sanitized}${counter}`)) {
+        counter++;
+      }
+      sanitized = `${sanitized}${counter}`;
     }
 
     room.players.push({

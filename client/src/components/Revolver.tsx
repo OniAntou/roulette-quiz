@@ -44,6 +44,10 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
                 <line x1="0" y1="6" x2="6" y2="0" stroke="var(--cyan-theme)" strokeWidth="0.8" opacity="0.3" />
                 <line x1="0" y1="0" x2="6" y2="6" stroke="var(--cyan-theme)" strokeWidth="0.8" opacity="0.3" />
               </pattern>
+              {/* Mask for Cylinder rotation animation */}
+              <clipPath id="cylinderClip">
+                <rect x="92" y="78" width="54" height="44" rx="2" />
+              </clipPath>
             </defs>
 
             {/* =======================================================
@@ -155,23 +159,58 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
               {/* Cylinder body */}
               <rect x="92" y="78" width="54" height="44" rx="2" fill="var(--bg-surface)" stroke="var(--cyan-theme)" strokeWidth="1.2" />
 
-              {/* Surface flute lines (static) */}
-              {[0, 1, 2, 3, 4, 5].map((i) => (
-                <line key={`flute-${i}`} x1="96" y1={82 + i * 7.5} x2="142" y2={82 + i * 7.5} stroke="var(--cyan-theme)" strokeWidth="0.5" opacity="0.25" />
-              ))}
+              {/* Masked rotating elements */}
+              <g clipPath="url(#cylinderClip)">
+                <motion.g
+                  animate={isSpinning ? {
+                    y: [0, -15]
+                  } : isFiring ? {
+                    y: [0, -7.5]
+                  } : {
+                    y: 0
+                  }}
+                  transition={isSpinning ? {
+                    duration: 0.25,
+                    repeat: Infinity,
+                    ease: "linear"
+                  } : isFiring ? {
+                    duration: 0.18,
+                    ease: "easeOut"
+                  } : {
+                    duration: 0.3
+                  }}
+                >
+                  {/* Surface flute lines (extended range to allow seamless scrolling) */}
+                  {[-2, -1, 0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
+                    <line 
+                      key={`flute-${i}`} 
+                      x1="96" 
+                      y1={82 + i * 7.5} 
+                      x2="142" 
+                      y2={82 + i * 7.5} 
+                      stroke="var(--cyan-theme)" 
+                      strokeWidth="0.5" 
+                      opacity="0.25" 
+                    />
+                  ))}
 
-              {/* Lock notches — one bright, rest dim, moves to show position */}
-              {[0, 1, 2, 3, 4, 5].map((i) => (
-                <rect
-                  key={`notch-${i}`}
-                  x="93"
-                  y={80 + i * 7.5}
-                  width="2.5"
-                  height="1.2"
-                  fill="var(--cyan-theme)"
-                  opacity={i === currentPosition ? 1 : 0.3}
-                />
-              ))}
+                  {/* Lock notches (extended range to allow seamless scrolling) */}
+                  {[-2, -1, 0, 1, 2, 3, 4, 5, 6, 7].map((i) => {
+                    const virtualPos = ((i % 6) + 6) % 6;
+                    return (
+                      <rect
+                        key={`notch-${i}`}
+                        x="93"
+                        y={80 + i * 7.5}
+                        width="2.5"
+                        height="1.2"
+                        fill="var(--cyan-theme)"
+                        opacity={virtualPos === currentPosition ? 1 : 0.3}
+                      />
+                    );
+                  })}
+                </motion.g>
+              </g>
 
               {/* Active position marker — animated dot on right edge */}
               <motion.circle

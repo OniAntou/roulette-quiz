@@ -40,6 +40,7 @@ export default function App() {
     setTriggerResult,
     setPlayers,
     setWinnerInfo,
+    setLocalPlayerId,
   };
 
   const {
