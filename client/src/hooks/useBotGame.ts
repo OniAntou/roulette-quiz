@@ -67,6 +67,7 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
   const [isSpectating, setIsSpectating] = useState(false);
 
   const botTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const safetyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bulletsFiredCountRef = useRef<number>(0);
   const botGunRef = useRef(botGun);
   const gamePhaseRef = useRef<GamePhase>('waiting');
@@ -74,244 +75,300 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
   const botsRef = useRef<BotState[]>(bots);
   const handCardsRef = useRef<CardData[]>([]);
   const playersRef = useRef<Player[]>([]);
+  const callbacksRef = useRef(callbacks);
 
   // Sync refs
   useEffect(() => { botGunRef.current = botGun; }, [botGun]);
   useEffect(() => { botsRef.current = bots; }, [bots]);
+  useEffect(() => { callbacksRef.current = callbacks; }, [callbacks]);
+
+  const clearAllTimers = useCallback(() => {
+    if (botTimerRef.current) {
+      clearTimeout(botTimerRef.current);
+      botTimerRef.current = null;
+    }
+    if (safetyTimerRef.current) {
+      clearTimeout(safetyTimerRef.current);
+      safetyTimerRef.current = null;
+    }
+  }, []);
 
   const showHUDAlert = useCallback((text: string, color: string, duration: number) => {
     setBotHudMessage({ text, color });
     setTimeout(() => setBotHudMessage(null), duration);
   }, []);
 
+  // Fixed order: local-player → bot-0 → bot-1 → bot-2 → (loop)
+  const getAliveOrder = useCallback((): string[] => {
+    const allIds = ['local-player', ...botsRef.current.map(b => b.id)];
+    return allIds.filter(id => {
+      if (id === 'local-player') {
+        return playersRef.current.find(p => p.id === 'local-player')?.isAlive;
+      }
+      return botsRef.current.find(b => b.id === id)?.isAlive;
+    });
+  }, []);
+
+  const getNextAliveTarget = useCallback((afterId: string): string => {
+    const alive = getAliveOrder();
+    if (alive.length === 0) return 'local-player';
+    const idx = alive.indexOf(afterId);
+    if (idx === -1) return alive[0];
+    return alive[(idx + 1) % alive.length];
+  }, [getAliveOrder]);
+
   const checkBotGameOver = useCallback(() => {
+    const cb = callbacksRef.current;
     const aliveBots = botsRef.current.filter(b => b.isAlive);
     const playerAlive = playersRef.current.find(p => p.id === 'local-player')?.isAlive;
     if (aliveBots.length === 0 || (!playerAlive && aliveBots.length <= 1)) {
       const winnerName = aliveBots.length > 0 ? aliveBots[0].name : playerName;
-      callbacks.setWinnerInfo({ winner: winnerName, isLocalWinner: aliveBots.length === 0 });
-      callbacks.setPhase('game_over');
+      cb.setWinnerInfo({ winner: winnerName, isLocalWinner: aliveBots.length === 0 });
+      cb.setPhase('game_over');
       if (aliveBots.length === 0) Sounds.victory();
-      setTimeout(() => callbacks.setScreen('gameover'), 3000);
+      setTimeout(() => cb.setScreen('gameover'), 3000);
       return true;
     }
     return false;
-  }, [playerName, callbacks]);
+  }, [playerName]);
 
-  const scheduleNextTurn = useCallback((nextTurnId: string, delay = 1000) => {
-    setTimeout(() => {
-      setIsSpectating(false);
-      if (checkBotGameOver()) return;
+  const scheduleNextTurnRef = useRef<(nextTurnId: string, delay?: number) => void>(() => {});
+  const processAnswerRef = useRef<(targetId: string, answer: string, correctAnswer: string) => void>(() => {});
+  const executeTriggerRef = useRef<(targetId: string) => void>(() => {});
+  const botPlayCardRef = useRef<(botId: string) => void>(() => {});
 
-      const aliveBots = botsRef.current.filter(b => b.isAlive);
-      const isPlayerAlive = playersRef.current.find(p => p.id === 'local-player')?.isAlive;
-
-      const allAliveIds: string[] = [];
-      if (isPlayerAlive) allAliveIds.push('local-player');
-      aliveBots.forEach(b => allAliveIds.push(b.id));
-
-      if (allAliveIds.length <= 1) {
-        checkBotGameOver();
-        return;
-      }
-
-      let actualNext = nextTurnId;
-      if (!allAliveIds.includes(actualNext)) {
-        actualNext = allAliveIds[0];
-      }
-
-      callbacks.setCurrentTurnId(actualNext);
-      callbacks.setPhase('choosing');
-
-      const isBotEmpty = actualNext !== 'local-player' && botsRef.current.find(b => b.id === actualNext)?.hand.length === 0;
-      const isPlayerEmpty = actualNext === 'local-player' && handCardsRef.current.length === 0;
-
-      if (isBotEmpty || isPlayerEmpty) {
-        callbacks.setRound(prev => prev + 1);
-        const newGun = createBotGun();
-        setBotGun(newGun);
-        setBots(prev => {
-          const updated = prev.map(b => b.isAlive ? { ...b, hand: [generateBotQuestion(), generateBotQuestion(), generateBotQuestion(), generateBotQuestion()], cardsCount: 4 } : b);
-          botsRef.current = updated;
-          return updated;
-        });
-        callbacks.setPlayers(prev => prev.map(p => p.isAlive ? { ...p, cardsCount: 4 } : p));
-        if (isPlayerAlive) {
-          callbacks.setHandCards([generateBotQuestion(), generateBotQuestion(), generateBotQuestion(), generateBotQuestion()]);
-        }
-        Sounds.newRound();
-        scheduleNextTurn(actualNext, 500);
-        return;
-      }
-
-      if (actualNext !== 'local-player') {
-        setTimeout(() => {
-          botPlayCard(actualNext);
-        }, 1500);
-      }
-    }, delay);
-  }, [checkBotGameOver, callbacks]);
-
-  const processAnswer = useCallback((targetId: string, answer: string, correctAnswer: string) => {
-    if (botTimerRef.current) {
-      clearTimeout(botTimerRef.current);
-      botTimerRef.current = null;
-    }
-
-    const isCorrect = answer === correctAnswer;
-    if (isCorrect) {
-      Sounds.correct();
-    } else {
-      Sounds.wrong();
-    }
-
-    callbacks.setQuestionResult({ correct: isCorrect, correctAnswer });
-    callbacks.setPhase('result');
-
-    setTimeout(() => {
-      callbacks.setActiveQuestion(null);
-      callbacks.setQuestionResult(null);
-
-      if (isCorrect) {
-        scheduleNextTurn(targetId, 500);
-      } else {
-        executeTrigger(targetId);
-      }
-    }, 2500);
-  }, [scheduleNextTurn, callbacks]);
-
-  const executeTrigger = useCallback((targetId: string) => {
-    const gun = botGunRef.current;
-    const bulletInChamber = gun.chambers[gun.currentPosition];
-    const alive = !bulletInChamber;
-
-    let targetName = playerName;
-    if (targetId !== 'local-player') {
-      targetName = botsRef.current.find(b => b.id === targetId)?.name || 'BOT';
-    }
-
-    bulletsFiredCountRef.current++;
-    const bulletCount = 6 - bulletsFiredCountRef.current;
-
-    Sounds.gunClick();
-
-    setTimeout(() => {
-      if (alive) {
-        Sounds.gunSurvive();
-        showHUDAlert(`${targetName} // COCK SURVIVED`, 'text-amber-400', 2000);
-      } else {
-        Sounds.gunFire();
-        showHUDAlert(`${targetName} // TERMINATED`, 'text-red-500', 3000);
-      }
-
-      // Update shotsFired on target player
-      callbacks.setPlayers(prev => prev.map(p => {
-        if (p.id === targetId) {
-          return { ...p, shotsFired: (p.shotsFired || 0) + 1 };
-        }
-        return p;
-      }));
-
-      const targetShots = (playersRef.current.find(p => p.id === targetId)?.shotsFired || 0) + 1;
-
-      callbacks.setTriggerResult({
-        alive,
-        playerId: targetId,
-        playerName: targetName,
-        bulletCount,
-        shotsFired: targetShots,
-      });
-      callbacks.setPhase('trigger');
-
+  useEffect(() => {
+    const scheduleNextTurnFn = (nextTurnId: string, delay = 1000) => {
       setTimeout(() => {
-        callbacks.setTriggerResult(null);
-
-        if (!alive) {
-          if (targetId === 'local-player') {
-            callbacks.setPlayers(prev => prev.map(p => p.id === 'local-player' ? { ...p, isAlive: false } : p));
-            callbacks.setHandCards([]);
-          } else {
-            setBots(prev => {
-              const updated = prev.map(b => b.id === targetId ? { ...b, isAlive: false } : b);
-              botsRef.current = updated;
-              return updated;
-            });
-            callbacks.setPlayers(prev => prev.map(p => p.id === targetId ? { ...p, isAlive: false } : p));
-          }
-        }
-
+        setIsSpectating(false);
         if (checkBotGameOver()) return;
 
-        if (alive) {
-          scheduleNextTurn(targetId, 500);
-        } else {
-          setBotGun(createBotGun());
-          const isLocalAlive = playersRef.current.find(p => p.id === 'local-player')?.isAlive;
-          const aliveBots = botsRef.current.filter(b => b.isAlive);
-          const nextId = isLocalAlive ? 'local-player' : (aliveBots[0]?.id || 'local-player');
-          scheduleNextTurn(nextId, 500);
+        const cb = callbacksRef.current;
+        const aliveBots = botsRef.current.filter(b => b.isAlive);
+        const isPlayerAlive = playersRef.current.find(p => p.id === 'local-player')?.isAlive;
+
+        const allAliveIds: string[] = [];
+        if (isPlayerAlive) allAliveIds.push('local-player');
+        aliveBots.forEach(b => allAliveIds.push(b.id));
+
+        if (allAliveIds.length <= 1) {
+          checkBotGameOver();
+          return;
         }
-      }, 3000);
-    }, 1200);
-  }, [playerName, scheduleNextTurn, checkBotGameOver, showHUDAlert, callbacks]);
 
-  const botPlayCard = useCallback((botId: string) => {
-    const bot = botsRef.current.find(b => b.id === botId);
-    if (!bot || bot.hand.length === 0) return;
+        let actualNext = nextTurnId;
+        if (!allAliveIds.includes(actualNext)) {
+          actualNext = allAliveIds[0];
+        }
 
-    const cardIndex = Math.floor(Math.random() * bot.hand.length);
-    const card = bot.hand[cardIndex];
-    const newHand = bot.hand.filter((_, i) => i !== cardIndex);
+        cb.setCurrentTurnId(actualNext);
+        cb.setPhase('choosing');
 
-    setBots(prev => prev.map(b =>
-      b.id === botId
-        ? { ...b, hand: newHand, cardsCount: newHand.length }
-        : b
-    ));
+        const isBotEmpty = actualNext !== 'local-player' && botsRef.current.find(b => b.id === actualNext)?.hand.length === 0;
+        const isPlayerEmpty = actualNext === 'local-player' && handCardsRef.current.length === 0;
 
-    callbacks.setPlayedCard(card);
-
-    const isPlayerDead = !playersRef.current.find(p => p.id === 'local-player')?.isAlive;
-    const aliveTargets = botsRef.current.filter(b => b.isAlive && b.id !== botId);
-
-    let targetId = 'local-player';
-    if (isPlayerDead || (aliveTargets.length > 0 && Math.random() > 0.5)) {
-      targetId = aliveTargets[Math.floor(Math.random() * aliveTargets.length)]?.id || 'local-player';
-    }
-
-    const isTargetBot = targetId !== 'local-player';
-    const targetName = isTargetBot
-      ? botsRef.current.find(b => b.id === targetId)?.name || 'BOT'
-      : playerName;
-
-    setTimeout(() => {
-      callbacks.setActiveQuestion({
-        card: { ...card, difficulty: card.difficulty as 'easy' | 'medium' | 'hard', answers: card.answers, correct: card.correct },
-        timer: 10,
-        from: botId,
-      });
-      callbacks.setPhase('answering');
-
-      if (!isTargetBot) {
-        const answerTimer = setTimeout(() => {
-          if (gamePhaseRef.current === 'answering') {
-            processAnswer('local-player', '', card.correct || 'A');
+        if (isBotEmpty || isPlayerEmpty) {
+          cb.setRound(prev => prev + 1);
+          bulletsFiredCountRef.current = 0;
+          setBotGun(createBotGun());
+          setBots(prev => {
+            const updated = prev.map(b => b.isAlive ? { ...b, hand: [generateBotQuestion(), generateBotQuestion(), generateBotQuestion(), generateBotQuestion()], cardsCount: 4 } : b);
+            botsRef.current = updated;
+            return updated;
+          });
+          cb.setPlayers(prev => prev.map(p => p.isAlive ? { ...p, cardsCount: 4 } : p));
+          if (isPlayerAlive) {
+            const newHand = [generateBotQuestion(), generateBotQuestion(), generateBotQuestion(), generateBotQuestion()];
+            handCardsRef.current = newHand;
+            cb.setHandCards(newHand);
           }
-        }, 10000);
-        botTimerRef.current = answerTimer;
+          Sounds.newRound();
+          scheduleNextTurnRef.current(actualNext, 500);
+          return;
+        }
+
+        if (actualNext !== 'local-player') {
+          setTimeout(() => {
+            botPlayCardRef.current(actualNext);
+          }, 1500);
+        }
+      }, delay);
+    };
+
+    const processAnswerFn = (targetId: string, answer: string, correctAnswer: string) => {
+      clearAllTimers();
+
+      const cb = callbacksRef.current;
+      const isCorrect = answer === correctAnswer;
+      if (isCorrect) {
+        Sounds.correct();
       } else {
-        setIsSpectating(true);
-        showHUDAlert(`${targetName} // DECRYPTING CHALLENGE`, 'text-cyan-theme', 2000);
-        const botAnswerDelay = 2500 + Math.random() * 1500;
-        const answerTimer = setTimeout(() => {
-          const isCorrect = Math.random() < 0.65;
-          const answered = isCorrect ? (card.correct || 'A') : 'X';
-          processAnswer(targetId, answered, card.correct || 'A');
-        }, botAnswerDelay);
-        botTimerRef.current = answerTimer;
+        Sounds.wrong();
       }
-    }, 1500);
-  }, [processAnswer, callbacks, showHUDAlert, playerName]);
+
+      cb.setQuestionResult({ correct: isCorrect, correctAnswer });
+      cb.setPhase('result');
+
+      setTimeout(() => {
+        cb.setActiveQuestion(null);
+        cb.setQuestionResult(null);
+
+        if (isCorrect) {
+          scheduleNextTurnRef.current(targetId, 500);
+        } else {
+          executeTriggerRef.current(targetId);
+        }
+      }, 2500);
+    };
+
+    const executeTriggerFn = (targetId: string) => {
+      clearAllTimers();
+
+      const cb = callbacksRef.current;
+      const gun = botGunRef.current;
+      const bulletInChamber = gun.chambers[gun.currentPosition];
+      const alive = !bulletInChamber;
+
+      let targetName = playerName;
+      if (targetId !== 'local-player') {
+        targetName = botsRef.current.find(b => b.id === targetId)?.name || 'BOT';
+      }
+
+      bulletsFiredCountRef.current++;
+      const bulletCount = 6 - bulletsFiredCountRef.current;
+
+      Sounds.gunClick();
+
+      setTimeout(() => {
+        if (alive) {
+          Sounds.gunSurvive();
+          showHUDAlert(`${targetName} // COCK SURVIVED`, 'text-amber-400', 2000);
+        } else {
+          Sounds.gunFire();
+          showHUDAlert(`${targetName} // TERMINATED`, 'text-red-500', 3000);
+        }
+
+        cb.setPlayers(prev => prev.map(p => {
+          if (p.id === targetId) {
+            return { ...p, shotsFired: (p.shotsFired || 0) + 1 };
+          }
+          return p;
+        }));
+
+        const targetShots = (playersRef.current.find(p => p.id === targetId)?.shotsFired || 0) + 1;
+
+        cb.setTriggerResult({
+          alive,
+          playerId: targetId,
+          playerName: targetName,
+          bulletCount,
+          shotsFired: targetShots,
+        });
+        cb.setPhase('trigger');
+
+        setTimeout(() => {
+          cb.setTriggerResult(null);
+
+          if (!alive) {
+            if (targetId === 'local-player') {
+              cb.setPlayers(prev => prev.map(p => p.id === 'local-player' ? { ...p, isAlive: false } : p));
+              cb.setHandCards([]);
+            } else {
+              setBots(prev => {
+                const updated = prev.map(b => b.id === targetId ? { ...b, isAlive: false } : b);
+                botsRef.current = updated;
+                return updated;
+              });
+              cb.setPlayers(prev => prev.map(p => p.id === targetId ? { ...p, isAlive: false } : p));
+            }
+          }
+
+          if (checkBotGameOver()) return;
+
+          if (alive) {
+            scheduleNextTurnRef.current(targetId, 500);
+          } else {
+            bulletsFiredCountRef.current = 0;
+            setBotGun(createBotGun());
+            const isLocalAlive = playersRef.current.find(p => p.id === 'local-player')?.isAlive;
+            const aliveBots = botsRef.current.filter(b => b.isAlive);
+            const nextId = isLocalAlive ? 'local-player' : (aliveBots[0]?.id || 'local-player');
+            scheduleNextTurnRef.current(nextId, 500);
+          }
+        }, 3000);
+      }, 1200);
+    };
+
+    const botPlayCardFn = (botId: string) => {
+      clearAllTimers();
+
+      const bot = botsRef.current.find(b => b.id === botId);
+      if (!bot || bot.hand.length === 0) return;
+
+      const cardIndex = Math.floor(Math.random() * bot.hand.length);
+      const card = bot.hand[cardIndex];
+      const newHand = bot.hand.filter((_, i) => i !== cardIndex);
+
+      setBots(prev => {
+        const updated = prev.map(b =>
+          b.id === botId
+            ? { ...b, hand: newHand, cardsCount: newHand.length }
+            : b
+        );
+        botsRef.current = updated;
+        return updated;
+      });
+
+      const cb = callbacksRef.current;
+      cb.setPlayedCard(card);
+
+      const targetId = getNextAliveTarget(botId);
+      const isTargetBot = targetId !== 'local-player';
+      const targetName = isTargetBot
+        ? botsRef.current.find(b => b.id === targetId)?.name || 'BOT'
+        : playerName;
+
+      setTimeout(() => {
+        cb.setActiveQuestion({
+          card: { ...card, difficulty: card.difficulty as 'easy' | 'medium' | 'hard', answers: card.answers, correct: card.correct },
+          timer: 10,
+          from: botId,
+        });
+        cb.setPhase('answering');
+
+        if (!isTargetBot) {
+          const answerTimer = setTimeout(() => {
+            if (gamePhaseRef.current === 'answering') {
+              processAnswerRef.current('local-player', '', card.correct || 'A');
+            }
+          }, 10000);
+          botTimerRef.current = answerTimer;
+        } else {
+          setIsSpectating(true);
+          showHUDAlert(`${targetName} // DECRYPTING CHALLENGE`, 'text-cyan-theme', 2000);
+          const botAnswerDelay = 2500 + Math.random() * 1500;
+          const answerTimer = setTimeout(() => {
+            const isCorrect = Math.random() < 0.65;
+            const answered = isCorrect ? (card.correct || 'A') : 'X';
+            processAnswerRef.current(targetId, answered, card.correct || 'A');
+          }, botAnswerDelay);
+          botTimerRef.current = answerTimer;
+
+          const safetyTimeout = setTimeout(() => {
+            if (gamePhaseRef.current === 'answering') {
+              processAnswerRef.current(targetId, 'X', card.correct || 'A');
+            }
+          }, 8000);
+          safetyTimerRef.current = safetyTimeout;
+        }
+      }, 1500);
+    };
+
+    scheduleNextTurnRef.current = scheduleNextTurnFn;
+    processAnswerRef.current = processAnswerFn;
+    executeTriggerRef.current = executeTriggerFn;
+    botPlayCardRef.current = botPlayCardFn;
+  }, [checkBotGameOver, clearAllTimers, showHUDAlert, playerName, getNextAliveTarget]);
 
   const handleBotCardChoice = useCallback((cardId: string, phase: GamePhase, currentTurnId: string, handCards: CardData[]) => {
     if (phase !== 'choosing' || currentTurnId !== 'local-player') return;
@@ -319,14 +376,16 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
     const card = handCards.find(c => c.id === cardId);
     if (!card) return;
 
+    clearAllTimers();
+
     Sounds.cardPlay();
     callbacks.setHandCards(prev => prev.filter(c => c.id !== cardId));
     callbacks.setPlayedCard(card);
 
-    const aliveBots = botsRef.current.filter(b => b.isAlive);
-    if (aliveBots.length === 0) return;
-
-    const targetBot = aliveBots[Math.floor(Math.random() * aliveBots.length)];
+    const targetId = getNextAliveTarget('local-player');
+    const targetName = targetId === 'local-player'
+      ? playerName
+      : botsRef.current.find(b => b.id === targetId)?.name || 'BOT';
 
     callbacks.setActiveQuestion({
       card: { ...card, difficulty: card.difficulty as 'easy' | 'medium' | 'hard', answers: card.answers, correct: card.correct },
@@ -335,21 +394,39 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
     });
     callbacks.setPhase('answering');
     setIsSpectating(true);
-    showHUDAlert(`${targetBot.name} // DECRYPTING CHALLENGE`, 'text-cyan-theme', 2000);
+    showHUDAlert(`${targetName} // DECRYPTING CHALLENGE`, 'text-cyan-theme', 2000);
 
-    const botAnswerDelay = 2500 + Math.random() * 1500;
-    const answerTimer = setTimeout(() => {
-      const isCorrect = Math.random() < 0.65;
-      const answered = isCorrect ? (card.correct || 'A') : 'X';
-      processAnswer(targetBot.id, answered, card.correct || 'A');
-    }, botAnswerDelay);
-    botTimerRef.current = answerTimer;
-  }, [processAnswer, callbacks, showHUDAlert]);
+    const isTargetBot = targetId !== 'local-player';
+
+    if (isTargetBot) {
+      const botAnswerDelay = 2500 + Math.random() * 1500;
+      const answerTimer = setTimeout(() => {
+        const isCorrect = Math.random() < 0.65;
+        const answered = isCorrect ? (card.correct || 'A') : 'X';
+        processAnswerRef.current(targetId, answered, card.correct || 'A');
+      }, botAnswerDelay);
+      botTimerRef.current = answerTimer;
+
+      const safetyTimeout = setTimeout(() => {
+        if (gamePhaseRef.current === 'answering') {
+          processAnswerRef.current(targetId, 'X', card.correct || 'A');
+        }
+      }, 8000);
+      safetyTimerRef.current = safetyTimeout;
+    } else {
+      const answerTimer = setTimeout(() => {
+        if (gamePhaseRef.current === 'answering') {
+          processAnswerRef.current('local-player', '', card.correct || 'A');
+        }
+      }, 10000);
+      botTimerRef.current = answerTimer;
+    }
+  }, [callbacks, showHUDAlert, clearAllTimers, getNextAliveTarget, playerName]);
 
   const handleBotModePlayerAnswer = useCallback((letter: string, phase: GamePhase, activeQuestion: ActiveQuestion | null) => {
     if (phase !== 'answering' || !activeQuestion) return;
-    processAnswer('local-player', letter, activeQuestion.card.correct || 'A');
-  }, [processAnswer]);
+    processAnswerRef.current('local-player', letter, activeQuestion.card.correct || 'A');
+  }, []);
 
   const startBotGame = useCallback((count: number) => {
     setBotMode(true);
@@ -409,9 +486,7 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
   }, [playerName, callbacks]);
 
   const handleBotDisconnect = useCallback(() => {
-    if (botTimerRef.current) {
-      clearTimeout(botTimerRef.current);
-    }
+    clearAllTimers();
     setBotMode(false);
     setBots([]);
     callbacks.setScreen('menu');
@@ -422,9 +497,8 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
     callbacks.setQuestionResult(null);
     callbacks.setTriggerResult(null);
     callbacks.setRound(1);
-  }, [callbacks]);
+  }, [callbacks, clearAllTimers]);
 
-  // Sync handCards and players to refs for bot logic
   const syncHandCards = useCallback((cards: CardData[]) => {
     handCardsRef.current = cards;
   }, []);

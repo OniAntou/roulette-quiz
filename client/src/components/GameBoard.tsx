@@ -35,34 +35,34 @@ interface OpponentPos {
   angle: number;
 }
 
-const getOpponentPosition = (index: number, total: number): OpponentPos => {
+const getOpponentPosition = (playerId: string, total: number): OpponentPos => {
+  const posMap: Record<string, OpponentPos> = {
+    'bot-0': {
+      className: "absolute left-8 top-[48%] -translate-y-1/2 flex flex-col items-center space-y-2 z-20",
+      angle: 180
+    },
+    'bot-1': {
+      className: "absolute top-20 left-1/2 -translate-x-1/2 flex flex-col items-center space-y-2 z-20",
+      angle: -90
+    },
+    'bot-2': {
+      className: "absolute right-8 top-[48%] -translate-y-1/2 flex flex-col items-center space-y-2 z-20",
+      angle: 0
+    },
+  };
+
+  if (posMap[playerId]) return posMap[playerId];
+
   if (total === 1) {
     return {
       className: "absolute top-20 left-1/2 -translate-x-1/2 flex flex-col items-center space-y-2 z-20",
       angle: -90
     };
   }
-  if (total === 2) {
-    if (index === 0) return {
-      className: "absolute left-8 top-[48%] -translate-y-1/2 flex flex-col items-center space-y-2 z-20",
-      angle: 180
-    };
-    return {
-      className: "absolute right-8 top-[48%] -translate-y-1/2 flex flex-col items-center space-y-2 z-20",
-      angle: 0
-    };
-  }
-  if (index === 0) return {
-    className: "absolute left-8 top-[48%] -translate-y-1/2 flex flex-col items-center space-y-2 z-20",
-    angle: 180
-  };
-  if (index === 1) return {
+
+  return {
     className: "absolute top-20 left-1/2 -translate-x-1/2 flex flex-col items-center space-y-2 z-20",
     angle: -90
-  };
-  return {
-    className: "absolute right-8 top-[48%] -translate-y-1/2 flex flex-col items-center space-y-2 z-20",
-    angle: 0
   };
 };
 
@@ -198,12 +198,8 @@ export function GameBoard({
         if (playerId === localId) {
           targetAngle = 90;
         } else {
-          const opponentPlayersList = players.filter(p => p.id !== localId);
-          const oppIndex = opponentPlayersList.findIndex(p => p.id === playerId);
-          if (oppIndex !== -1) {
-            const oppPos = getOpponentPosition(oppIndex, opponentPlayersList.length);
-            targetAngle = oppPos.angle;
-          }
+          const oppPos = getOpponentPosition(playerId, opponentPlayers.length);
+          targetAngle = oppPos.angle;
         }
       }
       setRotationAngle(targetAngle);
@@ -357,10 +353,10 @@ export function GameBoard({
       {/* Turn Indicator Banner - Removed, using arrow indicator instead */}
 
       {/* 1. Opponents positioned absolute around the table */}
-      {opponentPlayers.map((opponent, index) => {
+      {opponentPlayers.map((opponent) => {
         const cardCount = opponent.cardsCount || 0;
         const isCurrentTurn = currentTurnId === opponent.id;
-        const pos = getOpponentPosition(index, opponentPlayers.length);
+        const pos = getOpponentPosition(opponent.id, opponentPlayers.length);
         
         return (
           <div key={opponent.id} className={pos.className}>

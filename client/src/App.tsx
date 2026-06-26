@@ -56,6 +56,11 @@ export default function App() {
     syncCurrentTurn,
   } = useBotGame(playerName, botCallbacks);
 
+  const handleStartBotGame = useCallback((count: number) => {
+    setLocalPlayerId('local-player');
+    startBotGame(count);
+  }, [startBotGame]);
+
   // Sync state to bot refs
   useEffect(() => { syncHandCards(handCards); }, [handCards, syncHandCards]);
   useEffect(() => { syncPlayers(players); }, [players, syncPlayers]);
@@ -276,7 +281,7 @@ export default function App() {
       {screen === 'menu' && (
         <MainMenu
           connect={connectToServer}
-          startBot={startBotGame}
+          startBot={handleStartBotGame}
           error={errorMsg}
           status={connectionStatus}
         />
