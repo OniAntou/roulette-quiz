@@ -115,10 +115,22 @@ export function GameBoard({
   const [isSpectatorModeVisual, setIsSpectatorModeVisual] = useState<boolean>(false);
   const [deathMessage, setDeathMessage] = useState<string>('');
   const [isPresentationMode, setIsPresentationMode] = useState<boolean>(false);
+  const opponentPlayers = players.filter(p => p.id !== localId);
   
+  interface PileCard {
+    id: string;
+    card: CardData;
+    rotate: number;
+    offsetX: number;
+    offsetY: number;
+    fromId: string;
+  }
+  const [cardPile, setCardPile] = useState<PileCard[]>([]);
+
   const prevHandCardsLength = useRef<number>(0);
   const lastProcessedTriggerRef = useRef<string | null>(null);
   const lastMouseMoveRef = useRef<number>(0);
+  const lastPlayedCardRef = useRef<string | null>(null);
 
   const prevPhase = useRef<GamePhase>(phase);
   // BGM Effect
@@ -127,17 +139,19 @@ export function GameBoard({
   const isDeadSpectating = isSpectatorModeVisual || isDead || isCrtShuttingDown;
   
   useEffect(() => {
-    if (isDeadSpectating) {
+    const isLethalShot = triggerResult !== null && !triggerResult.alive;
+    
+    if (isDeadSpectating || (isFiring && isLethalShot)) {
       Sounds.stopBGM();
     } else {
       Sounds.startBGM();
     }
     return () => Sounds.stopBGM();
-  }, [isDeadSpectating]);
+  }, [isDeadSpectating, isFiring, triggerResult]);
 
   // Heartbeat Effect (căng thẳng tăng dần theo số đạn đã bắn)
   useEffect(() => {
-    if (displayedShots < 2 || isPresentationMode || phase === 'gameover' || isCrtShuttingDown || isDeadSpectating) return;
+    if (displayedShots < 2 || isPresentationMode || phase === 'result' || isCrtShuttingDown || isDeadSpectating) return;
 
     let intervalTime = 1200;
     let volume = 0.2; // Nhỏ lại
@@ -197,9 +211,9 @@ export function GameBoard({
     setRevealedCards(new Set());
     prevHandCardsLength.current = 0;
     lastProcessedTriggerRef.current = null;
-    setShowDeathOverlay(false);
-    setIsCrtShuttingDown(false);
-    
+    // Không reset các state liên quan đến animation chết ở đây 
+    // vì nó sẽ làm gián đoạn sequence 2.5 giây màn hình đen.
+    // Các state đó sẽ tự reset trong setTimeout của triggerResult.
     // Only reset spectator mode if the local player is actually alive
     const isLocalDead = !players.find(p => p.id === localId)?.isAlive;
     if (!isLocalDead) {
@@ -207,6 +221,8 @@ export function GameBoard({
     }
     
     setDeathMessage('');
+    setCardPile([]);
+    lastPlayedCardRef.current = null;
   }, [round]);
 
   useEffect(() => {
@@ -290,8 +306,6 @@ export function GameBoard({
 
           if (triggerResult.alive) {
             Sounds.gunSurvive();
-            setDeathMessage('MAY MẮN.');
-            setTimeout(() => setShowDeathOverlay(false), 2000);
           } else {
             Sounds.gunFire();
             setShowRedFlash(true);
@@ -310,13 +324,14 @@ export function GameBoard({
             if (isLocalDeath) {
               // Lập tức màn hình đen xì
               setIsCrtShuttingDown(true);
+              setShowDeathOverlay(false); // Hide the overlay since the screen is turning off
 
               // Đợi 2.5 giây trong bóng đen
               setTimeout(() => {
                 setIsCrtShuttingDown(false);
                 
                 // Tránh bật CRT nếu game đã kết thúc (1v1 chết)
-                if (prevPhase.current !== 'game_over' && prevPhase.current !== 'gameover') {
+                if (prevPhase.current !== 'game_over') {
                   if (!isPresentationMode) setIsCrtTurningOn(true);
                   setIsSpectatorModeVisual(true);
                   
@@ -381,9 +396,40 @@ export function GameBoard({
 
   useEffect(() => {
     if (playedCard) {
-      Sounds.cardPlay();
+      if (lastPlayedCardRef.current !== playedCard.id) {
+        Sounds.cardPlay();
+        lastPlayedCardRef.current = playedCard.id;
+      }
+      
+      setCardPile(prev => {
+        if (prev.find(c => c.id === playedCard.id)) return prev;
+
+        const fromId = activeQuestion?.from || currentTurnId;
+        const oppPos = getOpponentPosition(fromId, opponentPlayers.length);
+        
+        let finalRotate = (Math.random() * 20 - 10);
+        let offsetX = (Math.random() * 10 - 5);
+        let offsetY = (Math.random() * 10 - 5);
+
+        if (fromId !== localId) {
+           if (oppPos.angle === 180) { finalRotate += 15; offsetX -= 15; } // left
+           else if (oppPos.angle === 0) { finalRotate -= 15; offsetX += 15; } // right
+           else { finalRotate += (Math.random() > 0.5 ? 10 : -10); offsetY -= 15; } // top
+        } else {
+           offsetY += 15;
+        }
+
+        return [...prev, {
+          id: playedCard.id,
+          card: playedCard,
+          rotate: finalRotate,
+          offsetX,
+          offsetY,
+          fromId
+        }];
+      });
     }
-  }, [playedCard]);
+  }, [playedCard, activeQuestion?.from, currentTurnId, localId, opponentPlayers.length]);
 
   const handleCardClick = (card: CardData) => {
     if (phase !== 'choosing' || currentTurnId !== localId) return;
@@ -434,7 +480,6 @@ export function GameBoard({
   };
 
   const localPlayer = players.find(p => p.id === localId) || { name: 'YOU', isAlive: true, shotsFired: 0 };
-  const opponentPlayers = players.filter(p => p.id !== localId);
   const isSpectating = !localPlayer.isAlive;
 
   const isMyTurn = currentTurnId === localId;
@@ -544,16 +589,15 @@ export function GameBoard({
     return null;
   };
 
-  const getPlayedCardInitial = () => {
-    const fromId = activeQuestion?.from;
-    const base = { scale: 2.5, opacity: 0, filter: 'blur(10px)' };
-    if (fromId === localId) return { ...base, y: 150, rotate: -15 };
-    if (fromId === 'bot-0') return { ...base, x: -200, y: -50, rotate: -45 };
-    if (fromId === 'bot-1') return { ...base, y: -200, rotate: 180 };
-    if (fromId === 'bot-2') return { ...base, x: 200, y: -50, rotate: 45 };
-    // Generic opponent fallback
-    if (fromId && fromId !== localId) return { ...base, y: -200, rotate: 180 };
-    return { ...base, rotate: -15 };
+  const getPlayedCardInitial = (fromId: string) => {
+    const base = { scale: 0.3, opacity: 0, filter: 'blur(2px)' };
+    
+    if (fromId === localId) return { ...base, opacity: 1, y: 300 };
+    
+    const oppPos = getOpponentPosition(fromId, opponentPlayers.length);
+    if (oppPos.angle === 180) return { ...base, opacity: 1, x: -450, y: 0 }; // left
+    if (oppPos.angle === 0) return { ...base, opacity: 1, x: 450, y: 0 }; // right
+    return { ...base, opacity: 1, y: -350 }; // top
   };
 
   return (
@@ -791,34 +835,40 @@ export function GameBoard({
             <span className="absolute bottom-1 left-1.5 text-[8px] font-mono text-cyan-theme-muted select-none font-normal">+</span>
             <span className="absolute bottom-1 right-1.5 text-[8px] font-mono text-cyan-theme-muted select-none font-normal">+</span>
 
-            <AnimatePresence mode="wait">
-              {playedCard ? (
-                <motion.div 
-                  key={playedCard.id}
-                  initial={getPlayedCardInitial()}
-                  animate={{ x: 0, y: 0, scale: 1, opacity: 1, rotate: 0, filter: 'blur(0px)' }}
-                  exit={{ scale: 0.5, opacity: 0, filter: 'blur(10px)' }}
-                  transition={{ type: "spring", stiffness: 350, damping: 25, mass: 0.8 }}
-                  className={`w-32 h-44 border rounded-none p-3 flex flex-col justify-between relative shadow-[0_0_30px_rgba(34,211,238,0.15)] overflow-hidden bg-card-theme ${
-                    playedCard.difficulty === 'easy' 
-                      ? 'border-emerald-theme-border text-emerald-theme' 
-                      : playedCard.difficulty === 'medium' 
-                        ? 'border-amber-theme-border text-amber-theme' 
-                        : 'border-red-theme-border text-red-theme'
-                  }`}
-                >
-                  <div className="flex justify-between items-center w-full border-b border-border-theme pb-1 text-[8px] font-mono tracking-wider opacity-60">
-                    <span>#{playedCard.id.substring(0, 4).toUpperCase()}</span>
-                    <span className={
-                      playedCard.difficulty === 'easy' ? 'text-emerald-theme font-extrabold' : playedCard.difficulty === 'medium' ? 'text-amber-theme font-extrabold' : 'text-red-theme font-extrabold'
-                    }>{playedCard.difficulty.toUpperCase()}</span>
-                  </div>
-                  <div className="flex-1 flex items-center justify-center py-1 overflow-y-auto pr-0.5">
-                    <p className="text-xs font-extrabold leading-normal text-left tracking-wide uppercase font-mono">
-                      {playedCard.question.substring(0, 36) + (playedCard.question.length > 36 ? '...' : '')}
-                    </p>
-                  </div>
-                </motion.div>
+            <AnimatePresence>
+              {cardPile.length > 0 ? (
+                cardPile.map((pileItem, index) => {
+                  const card = pileItem.card;
+                  return (
+                    <motion.div 
+                      key={pileItem.id}
+                      initial={getPlayedCardInitial(pileItem.fromId)}
+                      animate={{ x: pileItem.offsetX, y: pileItem.offsetY, scale: 1, opacity: 1, rotate: pileItem.rotate, filter: 'blur(0px)' }}
+                      exit={{ scale: 0.5, opacity: 0, filter: 'blur(10px)' }}
+                      transition={{ type: "spring", duration: 0.65, bounce: 0.3 }}
+                      className={`absolute w-32 h-44 border rounded-none p-3 flex flex-col justify-between shadow-[0_0_30px_rgba(34,211,238,0.15)] overflow-hidden bg-card-theme ${
+                        card.difficulty === 'easy' 
+                          ? 'border-emerald-theme-border text-emerald-theme' 
+                          : card.difficulty === 'medium' 
+                            ? 'border-amber-theme-border text-amber-theme' 
+                            : 'border-red-theme-border text-red-theme'
+                      }`}
+                      style={{ zIndex: index }}
+                    >
+                      <div className="flex justify-between items-center w-full border-b border-border-theme pb-1 text-[8px] font-mono tracking-wider opacity-60">
+                        <span>#{card.id.substring(0, 4).toUpperCase()}</span>
+                        <span className={
+                          card.difficulty === 'easy' ? 'text-emerald-theme font-extrabold' : card.difficulty === 'medium' ? 'text-amber-theme font-extrabold' : 'text-red-theme font-extrabold'
+                        }>{card.difficulty.toUpperCase()}</span>
+                      </div>
+                      <div className="flex-1 flex items-center justify-center py-1 overflow-y-auto pr-0.5">
+                        <p className="text-xs font-extrabold leading-normal text-left tracking-wide uppercase font-mono">
+                          {card.question.substring(0, 36) + (card.question.length > 36 ? '...' : '')}
+                        </p>
+                      </div>
+                    </motion.div>
+                  );
+                })
               ) : (
                 <span className="text-[9px] font-extrabold text-text-theme-dim tracking-widest uppercase text-center font-mono">
                   AWAITING
@@ -887,7 +937,7 @@ export function GameBoard({
               const neighborOffset = hoveredCardIndex !== null
                 ? (index < hoveredCardIndex ? -8 : index > hoveredCardIndex ? 8 : 0)
                 : 0;
-              const baseX = dist * 45 + neighborOffset;
+              const baseX = dist * 55 + neighborOffset;
               const baseY = Math.pow(Math.abs(dist), 1.5) * 6;
               const baseAngle = dist * 3;
 
@@ -918,7 +968,7 @@ export function GameBoard({
                   onMouseMove={(e) => isPlayable && handleCardMouseMove(e, index)}
                   onMouseLeave={handleCardMouseLeave}
                   onClick={() => handleCardClick(card)}
-                  className={`absolute w-56 h-80 border rounded-none p-5 flex flex-col justify-between select-none overflow-hidden bg-card-theme ${
+                  className={`absolute w-64 h-96 border rounded-none p-6 flex flex-col justify-between select-none overflow-hidden bg-card-theme ${
                     !isPlayable ? 'cursor-default' : 'cursor-pointer group'
                   }`}
                   style={{
@@ -945,7 +995,7 @@ export function GameBoard({
                         <p className={`text-sm font-bold leading-normal text-left tracking-wide font-mono uppercase transition-colors duration-300 ${
                           isHovered ? 'text-text-theme' : 'text-text-theme-secondary'
                         }`}>
-                          {card.question.substring(0, isHovered ? 70 : 56) + (card.question.length > (isHovered ? 70 : 56) ? '...' : '')}
+                          {card.question.substring(0, isHovered ? 100 : 80) + (card.question.length > (isHovered ? 100 : 80) ? '...' : '')}
                         </p>
                       </div>
                       {/* Hover: difficulty icon overlay */}
@@ -1150,7 +1200,7 @@ export function GameBoard({
       </AnimatePresence>
 
       {/* Dynamic Atmosphere based on displayedShots */}
-      {!isPresentationMode && displayedShots > 0 && (
+      {!isPresentationMode && !isDeadSpectating && displayedShots > 0 && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ 

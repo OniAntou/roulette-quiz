@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface RevolverProps {
@@ -11,6 +11,26 @@ interface RevolverProps {
 }
 
 export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, alive, rotationAngle }: RevolverProps) {
+  // Memoize spark trajectories so they don't jump around on re-renders
+  const sparks = useMemo(() => {
+    return [...Array(14)].map(() => {
+      const sparkAngle = (Math.random() * 0.8 - 0.4); // Focus mostly forwards
+      const sparkDistance = Math.random() * 120 + 50;
+      const length = Math.random() * 15 + 10;
+      
+      return {
+        endX: Math.cos(sparkAngle) * sparkDistance,
+        endY: Math.sin(sparkAngle) * sparkDistance,
+        tailX: Math.cos(sparkAngle) * (sparkDistance - length),
+        tailY: Math.sin(sparkAngle) * (sparkDistance - length),
+        sparkAngle,
+        duration: 0.15 + Math.random() * 0.15,
+        isYellow: Math.random() > 0.5,
+        isThick: Math.random() > 0.5
+      };
+    });
+  }, [bulletsFired]); // Regenerate only when a new bullet is fired
+
   return (
     <div className="flex flex-col items-center justify-center space-y-6">
       {/* Gun Container - Parent handles rotation to target */}
@@ -20,7 +40,9 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
         className="w-[400px] h-[275px] relative flex items-center justify-center pointer-events-none select-none"
         style={{
           transformOrigin: 'center center',
-          filter: 'drop-shadow(0px 8px 24px var(--cyan-theme-light))'
+          filter: 'drop-shadow(0px 8px 24px var(--cyan-theme-light))',
+          willChange: 'transform',
+          transform: 'translateZ(0)'
         }}
       >
         {/* Inner container handles recoil animation locally */}
@@ -36,6 +58,7 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
           }}
           transition={{ duration: 0.22, ease: "easeOut" }}
           className="w-full h-full relative flex items-center justify-center"
+          style={{ willChange: 'transform', transform: 'translateZ(0)' }}
         >
           <svg className="w-full h-full" viewBox="0 0 320 220" style={{ color: 'var(--cyan-theme)' }}>
             <defs>
@@ -305,18 +328,6 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
             {isFiring && !alive && (
               <div className="absolute inset-0 pointer-events-none z-50">
                 <svg className="w-full h-full overflow-visible" viewBox="0 0 320 220">
-                  <defs>
-                    <filter id="muzzle-glow" x="-50%" y="-50%" width="200%" height="200%">
-                      <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur1" />
-                      <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur2" />
-                      <feMerge>
-                        <feMergeNode in="blur2" />
-                        <feMergeNode in="blur1" />
-                        <feMergeNode in="SourceGraphic" />
-                      </feMerge>
-                    </filter>
-                  </defs>
-
                   {/* 1. Supersonic Shockwave */}
                   <motion.circle
                     cx="285" cy="95" r="10"
@@ -337,7 +348,6 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
                     }}
                     transition={{ duration: 0.12, ease: "easeOut" }}
                     style={{ transformOrigin: '285px 95px' }}
-                    filter="url(#muzzle-glow)"
                   >
                     {/* Outer red/orange aura */}
                     <path d="M 285 95 L 360 40 L 330 85 L 430 95 L 330 105 L 360 150 Z" fill="#ef4444" opacity="0.8" />
@@ -349,40 +359,29 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
                   </motion.g>
 
                   {/* 3. High-speed Glowing Sparks */}
-                  {[...Array(14)].map((_, i) => {
-                    const sparkAngle = (Math.random() * 0.8 - 0.4); // Focus mostly forwards
-                    const sparkDistance = Math.random() * 120 + 50;
-                    const length = Math.random() * 15 + 10;
-                    
-                    const endX = Math.cos(sparkAngle) * sparkDistance;
-                    const endY = Math.sin(sparkAngle) * sparkDistance;
-                    const tailX = Math.cos(sparkAngle) * (sparkDistance - length);
-                    const tailY = Math.sin(sparkAngle) * (sparkDistance - length);
-
-                    return (
+                  {sparks.map((spark, i) => (
                       <motion.line
                         key={`spark-${i}`}
                         initial={{ 
                           x1: 285, y1: 95, 
-                          x2: 285 + Math.cos(sparkAngle)*10, 
-                          y2: 95 + Math.sin(sparkAngle)*10, 
+                          x2: 285 + Math.cos(spark.sparkAngle)*10, 
+                          y2: 95 + Math.sin(spark.sparkAngle)*10, 
                           opacity: 1 
                         }}
                         animate={{ 
-                          x1: 285 + tailX, 
-                          y1: 95 + tailY, 
-                          x2: 285 + endX, 
-                          y2: 95 + endY, 
+                          x1: 285 + spark.tailX, 
+                          y1: 95 + spark.tailY, 
+                          x2: 285 + spark.endX, 
+                          y2: 95 + spark.endY, 
                           opacity: [1, 1, 0] 
                         }}
-                        transition={{ duration: 0.15 + Math.random() * 0.15, ease: "easeOut" }}
-                        stroke={i % 2 === 0 ? "#ffb703" : "#ffffff"}
-                        strokeWidth={Math.random() > 0.5 ? 2.5 : 1.5}
+                        transition={{ duration: spark.duration, ease: "easeOut" }}
+                        stroke={spark.isYellow ? "#ffb703" : "#ffffff"}
+                        strokeWidth={spark.isThick ? 2.5 : 1.5}
                         strokeLinecap="round"
-                        filter="url(#muzzle-glow)"
+                        style={{ filter: 'drop-shadow(0px 0px 2px rgba(255,183,3,0.5))' }}
                       />
-                    );
-                  })}
+                    ))}
                 </svg>
               </div>
             )}

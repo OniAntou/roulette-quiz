@@ -18,10 +18,8 @@ const ALLOWED_ORIGINS = [
 const io = new Server(server, {
   cors: {
     origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-      if (!origin) return callback(null, true);
-      if (origin.startsWith('file://')) return callback(null, true);
-      if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
-      callback(new Error('Not allowed by CORS'));
+      // Allow all in development/LAN for ease of use
+      callback(null, true);
     },
     methods: ['GET', 'POST'],
   },
@@ -94,7 +92,7 @@ io.on('connection', (socket) => {
     const { playerName } = data;
     const room = roomManager.createRoom(socket.id, playerName);
     socket.join(room.id);
-    socket.emit('room:created', { roomId: room.id, playerId: socket.id });
+    socket.emit('room:created', { roomId: room.id, players: room.players, playerId: socket.id });
     console.log(`Room created: ${room.id}`);
   });
 
@@ -107,12 +105,12 @@ io.on('connection', (socket) => {
     if (result.success) {
       socket.join(roomId);
       console.log(`[JOIN] Socket ${socket.id} joined room ${roomId}`);
-      socket.emit('room:joined', { roomId, playerId: socket.id });
-      
       const room = roomManager.getRoom(roomId);
+      socket.emit('room:joined', { roomId, players: room?.players, playerId: socket.id });
+      
       console.log(`[JOIN] Room has ${room?.players.length} players:`, room?.players.map(p => p.name));
-      io.to(roomId).emit('room:players', { players: result.players });
-      console.log('[JOIN] Emitted room:players to room');
+      
+      io.to(roomId).emit('room:players', { players: room?.players });
     } else {
       socket.emit('error', { code: 'JOIN_ROOM_FAILED', message: result.error });
     }

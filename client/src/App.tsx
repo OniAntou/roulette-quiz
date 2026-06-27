@@ -57,7 +57,8 @@ export default function App() {
     syncCurrentTurn,
   } = useBotGame(playerName, botCallbacks);
 
-  const handleStartBotGame = useCallback((count: number) => {
+  const handleStartBotGame = useCallback((count: number, name: string) => {
+    setPlayerName(name);
     setLocalPlayerId('local-player');
     startBotGame(count);
   }, [startBotGame]);
@@ -73,6 +74,7 @@ export default function App() {
     setGameMode(mode);
     setConnectionStatus('connecting');
     setErrorMsg('');
+    socketClient.playerName = name;
 
     const baseHost = window.location.hostname || 'localhost';
     const serverUrl = (mode === 'lan' && ip) ? `http://${ip}` : `http://${baseHost}:3000`;

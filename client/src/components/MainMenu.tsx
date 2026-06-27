@@ -24,7 +24,7 @@ const SCRAMBLE_CHARS = '!<>-_\\/[]{}—=+*^?#_$%@&0123456789ABCDEF';
 
 interface MainMenuProps {
   connect: (mode: string, name: string, ip?: string) => void;
-  startBot: (count: number) => void;
+  startBot: (count: number, name: string) => void;
   error: string;
   status: ConnectionStatus;
 }
@@ -52,7 +52,10 @@ const PARTICLES = Array.from({ length: 20 }, (_, i) => ({
   opacity: 0.15 + Math.random() * 0.25,
 }));
 
+let globalInteracted = false;
+
 export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
+  const [hasInteracted, setHasInteracted] = useState<boolean>(globalInteracted);
   const [name, setName] = useState<string>('');
   const [showBotModal, setShowBotModal] = useState<boolean>(false);
   const [showLanModal, setShowLanModal] = useState<boolean>(false);
@@ -60,6 +63,27 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
   const [selectedBotCount, setSelectedBotCount] = useState<number>(1);
   const [manualIp, setManualIp] = useState<string>('');
   const [isSearchingLan, setIsSearchingLan] = useState<boolean>(false);
+
+  // Start Menu BGM
+  useEffect(() => {
+    const initAudio = () => {
+      Sounds.startMenuBGM();
+      window.removeEventListener('click', initAudio);
+      window.removeEventListener('keydown', initAudio);
+    };
+
+    window.addEventListener('click', initAudio);
+    window.addEventListener('keydown', initAudio);
+
+    // Try to start immediately (works if AudioContext is already active from previous screen)
+    Sounds.startMenuBGM();
+
+    return () => {
+      window.removeEventListener('click', initAudio);
+      window.removeEventListener('keydown', initAudio);
+      Sounds.stopMenuBGM();
+    };
+  }, []);
 
   // Scramble decode for title
   const [titleChars, setTitleChars] = useState(() => 'ROULETTE'.split('').map(() => SCRAMBLE_CHARS[0]));
@@ -190,7 +214,7 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
   const handleBotStart = () => {
     Sounds.buttonClick();
     const finalName = name.trim().toUpperCase() || getRandomName();
-    startBot(selectedBotCount);
+    startBot(selectedBotCount, finalName);
   };
 
   const handleButtonClick = (onClickType: string) => {
@@ -204,6 +228,27 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
       <div className="fixed top-5 right-5 z-50">
         <ThemeToggle />
       </div>
+
+      <AnimatePresence>
+        {!hasInteracted && (
+          <motion.div 
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0, transition: { duration: 0.5 } }}
+            onClick={() => {
+              globalInteracted = true;
+              setHasInteracted(true);
+              Sounds.startMenuBGM();
+            }}
+            className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-bg-body cursor-pointer backdrop-blur-md"
+          >
+            <div className="text-cyan-theme font-mono font-bold tracking-[5px] uppercase animate-pulse mb-6 text-center text-sm">
+              SYSTEM BOOTING...<br/><br/>
+              [ CLICK ANYWHERE TO INITIALIZE AUDIO PROTOCOL ]
+            </div>
+            <span className="w-2 h-2 rounded-full bg-cyan-theme animate-ping"></span>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Tactical Blueprint Ambient Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none -z-10 bg-surface blood-glitch-active">

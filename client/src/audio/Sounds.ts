@@ -7,6 +7,9 @@ let emptyGunBuffer: AudioBuffer | null = null;
 let bgmOsc: OscillatorNode | null = null;
 let bgmGain: GainNode | null = null;
 let bgmLfo: OscillatorNode | null = null;
+let menuMusicInterval: number | null = null;
+let menuNextNoteTime = 0;
+let menuCurrentNote = 0;
 
 function getCtx(): AudioContext {
   if (!audioCtx) {
@@ -119,6 +122,199 @@ function playFilteredNoise(
 }
 
 export const Sounds = {
+  startMenuBGM() {
+    try {
+      const ctx = getCtx();
+      if (ctx.state === 'suspended') {
+        ctx.resume();
+      }
+      if (menuMusicInterval) return;
+
+      menuNextNoteTime = ctx.currentTime + 0.1;
+      menuCurrentNote = 0;
+
+      const tempo = 160; // Metal tempo
+      const secondsPerBeat = 60.0 / tempo;
+      const lookahead = 25.0; // ms
+      const scheduleAheadTime = 0.1; // s
+
+      // Create Distortion Curve for the Guitar
+      let distCurve = new Float32Array(44100);
+      for (let i = 0; i < 44100; ++i) {
+        const x = (i * 2) / 44100 - 1;
+        distCurve[i] = ((3 + 400) * x * 20 * (Math.PI / 180)) / (Math.PI + 400 * Math.abs(x));
+      }
+      
+      const distNode = ctx.createWaveShaper();
+      distNode.curve = distCurve;
+      distNode.oversample = '4x';
+      
+      const compNode = ctx.createDynamicsCompressor();
+      compNode.threshold.value = -10;
+      compNode.knee.value = 10;
+      compNode.ratio.value = 12;
+      compNode.attack.value = 0.003;
+      compNode.release.value = 0.1;
+
+      // Master volume for menu
+      const masterGain = ctx.createGain();
+      masterGain.gain.value = 0.3; // keep it a bit lower to not blast ears completely
+      
+      distNode.connect(compNode);
+      compNode.connect(masterGain);
+      masterGain.connect(ctx.destination);
+
+      function nextNote() {
+        const secondsPerStep = secondsPerBeat / 4; // 16th notes
+        menuNextNoteTime += secondsPerStep;
+        menuCurrentNote++;
+        if (menuCurrentNote === 16) menuCurrentNote = 0;
+      }
+
+      function scheduleNote(stepNumber: number, time: number) {
+        // Heavy Metal Guitar Riff (E Minor)
+        // E2, G2, A2, Bb2, B2
+        const riffFreq = [
+          82.41, 82.41, 82.41, 82.41,  // chug
+          98.00, 98.00, 110.00, 116.54, // walk up
+          82.41, 82.41, 82.41, 82.41,  // chug
+          123.47, 116.54, 110.00, 98.00 // walk down
+        ];
+        
+        const osc1 = ctx.createOscillator();
+        const osc2 = ctx.createOscillator();
+        const gain1 = ctx.createGain();
+        
+        osc1.type = 'sawtooth';
+        osc1.frequency.value = riffFreq[stepNumber];
+        
+        osc2.type = 'square';
+        osc2.frequency.value = riffFreq[stepNumber] * 1.01; // slightly detuned for thickness
+
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(3000, time);
+        filter.frequency.exponentialRampToValueAtTime(800, time + 0.1);
+
+        gain1.gain.setValueAtTime(0, time);
+        // Palm mute effect: faster decay on E2 (82.41)
+        let decayTime = riffFreq[stepNumber] === 82.41 ? 0.08 : 0.15;
+        gain1.gain.linearRampToValueAtTime(0.4, time + 0.01);
+        gain1.gain.exponentialRampToValueAtTime(0.001, time + decayTime);
+
+        osc1.connect(filter);
+        osc2.connect(filter);
+        filter.connect(gain1);
+        gain1.connect(distNode);
+        
+        osc1.start(time);
+        osc1.stop(time + decayTime);
+        osc2.start(time);
+        osc2.stop(time + decayTime);
+
+        // Double Kick Drum (8th notes)
+        if (stepNumber % 2 === 0) {
+          const kick = ctx.createOscillator();
+          const kickGain = ctx.createGain();
+          kick.type = 'sine';
+          kick.frequency.setValueAtTime(100, time);
+          kick.frequency.exponentialRampToValueAtTime(0.01, time + 0.15);
+          
+          kickGain.gain.setValueAtTime(0, time);
+          kickGain.gain.linearRampToValueAtTime(0.9, time + 0.005);
+          kickGain.gain.exponentialRampToValueAtTime(0.001, time + 0.15);
+          
+          kick.connect(kickGain);
+          kickGain.connect(compNode);
+          kick.start(time);
+          kick.stop(time + 0.15);
+        }
+
+        // Heavy Snare on beat 2 and 4 (steps 4 and 12)
+        if (stepNumber === 4 || stepNumber === 12) {
+          const snareDuration = 0.2;
+          const snareBuffer = ctx.createBuffer(1, ctx.sampleRate * snareDuration, ctx.sampleRate);
+          const data = snareBuffer.getChannelData(0);
+          for (let i = 0; i < snareBuffer.length; i++) data[i] = Math.random() * 2 - 1;
+          
+          const snareNoise = ctx.createBufferSource();
+          snareNoise.buffer = snareBuffer;
+          
+          const snareFilter = ctx.createBiquadFilter();
+          snareFilter.type = 'bandpass';
+          snareFilter.frequency.value = 2500;
+          
+          const snareGain = ctx.createGain();
+          snareGain.gain.setValueAtTime(0, time);
+          snareGain.gain.linearRampToValueAtTime(0.8, time + 0.01);
+          snareGain.gain.exponentialRampToValueAtTime(0.001, time + snareDuration);
+          
+          snareNoise.connect(snareFilter);
+          snareFilter.connect(snareGain);
+          snareGain.connect(compNode);
+          snareNoise.start(time);
+          
+          // Snare body/pop
+          const pop = ctx.createOscillator();
+          const popGain = ctx.createGain();
+          pop.type = 'triangle';
+          pop.frequency.setValueAtTime(250, time);
+          pop.frequency.exponentialRampToValueAtTime(100, time + 0.1);
+          popGain.gain.setValueAtTime(0, time);
+          popGain.gain.linearRampToValueAtTime(0.7, time + 0.01);
+          popGain.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
+          pop.connect(popGain);
+          popGain.connect(compNode);
+          pop.start(time);
+          pop.stop(time + 0.1);
+        }
+        
+        // Ride Cymbal/Hi-hat off-beats
+        if (stepNumber % 4 !== 0) {
+          const hhDuration = 0.05;
+          const hhBuffer = ctx.createBuffer(1, ctx.sampleRate * hhDuration, ctx.sampleRate);
+          const data = hhBuffer.getChannelData(0);
+          for (let i = 0; i < hhBuffer.length; i++) data[i] = Math.random() * 2 - 1;
+          
+          const hhSource = ctx.createBufferSource();
+          hhSource.buffer = hhBuffer;
+          
+          const hhFilter = ctx.createBiquadFilter();
+          hhFilter.type = 'highpass';
+          hhFilter.frequency.value = 8000;
+          
+          const hhGain = ctx.createGain();
+          hhGain.gain.setValueAtTime(0, time);
+          hhGain.gain.linearRampToValueAtTime(0.1, time + 0.005);
+          hhGain.gain.exponentialRampToValueAtTime(0.001, time + hhDuration);
+          
+          hhSource.connect(hhFilter);
+          hhFilter.connect(hhGain);
+          hhGain.connect(compNode);
+          
+          hhSource.start(time);
+        }
+      }
+
+      function scheduler() {
+        while (menuNextNoteTime < ctx.currentTime + scheduleAheadTime) {
+          scheduleNote(menuCurrentNote, menuNextNoteTime);
+          nextNote();
+        }
+      }
+
+      menuMusicInterval = window.setInterval(scheduler, lookahead);
+    } catch (e) {}
+  },
+
+  stopMenuBGM() {
+    try {
+      if (menuMusicInterval) {
+        window.clearInterval(menuMusicInterval);
+        menuMusicInterval = null;
+      }
+    } catch (e) {}
+  },
   startBGM() {
     try {
       const ctx = getCtx();
@@ -272,7 +468,6 @@ export const Sounds = {
   },
 
   gunFire() {
-    this.stopBGM();
     const ctx = getCtx();
     const t = ctx.currentTime;
     
