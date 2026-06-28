@@ -44,6 +44,8 @@ export interface GameState {
   currentPlayer?: number;
   targetPlayer?: number;
   answerTimeout?: NodeJS.Timeout;
+  triggerTimeout?: NodeJS.Timeout;
+  postTriggerTimeout?: NodeJS.Timeout;
 }
 
 export interface CardData {

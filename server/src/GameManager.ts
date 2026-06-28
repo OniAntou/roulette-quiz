@@ -61,12 +61,10 @@ export class GameManager {
         this.io.to(roomId).emit('game:turn', { playerId: currentPlayer.id });
       } catch (err) {
         console.error('Error starting game:', err);
-        // Send error feedback to client
         this.io.to(roomId).emit('error', { 
           code: 'DEAL_CARDS_FAILED', 
           message: 'Failed to deal cards. Please try again.' 
         });
-        // Clean up the game state
         this.games.delete(roomId);
       }
     }, 1000);
@@ -125,6 +123,37 @@ export class GameManager {
     });
   }
 
+  /** Clear any pending answer timeout for a game */
+  private clearAnswerTimeout(game: GameState): void {
+    if (game.answerTimeout) {
+      clearTimeout(game.answerTimeout);
+      game.answerTimeout = undefined;
+    }
+  }
+
+  /** Clear any pending trigger timeout for a game */
+  private clearTriggerTimeout(game: GameState): void {
+    if (game.triggerTimeout) {
+      clearTimeout(game.triggerTimeout);
+      game.triggerTimeout = undefined;
+    }
+  }
+
+  /** Clear any pending post-trigger timeout for a game */
+  private clearPostTriggerTimeout(game: GameState): void {
+    if (game.postTriggerTimeout) {
+      clearTimeout(game.postTriggerTimeout);
+      game.postTriggerTimeout = undefined;
+    }
+  }
+
+  /** Clear all pending timeouts */
+  private clearAllTimeouts(game: GameState): void {
+    this.clearAnswerTimeout(game);
+    this.clearTriggerTimeout(game);
+    this.clearPostTriggerTimeout(game);
+  }
+
   handleCardChoice(roomId: string, socketId: string, cardId: string): void {
     const game = this.games.get(roomId);
     if (!game || game.phase !== 'choosing') return;
@@ -177,9 +206,13 @@ export class GameManager {
     const game = this.games.get(roomId);
     if (!game || game.phase !== 'questioning') return;
 
-    const card = game.currentCard!;
-
+    // Immediately lock phase to prevent any concurrent answer processing
     game.phase = 'result';
+
+    // Clear the answer timeout (it might be called from disconnect handler)
+    this.clearAnswerTimeout(game);
+
+    const card = game.currentCard!;
 
     this.io.to(roomId).emit('game:result', {
       correct: false,
@@ -187,13 +220,10 @@ export class GameManager {
       answer: 'TIMEOUT',
     });
 
-    game.phase = 'trigger';
-
-    setTimeout(() => {
-      const current = this.games.get(roomId);
-      if (current && current.phase === 'trigger') {
-        this.pullTrigger(roomId);
-      }
+    // Schedule trigger after showing result
+    game.triggerTimeout = setTimeout(() => {
+      game.triggerTimeout = undefined;
+      this.pullTrigger(roomId);
     }, 2000);
   }
 
@@ -204,15 +234,14 @@ export class GameManager {
     const targetPlayer = game.players[game.targetPlayer!];
     if (!targetPlayer || targetPlayer.id !== socketId) return;
 
-    if (game.answerTimeout) {
-      clearTimeout(game.answerTimeout);
-      game.answerTimeout = undefined;
-    }
+    // Immediately lock phase to prevent timeout from also processing
+    game.phase = 'result';
+
+    // Clear answer timeout - we got an answer, no need for timeout
+    this.clearAnswerTimeout(game);
 
     const card = game.currentCard!;
     const isCorrect = answer === card.correct;
-
-    game.phase = 'result';
 
     this.io.to(roomId).emit('game:result', {
       correct: isCorrect,
@@ -221,34 +250,41 @@ export class GameManager {
     });
 
     if (isCorrect) {
-      game.currentTurn = game.targetPlayer!;
-      game.phase = 'choosing';
-    } else {
-      game.phase = 'trigger';
-    }
+      // Correct answer: move to choosing phase after delay
+      game.triggerTimeout = setTimeout(() => {
+        game.triggerTimeout = undefined;
+        const current = this.games.get(roomId);
+        if (!current) return;
 
-    setTimeout(() => {
-      const current = this.games.get(roomId);
-      if (!current) return;
-
-      if (current.phase === 'trigger') {
-        this.pullTrigger(roomId);
-      } else if (current.phase === 'choosing') {
-        const currentPlayer = current.players[current.currentTurn];
+        current.currentTurn = current.targetPlayer!;
+        current.phase = 'choosing';
         this.dealCards(roomId).then(() => {
-          this.io.to(roomId).emit('game:turn', { playerId: currentPlayer.id });
+          this.io.to(roomId).emit('game:turn', { playerId: current.players[current.currentTurn].id });
         }).catch(err => {
           this.io.to(roomId).emit('error', { code: 'DEAL_CARDS_FAILED', message: 'Failed to deal cards' });
         });
-      }
-    }, 2000);
+      }, 2000);
+    } else {
+      // Wrong answer: pull trigger after delay
+      game.triggerTimeout = setTimeout(() => {
+        game.triggerTimeout = undefined;
+        this.pullTrigger(roomId);
+      }, 2000);
+    }
   }
 
   private pullTrigger(roomId: string): void {
     const game = this.games.get(roomId);
-    if (!game || game.phase !== 'trigger') return;
+    if (!game) return;
 
-    game.phase = 'resolving';
+    // Only allow trigger from 'result' phase (after answer/timeout sets it)
+    // This is the single entry point - no double-firing possible
+    if (game.phase !== 'result') {
+      console.warn(`[pullTrigger] Blocked: phase is '${game.phase}', expected 'result'. Room: ${roomId}`);
+      return;
+    }
+
+    game.phase = 'trigger';
 
     const gun = game.gun;
     const bullet = gun.chambers[gun.currentPosition];
@@ -259,6 +295,7 @@ export class GameManager {
     targetPlayer.shotsFired++;
 
     if (bullet) {
+      // BULLET HIT - player dies
       targetPlayer.isAlive = false;
 
       this.io.to(roomId).emit('game:trigger', {
@@ -269,23 +306,27 @@ export class GameManager {
         currentPosition: gun.currentPosition,
         bulletsFired: gun.bulletsFired,
         shotsFired: targetPlayer.shotsFired,
-        nextRound: false,
       });
 
       const alivePlayers = game.players.filter(p => p.isAlive);
       if (alivePlayers.length <= 1) {
-        setTimeout(() => {
+        // Game over
+        game.postTriggerTimeout = setTimeout(() => {
+          game.postTriggerTimeout = undefined;
           const current = this.games.get(roomId);
           if (!current) return;
+          current.phase = 'game_over';
           this.io.to(roomId).emit('game:over', {
-            winner: alivePlayers[0].name,
-            winnerId: alivePlayers[0].id,
+            winner: alivePlayers[0]?.name || 'No one',
+            winnerId: alivePlayers[0]?.id || '',
             stats: current.stats,
           });
           this.games.delete(roomId);
         }, 3000);
       } else {
-        setTimeout(() => {
+        // Someone died but game continues - NEW ROUND with new gun
+        game.postTriggerTimeout = setTimeout(() => {
+          game.postTriggerTimeout = undefined;
           const current = this.games.get(roomId);
           if (!current) return;
           current.round++;
@@ -299,23 +340,26 @@ export class GameManager {
         }, 3000);
       }
     } else {
+      // SURVIVED - gun clicked but no bullet
       this.io.to(roomId).emit('game:trigger', {
         alive: true,
+        playerId: targetPlayer.id,
+        playerName: targetPlayer.name,
         bulletCount: 6 - gun.bulletsFired,
         currentPosition: gun.currentPosition,
         bulletsFired: gun.bulletsFired,
         shotsFired: targetPlayer.shotsFired,
-        nextRound: true,
       });
 
-      setTimeout(() => {
+      // Survived: just continue the game, same round, same gun
+      // The target player (who survived) gets to choose next
+      game.postTriggerTimeout = setTimeout(() => {
+        game.postTriggerTimeout = undefined;
         const current = this.games.get(roomId);
         if (!current) return;
-        current.round++;
         current.currentTurn = current.targetPlayer!;
         current.phase = 'choosing';
         this.dealCards(roomId).then(() => {
-          this.io.to(roomId).emit('game:newRound', { round: current.round });
           this.io.to(roomId).emit('game:turn', { playerId: current.players[current.currentTurn].id });
         });
       }, 3000);
@@ -371,46 +415,22 @@ export class GameManager {
           playerId: socketId,
         });
 
-        // Handle disconnect based on current phase
-        switch (game.phase) {
-          case 'questioning':
-            // Clear any pending timeouts
-            if (game.answerTimeout) {
-              clearTimeout(game.answerTimeout);
-              game.answerTimeout = undefined;
-            }
-            // If the target player or questioner disconnects, trigger timeout
-            if (game.targetPlayer === playerIndex || game.currentPlayer === playerIndex) {
-              this.handleTimeout(roomId);
-            }
-            break;
-          
-          case 'dealing':
-          case 'choosing':
-          case 'result':
-          case 'trigger':
-          case 'round_end':
-            // For other phases, just mark player as dead and check game state
-            break;
-          
-          case 'game_over':
-            // Game is already over, just clean up
-            break;
-        }
+        // Clear all pending timeouts to prevent stale callbacks
+        this.clearAllTimeouts(game);
 
         // Check if game should end
         if (alivePlayersBefore.length <= 1) {
-          // Clear any pending timeouts before ending game
-          if (game.answerTimeout) {
-            clearTimeout(game.answerTimeout);
-            game.answerTimeout = undefined;
-          }
+          game.phase = 'game_over';
           this.io.to(roomId).emit('game:over', {
             winner: alivePlayersBefore[0]?.name || 'No one',
             winnerId: alivePlayersBefore[0]?.id || '',
             reason: 'disconnect',
           });
           this.games.delete(roomId);
+        } else if (game.phase === 'questioning' && 
+                   (game.targetPlayer === playerIndex || game.currentPlayer === playerIndex)) {
+          // If the target or questioner disconnects during questioning, handle timeout
+          this.handleTimeout(roomId);
         } else if (game.phase === 'choosing' && game.currentTurn === playerIndex) {
           // If current player disconnects during choosing phase, skip to next player
           game.currentTurn = this.getNextAlivePlayer(game, playerIndex);

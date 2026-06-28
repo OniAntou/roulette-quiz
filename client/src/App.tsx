@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { socketClient } from './network/SocketClient';
 import { MainMenu } from './components/MainMenu';
 import { Lobby } from './components/Lobby';
@@ -27,6 +27,14 @@ export default function App() {
   const [questionResult, setQuestionResult] = useState<QuestionResult | null>(null);
   const [triggerResult, setTriggerResult] = useState<TriggerResult | null>(null);
   const [winnerInfo, setWinnerInfo] = useState<WinnerInfo | null>(null);
+
+  // Refs to access latest state inside socket callbacks (avoids stale closure)
+  const phaseRef = useRef<GamePhase>(phase);
+  phaseRef.current = phase;
+  const localPlayerIdRef = useRef<string>(localPlayerId);
+  localPlayerIdRef.current = localPlayerId;
+  const playerNameRef = useRef<string>(playerName);
+  playerNameRef.current = playerName;
 
   const botCallbacks = {
     setScreen,
@@ -118,6 +126,7 @@ export default function App() {
     }
   };
 
+  // Socket event listeners - using refs for latest state, dependencies only on stable refs
   useEffect(() => {
     socketClient.on('room:created', (data: { roomId: string; playerId: string }) => {
       setRoomId(data.roomId);
@@ -142,9 +151,6 @@ export default function App() {
     });
 
     socketClient.on('game:start', (data: { players: Player[]; round: number }) => {
-      // Phase guard: only process if we're not already in a game
-      if (screen === 'game' && phase !== 'waiting') return;
-      
       setPlayers(data.players);
       setRound(data.round || 1);
       setPhase('waiting');
@@ -164,12 +170,11 @@ export default function App() {
       setCurrentTurnId(data.playerId);
       setPhase('choosing');
       setPlayedCard(null);
+      setActiveQuestion(null);
+      setQuestionResult(null);
     });
 
     socketClient.on('game:cardPlayed', (data: { playerId: string; card: CardData }) => {
-      // Phase guard: only process if we're in choosing phase
-      if (phase !== 'choosing') return;
-      
       setPlayedCard(data.card);
       setPhase('questioning');
 
@@ -181,15 +186,12 @@ export default function App() {
       }));
 
       // Remove played card from local player's hand
-      if (data.playerId === localPlayerId) {
+      if (data.playerId === localPlayerIdRef.current) {
         setHandCards(prev => prev.filter(c => c.id !== data.card.id));
       }
     });
 
     socketClient.on('game:question', (data: { card: any; timer: number; from: string }) => {
-      // Phase guard: only process if we're in questioning phase
-      if (phase !== 'questioning') return;
-      
       setActiveQuestion({
         card: data.card,
         timer: data.timer,
@@ -199,9 +201,6 @@ export default function App() {
     });
 
     socketClient.on('game:result', (data: { correct: boolean; correctAnswer: string }) => {
-      // Phase guard: only process if we're in answering or questioning phase
-      if (phase !== 'answering' && phase !== 'questioning') return;
-      
       if (data.correct) {
         Sounds.correct();
       } else {
@@ -220,15 +219,14 @@ export default function App() {
     });
 
     socketClient.on('game:trigger', (data: TriggerResult) => {
-      // Phase guard: only process if we're in result or trigger phase
-      if (phase !== 'result' && phase !== 'trigger') return;
-      
       setPhase('trigger');
       setTriggerResult({
         alive: data.alive,
         playerId: data.playerId,
         playerName: data.playerName,
         bulletCount: data.bulletCount,
+        currentPosition: data.currentPosition,
+        bulletsFired: data.bulletsFired,
         shotsFired: data.shotsFired,
       });
 
@@ -256,10 +254,9 @@ export default function App() {
     });
 
     socketClient.on('game:over', (data: { winner: string; winnerId?: string }) => {
-      // Phase guard: only process if we're not already in game_over phase
-      if (phase === 'game_over') return;
-      
-      const isLocal = data.winnerId ? data.winnerId === localPlayerId : data.winner === playerName;
+      const curLocalId = localPlayerIdRef.current;
+      const curPlayerName = playerNameRef.current;
+      const isLocal = data.winnerId ? data.winnerId === curLocalId : data.winner === curPlayerName;
       if (isLocal) {
         Sounds.victory();
       }
@@ -304,7 +301,7 @@ export default function App() {
         socketClient.clearListeners(event);
       });
     };
-  }, [playerName, localPlayerId]);
+  }, []);
 
   return (
     <main className="w-screen h-screen tech-grid overflow-hidden relative flex items-center justify-center">
