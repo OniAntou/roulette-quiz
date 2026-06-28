@@ -46,8 +46,20 @@ export function Lobby({ roomId, players, localId, error, disconnect }: LobbyProp
       }
     };
 
+    const handleGlobalPaste = (e: ClipboardEvent) => {
+      if (!isModalOpen) return;
+      const pasted = e.clipboardData?.getData('text')?.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 6);
+      if (pasted && pasted.length > 0) {
+        setModalCode(pasted);
+      }
+    };
+
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('paste', handleGlobalPaste);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('paste', handleGlobalPaste);
+    };
   }, [isModalOpen, modalCode]);
 
   const openModal = () => {

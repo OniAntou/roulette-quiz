@@ -521,6 +521,7 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
     callbacks.setQuestionResult(null);
     callbacks.setTriggerResult(null);
     callbacks.setRound(1);
+    callbacks.setPlayers([]);
   }, [callbacks, clearAllTimers]);
 
   const syncHandCards = useCallback((cards: CardData[]) => {
