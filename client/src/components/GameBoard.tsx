@@ -138,6 +138,21 @@ export function GameBoard({
   const lastPlayedCardRef = useRef<string | null>(null);
   const triggerTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const bgmDeathStopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const triggerBgmResumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearDeathStopTimer = () => {
+    if (bgmDeathStopTimerRef.current) {
+      clearTimeout(bgmDeathStopTimerRef.current);
+      bgmDeathStopTimerRef.current = null;
+    }
+  };
+
+  const clearTriggerResumeTimer = () => {
+    if (triggerBgmResumeTimerRef.current) {
+      clearTimeout(triggerBgmResumeTimerRef.current);
+      triggerBgmResumeTimerRef.current = null;
+    }
+  };
 
   // Sync mute state with Sounds
   useEffect(() => {
@@ -152,35 +167,23 @@ export function GameBoard({
   
   useEffect(() => {
     const isLethalShot = triggerResult !== null && !triggerResult.alive;
-    const stopDelay = 1800;
-
-    const clearDeathStopTimer = () => {
-      if (bgmDeathStopTimerRef.current) {
-        clearTimeout(bgmDeathStopTimerRef.current);
-        bgmDeathStopTimerRef.current = null;
-      }
-    };
 
     if (isDeadSpectating) {
       clearDeathStopTimer();
+      clearTriggerResumeTimer();
       Sounds.stopBGM();
       return;
     }
 
-    if (isLethalShot) {
+    if (!triggerResult) {
       clearDeathStopTimer();
-      Sounds.startBGM();
-      bgmDeathStopTimerRef.current = setTimeout(() => {
-        Sounds.stopBGM();
-        bgmDeathStopTimerRef.current = null;
-      }, stopDelay);
-    } else {
-      clearDeathStopTimer();
+      clearTriggerResumeTimer();
       Sounds.startBGM();
     }
 
     return () => {
       clearDeathStopTimer();
+      clearTriggerResumeTimer();
     };
   }, [isDeadSpectating, triggerResult]);
 
@@ -189,6 +192,10 @@ export function GameBoard({
       if (bgmDeathStopTimerRef.current) {
         clearTimeout(bgmDeathStopTimerRef.current);
         bgmDeathStopTimerRef.current = null;
+      }
+      if (triggerBgmResumeTimerRef.current) {
+        clearTimeout(triggerBgmResumeTimerRef.current);
+        triggerBgmResumeTimerRef.current = null;
       }
       Sounds.stopBGM();
     };
@@ -368,6 +375,18 @@ export function GameBoard({
           if (triggerResult.alive) {
             Sounds.gunSurvive();
           } else {
+            clearDeathStopTimer();
+            if (triggerBgmResumeTimerRef.current) {
+              clearTimeout(triggerBgmResumeTimerRef.current);
+              triggerBgmResumeTimerRef.current = null;
+            }
+            Sounds.stopBGM();
+            triggerBgmResumeTimerRef.current = setTimeout(() => {
+              triggerBgmResumeTimerRef.current = null;
+              if (!isDeadSpectating) {
+                Sounds.startBGM();
+              }
+            }, 2000);
             Sounds.gunFire();
             setShowRedFlash(true);
             setTimeout(() => setShowRedFlash(false), 600);
