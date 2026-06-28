@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import { Server } from 'socket.io';
+import crypto from 'crypto';
 import { QuestionManager } from './QuestionManager';
 import { RoomManager } from './RoomManager';
 import { GameState, Gun, Question } from './types';
@@ -51,18 +52,22 @@ export class GameManager {
     });
 
     setTimeout(async () => {
-      await this.dealCards(roomId);
-      const game = this.games.get(roomId);
-      if (!game) return;
-      game.phase = 'choosing';
-      const currentPlayer = game.players[game.currentTurn];
-      this.io.to(roomId).emit('game:turn', { playerId: currentPlayer.id });
+      try {
+        await this.dealCards(roomId);
+        const game = this.games.get(roomId);
+        if (!game) return;
+        game.phase = 'choosing';
+        const currentPlayer = game.players[game.currentTurn];
+        this.io.to(roomId).emit('game:turn', { playerId: currentPlayer.id });
+      } catch (err) {
+        console.error('Error starting game:', err);
+      }
     }, 1000);
   }
 
   private createGun(): Gun {
     const chambers = Array(6).fill(false);
-    chambers[Math.floor(Math.random() * 6)] = true;
+    chambers[crypto.randomInt(0, 6)] = true;
 
     return {
       chambers,
@@ -82,8 +87,13 @@ export class GameManager {
 
     for (const player of game.players) {
       if (player.isAlive && player.hand.length === 0) {
-        player.hand = await this.questionManager.getCards(4, game.usedCards);
-        game.usedCards.push(...player.hand.map(c => c.id));
+        try {
+          player.hand = await this.questionManager.getCards(4, game.usedCards);
+          game.usedCards.push(...player.hand.map(c => c.id));
+        } catch (error) {
+          console.error("Failed to fetch cards:", error);
+          throw new Error("DEAL_CARDS_FAILED");
+        }
       }
     }
 
@@ -252,7 +262,7 @@ export class GameManager {
       });
 
       const alivePlayers = game.players.filter(p => p.isAlive);
-      if (alivePlayers.length === 1) {
+      if (alivePlayers.length <= 1) {
         setTimeout(() => {
           const current = this.games.get(roomId);
           if (!current) return;
@@ -340,9 +350,12 @@ export class GameManager {
     for (const [roomId, game] of this.games.entries()) {
       const playerIndex = game.players.findIndex(p => p.id === socketId);
       if (playerIndex !== -1) {
-        if (game.answerTimeout) {
-          clearTimeout(game.answerTimeout);
-          game.answerTimeout = undefined;
+        if (game.phase === 'questioning' && game.targetPlayer === playerIndex) {
+          if (game.answerTimeout) {
+            clearTimeout(game.answerTimeout);
+            game.answerTimeout = undefined;
+          }
+          this.handleTimeout(roomId);
         }
 
         game.players[playerIndex].isAlive = false;
@@ -359,6 +372,9 @@ export class GameManager {
             reason: 'disconnect',
           });
           this.games.delete(roomId);
+        } else if (game.phase === 'choosing' && game.currentTurn === playerIndex) {
+          game.currentTurn = this.getNextAlivePlayer(game, playerIndex);
+          this.io.to(roomId).emit('game:turn', { playerId: game.players[game.currentTurn].id });
         }
         break;
       }

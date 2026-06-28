@@ -77,7 +77,7 @@ The game supports two modes of play:
 ### 2. Online / LAN Multiplayer Mode
 1. Start both the client and server.
 2. In the game menu, select **ONLINE** or **LAN**.
-   - *Note: Both modes currently connect directly to the local server (`http://localhost:3000`). LAN UDP broadcast auto-discovery is still a work-in-progress.*
+   - *Note: Both modes connect to the local server (`http://localhost:3000`). LAN UDP broadcast auto-discovery is active and scanning for games on port 41234.*
 3. Click **Create Room** to get a room code.
 4. Share the room code with your opponent.
 5. The opponent selects **JOIN ROOM** and enters the code.
@@ -177,12 +177,11 @@ roulette-quiz/
 ## Known Issues
 
 - 🔊 **Audio:** Synthesized sound effects (Web Audio API) are integrated natively in the client code, resolving the missing physical audio files issue.
-- 🛜 **Networking:** No real LAN discovery (UDP broadcast) is implemented yet.
-- 💬 **Input:** Player name input uses basic sanitization and could be further hardened against XSS.
+- 💬 **Input:** Player name input is sanitized against XSS to prevent injection attacks.
 
 ## Future Roadmap
 
-- [ ] Implement true LAN discovery using UDP broadcasting on port `41234`.
+- [x] Implement true LAN discovery using UDP broadcasting on port `41234`.
 - [ ] Add real sound effects and background music.
 - [ ] Ranking and matchmaking system.
 - [ ] Custom avatars and player profiles.

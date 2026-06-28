@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, WifiHigh, Globe, Robot } from '@phosphor-icons/react';
+import { ArrowRight, WifiHigh, Globe, Robot, SpeakerSimpleX, SpeakerHigh } from '@phosphor-icons/react';
 import { ConnectionStatus } from '../types';
 import { Sounds } from '../audio/Sounds';
 import { ThemeToggle } from './ThemeToggle';
@@ -56,13 +56,60 @@ let globalInteracted = false;
 
 export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
   const [hasInteracted, setHasInteracted] = useState<boolean>(globalInteracted);
+  const [loadingProgress, setLoadingProgress] = useState<number>(0);
+  const [loadingText, setLoadingText] = useState<string>('SYS.BOOT: DECRYPTING ENGINE...');
   const [name, setName] = useState<string>('');
+  const [isFocused, setIsFocused] = useState<boolean>(false);
+
+  // Fake Loading Progress Effect
+  useEffect(() => {
+    if (hasInteracted) return;
+    const interval = setInterval(() => {
+      setLoadingProgress(prev => {
+        if (prev >= 100) {
+          clearInterval(interval);
+          return 100;
+        }
+        const next = prev + Math.floor(Math.random() * 12) + 6;
+        return Math.min(next, 100);
+      });
+    }, 120);
+    return () => clearInterval(interval);
+  }, [hasInteracted]);
+
+  // Loading Status Text Effect
+  useEffect(() => {
+    if (loadingProgress < 25) {
+      setLoadingText('LOADING_CORE_RESOURCES...');
+    } else if (loadingProgress < 55) {
+      setLoadingText('SYNC_AUDIO_CONTEXT_ENGINE...');
+    } else if (loadingProgress < 85) {
+      setLoadingText('DECRYPTING_TACTICAL_INTERFACE...');
+    } else if (loadingProgress < 100) {
+      setLoadingText('ESTABLISHING_SECURE_TUNNEL...');
+    } else {
+      setLoadingText('DECRYPTION COMPLETE // SYS READY');
+    }
+  }, [loadingProgress]);
   const [showBotModal, setShowBotModal] = useState<boolean>(false);
   const [showLanModal, setShowLanModal] = useState<boolean>(false);
   const [lanServers, setLanServers] = useState<any[]>([]);
   const [selectedBotCount, setSelectedBotCount] = useState<number>(1);
   const [manualIp, setManualIp] = useState<string>('');
   const [isSearchingLan, setIsSearchingLan] = useState<boolean>(false);
+  const [isMuted, setIsMuted] = useState<boolean>(() => {
+    return localStorage.getItem('roulette-quiz-muted') === 'true';
+  });
+
+  // Sync mute state with Sounds
+  useEffect(() => {
+    Sounds.setMuted(isMuted);
+  }, [isMuted]);
+
+  // Initialize mute state on mount
+  useEffect(() => {
+    Sounds.initMuted();
+  }, []);
 
   // Start Menu BGM
   useEffect(() => {
@@ -225,6 +272,23 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
 
   return (
     <>
+      <div className="fixed top-5 left-5 z-50">
+        <motion.button
+          whileHover={{ scale: 1.08 }}
+          whileTap={{ scale: 0.92 }}
+          onClick={() => setIsMuted(!isMuted)}
+          className="w-10 h-10 flex items-center justify-center rounded-lg border transition-all duration-300 cursor-pointer"
+          style={{
+            backgroundColor: 'var(--bg-input)',
+            borderColor: 'var(--border-medium)',
+            color: 'var(--text-muted)',
+          }}
+          title={isMuted ? 'Bật âm thanh' : 'Tắt âm thanh'}
+        >
+          {isMuted ? <SpeakerSimpleX size={18} weight="bold" /> : <SpeakerHigh size={18} weight="bold" />}
+        </motion.button>
+      </div>
+
       <div className="fixed top-5 right-5 z-50">
         <ThemeToggle />
       </div>
@@ -233,19 +297,61 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
         {!hasInteracted && (
           <motion.div 
             initial={{ opacity: 1 }}
-            exit={{ opacity: 0, transition: { duration: 0.5 } }}
+            exit={{ opacity: 0, transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] } }}
             onClick={() => {
               globalInteracted = true;
               setHasInteracted(true);
               Sounds.startMenuBGM();
             }}
-            className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-bg-body cursor-pointer backdrop-blur-md"
+            className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-[#050505] cursor-pointer select-none font-mono"
           >
-            <div className="text-cyan-theme font-mono font-bold tracking-[5px] uppercase animate-pulse mb-6 text-center text-sm">
-              SYSTEM BOOTING...<br/><br/>
-              [ CLICK ANYWHERE TO INITIALIZE AUDIO PROTOCOL ]
+            {/* Minimalist container: spacious, clean */}
+            <div className="flex flex-col items-center space-y-20 max-w-3xl w-full px-8">
+              
+              {/* Header text with elegant tracking and font weight */}
+              <div className="flex flex-col items-center space-y-6">
+                <span className="text-[13px] text-zinc-500 tracking-[0.6em] uppercase">SYSTEM INITIALIZATION</span>
+                <h2 className="text-7xl sm:text-8xl md:text-9xl font-thin text-zinc-200 tracking-[0.25em] uppercase translate-x-[0.125em]">
+                  ROULETTE
+                </h2>
+              </div>
+
+              {/* Extremely clean, thin progress line */}
+              <div className="w-full flex flex-col space-y-8 items-center">
+                <div className="w-full h-[2px] bg-zinc-900 relative">
+                  <motion.div 
+                    className="absolute top-0 left-0 h-full bg-zinc-300"
+                    style={{ width: `${loadingProgress}%` }}
+                    transition={{ ease: "easeOut" }}
+                  />
+                </div>
+                
+                {/* Numeric progress indicator */}
+                <div className="flex justify-between w-full text-[14px] text-zinc-500 tracking-widest uppercase">
+                  <span>{loadingText}</span>
+                  <span className="font-bold text-zinc-300 tabular-nums">
+                    {String(loadingProgress).padStart(3, '0')}%
+                  </span>
+                </div>
+              </div>
+
+              {/* Bottom interactive action */}
+              <div className="h-8 flex items-center justify-center">
+                {loadingProgress === 100 && (
+                  <motion.span 
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: [0.4, 1, 0.4], y: 0 }}
+                    transition={{ 
+                      opacity: { repeat: Infinity, duration: 2, ease: "easeInOut" },
+                      y: { duration: 0.5 } 
+                    }}
+                    className="text-[16px] text-zinc-300 tracking-[0.5em] uppercase font-medium translate-x-[0.25em]"
+                  >
+                    [ CLICK TO START ]
+                  </motion.span>
+                )}
+              </div>
             </div>
-            <span className="w-2 h-2 rounded-full bg-cyan-theme animate-ping"></span>
           </motion.div>
         )}
       </AnimatePresence>

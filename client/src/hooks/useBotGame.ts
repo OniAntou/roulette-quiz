@@ -83,11 +83,13 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
   const handCardsRef = useRef<CardData[]>([]);
   const playersRef = useRef<Player[]>([]);
   const callbacksRef = useRef(callbacks);
+  const botModeRef = useRef(botMode);
 
   // Sync refs
   useEffect(() => { botGunRef.current = botGun; }, [botGun]);
   useEffect(() => { botsRef.current = bots; }, [bots]);
   useEffect(() => { callbacksRef.current = callbacks; }, [callbacks]);
+  useEffect(() => { botModeRef.current = botMode; }, [botMode]);
 
   const clearAllTimers = useCallback(() => {
     if (botTimerRef.current) {
@@ -125,6 +127,7 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
   }, [getAliveOrder]);
 
   const checkBotGameOver = useCallback(() => {
+    if (!botModeRef.current) return false;
     const cb = callbacksRef.current;
     const aliveBots = botsRef.current.filter(b => b.isAlive);
     const playerAlive = playersRef.current.find(p => p.id === 'local-player')?.isAlive;
@@ -135,10 +138,14 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
       
       if (aliveBots.length === 0) {
         Sounds.victory();
-        setTimeout(() => cb.setScreen('gameover'), 3000);
+        setTimeout(() => {
+          if (botModeRef.current) cb.setScreen('gameover');
+        }, 3000);
       } else {
         // Player died, go to gameover screen immediately after black screen ends
-        setTimeout(() => cb.setScreen('gameover'), 1000);
+        setTimeout(() => {
+          if (botModeRef.current) cb.setScreen('gameover');
+        }, 1000);
       }
       return true;
     }
@@ -153,6 +160,7 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
   useEffect(() => {
     const scheduleNextTurnFn = (nextTurnId: string, delay = 1000) => {
       setTimeout(() => {
+        if (!botModeRef.current) return;
         setIsSpectating(false);
         if (checkBotGameOver()) return;
 
@@ -201,6 +209,7 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
 
         if (actualNext !== 'local-player') {
           setTimeout(() => {
+            if (!botModeRef.current) return;
             botPlayCardRef.current(actualNext);
           }, 1500);
         }
@@ -208,6 +217,7 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
     };
 
     const processAnswerFn = (targetId: string, answer: string, correctAnswer: string) => {
+      if (!botModeRef.current) return;
       clearAllTimers();
 
       const cb = callbacksRef.current;
@@ -222,6 +232,7 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
       cb.setPhase('result');
 
       setTimeout(() => {
+        if (!botModeRef.current) return;
         cb.setActiveQuestion(null);
         cb.setQuestionResult(null);
 
@@ -234,6 +245,7 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
     };
 
     const executeTriggerFn = (targetId: string) => {
+      if (!botModeRef.current) return;
       clearAllTimers();
 
       const cb = callbacksRef.current;
@@ -251,6 +263,7 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
       const bulletCount = 6 - bulletsFiredCountRef.current;
 
       setTimeout(() => {
+        if (!botModeRef.current) return;
         cb.setPlayers(prev => prev.map(p => {
           if (p.id === targetId) {
             return { ...p, shotsFired: (p.shotsFired || 0) + 1 };
@@ -272,6 +285,7 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
         cb.setPhase('trigger');
 
         setTimeout(() => {
+          if (!botModeRef.current) return;
           cb.setTriggerResult(null);
 
           if (!alive) {
@@ -312,6 +326,7 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
     };
 
     const botPlayCardFn = (botId: string) => {
+      if (!botModeRef.current) return;
       clearAllTimers();
 
       const bot = botsRef.current.find(b => b.id === botId);
@@ -347,6 +362,7 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
         : playerName;
 
       setTimeout(() => {
+        if (!botModeRef.current) return;
         cb.setActiveQuestion({
           card: { ...card, difficulty: card.difficulty as 'easy' | 'medium' | 'hard', answers: card.answers, correct: card.correct },
           timer: 10,
@@ -356,6 +372,7 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
 
         if (!isTargetBot) {
           const answerTimer = setTimeout(() => {
+            if (!botModeRef.current) return;
             if (gamePhaseRef.current === 'answering') {
               processAnswerRef.current('local-player', '', card.correct || 'A');
             }
@@ -365,6 +382,7 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
           setIsSpectating(true);
           const botAnswerDelay = 2500 + Math.random() * 1500;
           const answerTimer = setTimeout(() => {
+            if (!botModeRef.current) return;
             const isCorrect = Math.random() < 0.65;
             const answered = isCorrect ? (card.correct || 'A') : 'X';
             processAnswerRef.current(targetId, answered, card.correct || 'A');
@@ -372,6 +390,7 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
           botTimerRef.current = answerTimer;
 
           const safetyTimeout = setTimeout(() => {
+            if (!botModeRef.current) return;
             if (gamePhaseRef.current === 'answering') {
               processAnswerRef.current(targetId, 'X', card.correct || 'A');
             }

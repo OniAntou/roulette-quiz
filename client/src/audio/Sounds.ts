@@ -1,4 +1,6 @@
 let audioCtx: AudioContext | null = null;
+let masterGain: GainNode | null = null;
+let isAudioMuted = false;
 let gunFireBuffer: AudioBuffer | null = null;
 let gunClickBuffer: AudioBuffer | null = null;
 let cardPlayBuffer: AudioBuffer | null = null;
@@ -14,7 +16,9 @@ let menuCurrentNote = 0;
 function getCtx(): AudioContext {
   if (!audioCtx) {
     audioCtx = new AudioContext();
-    
+    masterGain = audioCtx.createGain();
+    masterGain.connect(audioCtx.destination);
+
     // Preload custom gunshot MP3
     fetch('/sounds/gunshot.mp3')
       .then(response => response.arrayBuffer())
@@ -79,7 +83,7 @@ function playTone(
   gain.gain.exponentialRampToValueAtTime(Math.max(volEnd, 0.0001), t + duration);
 
   osc.connect(gain);
-  gain.connect(ctx.destination);
+  gain.connect(masterGain!);
   
   osc.start(t);
   osc.stop(t + duration);
@@ -116,7 +120,7 @@ function playFilteredNoise(
 
   source.connect(filter);
   filter.connect(gain);
-  gain.connect(ctx.destination);
+  gain.connect(masterGain!);
 
   source.start(t);
 }
@@ -157,12 +161,12 @@ export const Sounds = {
       compNode.release.value = 0.1;
 
       // Master volume for menu
-      const masterGain = ctx.createGain();
-      masterGain.gain.value = 0.3; // keep it a bit lower to not blast ears completely
+      const menuGain = ctx.createGain();
+      menuGain.gain.value = 0.3; // keep it a bit lower to not blast ears completely
       
       distNode.connect(compNode);
-      compNode.connect(masterGain);
-      masterGain.connect(ctx.destination);
+      compNode.connect(menuGain);
+      menuGain.connect(masterGain!);
 
       function nextNote() {
         const secondsPerStep = secondsPerBeat / 4; // 16th notes
@@ -343,7 +347,7 @@ export const Sounds = {
       
       bgmOsc.connect(filter);
       filter.connect(bgmGain);
-      bgmGain.connect(ctx.destination);
+      bgmGain.connect(masterGain!);
       
       bgmOsc.start();
       bgmLfo.start();
@@ -376,7 +380,7 @@ export const Sounds = {
       const gainNode = ctx.createGain();
       gainNode.gain.value = 1.0;
       source.connect(gainNode);
-      gainNode.connect(ctx.destination);
+      gainNode.connect(masterGain!);
       source.start();
       return;
     }
@@ -425,7 +429,7 @@ export const Sounds = {
     gain1.gain.exponentialRampToValueAtTime(0.01, t + 0.3);
     
     osc1.connect(gain1);
-    gain1.connect(ctx.destination);
+    gain1.connect(masterGain!);
     
     osc1.start(t);
     osc1.stop(t + 0.3);
@@ -443,7 +447,7 @@ export const Sounds = {
     gain2.gain.exponentialRampToValueAtTime(0.01, t2 + 0.4);
     
     osc2.connect(gain2);
-    gain2.connect(ctx.destination);
+    gain2.connect(masterGain!);
     
     osc2.start(t2);
     osc2.stop(t2 + 0.4);
@@ -458,7 +462,7 @@ export const Sounds = {
       const gainNode = ctx.createGain();
       gainNode.gain.value = 1.0;
       source.connect(gainNode);
-      gainNode.connect(ctx.destination);
+      gainNode.connect(masterGain!);
       source.start();
       return;
     }
@@ -480,7 +484,7 @@ export const Sounds = {
       gainNode.gain.value = 1.0; // Full volume
       
       source.connect(gainNode);
-      gainNode.connect(ctx.destination);
+      gainNode.connect(masterGain!);
       source.start();
       return;
     }
@@ -510,7 +514,7 @@ export const Sounds = {
     compressor.release.setValueAtTime(0.2, t);
 
     distortion.connect(compressor);
-    compressor.connect(ctx.destination);
+    compressor.connect(masterGain!);
 
     // 3. SUB-BASS KICK (The physical punch)
     const subOsc = ctx.createOscillator();
@@ -576,7 +580,7 @@ export const Sounds = {
       const gainNode = ctx.createGain();
       gainNode.gain.value = 1.0;
       source.connect(gainNode);
-      gainNode.connect(ctx.destination);
+      gainNode.connect(masterGain!);
       source.start();
       return;
     }
@@ -596,7 +600,7 @@ export const Sounds = {
     playFilteredNoise(0.03, 0.5, 8000, 1000);
     
     osc.connect(gain);
-    gain.connect(ctx.destination);
+    gain.connect(masterGain!);
     
     osc.start(t);
     osc.stop(t + 0.1);
@@ -638,6 +642,29 @@ export const Sounds = {
       playTone('square', 1200, 1200, 0.06, 0.12);
     } else {
       playTone('sine', 600, 600, 0.06, 0.12);
+    }
+  },
+
+  setMuted(muted: boolean) {
+    isAudioMuted = muted;
+    if (masterGain) {
+      masterGain.gain.value = muted ? 0 : 1;
+    }
+    localStorage.setItem('roulette-quiz-muted', String(muted));
+  },
+
+  isMuted(): boolean {
+    return isAudioMuted;
+  },
+
+  initMuted() {
+    const saved = localStorage.getItem('roulette-quiz-muted');
+    if (saved === 'true') {
+      getCtx(); // Ensure masterGain is created
+      isAudioMuted = true;
+      if (masterGain) {
+        masterGain.gain.value = 0;
+      }
     }
   },
 };

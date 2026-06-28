@@ -7,8 +7,17 @@ export class RoomManager {
 
   private validatePlayerName(name: string): string {
     let sanitized = (name || '').trim();
-    sanitized = sanitized.replace(/<[^>]*>/g, '');
-    sanitized = sanitized.replace(/[^a-zA-Z0-9 ]/g, '');
+    // Escape HTML characters
+    const escapeMap: Record<string, string> = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    };
+    sanitized = sanitized.replace(/[&<>"']/g, match => escapeMap[match]);
+    // Allow alphanumeric, space, and basic Vietnamese chars, but remove other weird symbols
+    sanitized = sanitized.replace(/[^\w\sÀ-ỹ]/g, '');
     sanitized = sanitized.substring(0, 12);
     if (!sanitized) {
       return 'GUEST' + Math.floor(1000 + Math.random() * 9000);
@@ -115,6 +124,10 @@ export class RoomManager {
 
     if (!room) {
       return { success: false, error: 'Room not found' };
+    }
+
+    if (room.state !== 'waiting') {
+      return { success: false, error: 'Game already started' };
     }
 
     const player = room.players.find(p => p.id === socketId);

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { socketClient } from '../network/SocketClient';
 import { Revolver } from './Revolver';
 import { ThemeToggle } from './ThemeToggle';
-import { Check, X, ShieldWarning, ArrowLeft } from '@phosphor-icons/react';
+import { Check, X, ShieldWarning, ArrowLeft, SpeakerSimpleX, SpeakerHigh } from '@phosphor-icons/react';
 import { GamePhase, Player, CardData, ActiveQuestion, QuestionResult, TriggerResult } from '../types';
 import { Sounds } from '../audio/Sounds';
 
@@ -115,6 +115,9 @@ export function GameBoard({
   const [isSpectatorModeVisual, setIsSpectatorModeVisual] = useState<boolean>(false);
   const [deathMessage, setDeathMessage] = useState<string>('');
   const [isPresentationMode, setIsPresentationMode] = useState<boolean>(false);
+  const [isMuted, setIsMuted] = useState<boolean>(() => {
+    return localStorage.getItem('roulette-quiz-muted') === 'true';
+  });
   const opponentPlayers = players.filter(p => p.id !== localId);
   
   interface PileCard {
@@ -131,6 +134,11 @@ export function GameBoard({
   const lastProcessedTriggerRef = useRef<string | null>(null);
   const lastMouseMoveRef = useRef<number>(0);
   const lastPlayedCardRef = useRef<string | null>(null);
+
+  // Sync mute state with Sounds
+  useEffect(() => {
+    Sounds.setMuted(isMuted);
+  }, [isMuted]);
 
   const prevPhase = useRef<GamePhase>(phase);
   // BGM Effect
@@ -630,6 +638,17 @@ export function GameBoard({
         <div className="border border-cyan-theme/30 p-1.5 shadow-[0_0_15px_rgba(34,211,238,0.1)] bg-bg-surface/50 backdrop-blur-sm rounded-sm">
           <ThemeToggle />
         </div>
+        <button
+          onClick={() => setIsMuted(!isMuted)}
+          className="w-10 h-10 flex items-center justify-center border border-cyan-theme/30 shadow-[0_0_15px_rgba(34,211,238,0.1)] bg-bg-surface/50 backdrop-blur-sm rounded-sm transition-colors hover:bg-cyan-theme/10"
+          title={isMuted ? 'Bật âm thanh' : 'Tắt âm thanh'}
+        >
+          {isMuted ? (
+            <SpeakerSimpleX size={18} weight="bold" className="text-cyan-theme/70" />
+          ) : (
+            <SpeakerHigh size={18} weight="bold" className="text-cyan-theme/70" />
+          )}
+        </button>
         <button
           onClick={() => setIsPresentationMode(!isPresentationMode)}
           className={`px-3 py-2 border font-mono text-xs font-bold tracking-widest uppercase transition-colors backdrop-blur-sm ${

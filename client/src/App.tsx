@@ -243,7 +243,7 @@ export default function App() {
       setPhase('game_over');
 
       setTimeout(() => {
-        setScreen('gameover');
+        setScreen(prev => prev === 'game' ? 'gameover' : prev);
       }, 3000);
     });
 
