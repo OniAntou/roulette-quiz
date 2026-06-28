@@ -334,7 +334,7 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
                     fill="none" stroke="#ffeb3b"
                     initial={{ scale: 0.5, opacity: 1, strokeWidth: 6 }}
                     animate={{ scale: 5, opacity: 0, strokeWidth: 0 }}
-                    transition={{ duration: 0.2, ease: "easeOut" }}
+                    transition={{ duration: 0.25, ease: "easeOut" }}
                     style={{ transformOrigin: '285px 95px' }}
                   />
 
@@ -346,7 +346,7 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
                       scale: [0.8, 1.8, 0],
                       x: [0, 15, 30]
                     }}
-                    transition={{ duration: 0.12, ease: "easeOut" }}
+                    transition={{ duration: 0.25, ease: "easeOut" }}
                     style={{ transformOrigin: '285px 95px' }}
                   >
                     {/* Outer red/orange aura */}
