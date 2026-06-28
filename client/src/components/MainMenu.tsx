@@ -60,6 +60,7 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
   const [loadingText, setLoadingText] = useState<string>('SYS.BOOT: DECRYPTING ENGINE...');
   const [name, setName] = useState<string>('');
   const [isFocused, setIsFocused] = useState<boolean>(false);
+  const cardRef = useRef<HTMLDivElement>(null);
 
   // Fake Loading Progress Effect
   useEffect(() => {
@@ -110,7 +111,30 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
   useEffect(() => {
     Sounds.initMuted();
   }, []);
+  // Reset name when clicking outside the card menu container (empty space in background)
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      // If a modal is open, do not clear the name
+      if (showLanModal || showBotModal) return;
 
+      const target = event.target as HTMLElement;
+      
+      // If the clicked target is inside the card box or inside the mute/theme toggle buttons, do not clear
+      if (
+        cardRef.current?.contains(target) ||
+        target.closest('.fixed')
+      ) {
+        return;
+      }
+
+      setName('');
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showLanModal, showBotModal]);
 
   // Start Menu BGM
   useEffect(() => {
@@ -479,6 +503,7 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
 
         {/* Right column */}
         <motion.div
+          ref={cardRef}
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: 'easeOut', delay: 0.3 }}
