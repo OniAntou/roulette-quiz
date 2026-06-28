@@ -77,7 +77,10 @@ export default function App() {
     socketClient.playerName = name;
 
     const baseHost = window.location.hostname || 'localhost';
-    const serverUrl = (mode === 'lan' && ip) ? `http://${ip}` : `http://${baseHost}:3000`;
+    const defaultOnlineServer = import.meta.env.VITE_SERVER_URL || `http://${baseHost}:3000`;
+    const serverUrl = (mode === 'lan' && ip)
+      ? ((ip.startsWith('http://') || ip.startsWith('https://')) ? ip : `http://${ip}`)
+      : defaultOnlineServer;
 
     socketClient.connect(serverUrl)
       .then(() => {
