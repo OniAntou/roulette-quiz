@@ -224,7 +224,7 @@ export class GameManager {
     game.triggerTimeout = setTimeout(() => {
       game.triggerTimeout = undefined;
       this.pullTrigger(roomId);
-    }, 2000);
+    }, 3500);
   }
 
   handleAnswer(roomId: string, socketId: string, answer: string): void {
@@ -263,13 +263,13 @@ export class GameManager {
         }).catch(err => {
           this.io.to(roomId).emit('error', { code: 'DEAL_CARDS_FAILED', message: 'Failed to deal cards' });
         });
-      }, 2000);
+      }, 3500);
     } else {
       // Wrong answer: pull trigger after delay
       game.triggerTimeout = setTimeout(() => {
         game.triggerTimeout = undefined;
         this.pullTrigger(roomId);
-      }, 2000);
+      }, 3500);
     }
   }
 
