@@ -32,5 +32,8 @@
     "directories": {
       "output": "dist"
     }
+  },
+  "engines": {
+    "node": ">=20.0.0"
   }
 }
