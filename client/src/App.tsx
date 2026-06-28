@@ -156,17 +156,11 @@ export default function App() {
     });
 
     socketClient.on('game:deal', (data: { cards: CardData[] }) => {
-      // Phase guard: only process if we're in waiting or dealing phase
-      if (phase !== 'waiting' && phase !== 'choosing') return;
-      
       setHandCards(data.cards);
       setPhase('choosing');
     });
 
     socketClient.on('game:turn', (data: { playerId: string }) => {
-      // Phase guard: only process if we're in waiting or choosing phase
-      if (phase !== 'waiting' && phase !== 'choosing') return;
-      
       setCurrentTurnId(data.playerId);
       setPhase('choosing');
       setPlayedCard(null);
