@@ -237,7 +237,9 @@ export class GameManager {
 
   private pullTrigger(roomId: string): void {
     const game = this.games.get(roomId);
-    if (!game) return;
+    if (!game || game.phase !== 'trigger') return;
+
+    game.phase = 'resolving';
 
     const gun = game.gun;
     const bullet = gun.chambers[gun.currentPosition];
