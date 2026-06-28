@@ -5,6 +5,7 @@ import { RoomManager } from './RoomManager';
 import { GameManager } from './GameManager';
 import cors from 'cors';
 import dgram from 'dgram';
+import path from 'path';
 
 const app = express();
 const server = http.createServer(app);
@@ -49,6 +50,8 @@ function checkRateLimit(socketId: string): boolean {
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
 app.use(cors());
+const clientDistPath = path.join(__dirname, '..', '..', 'client', 'dist');
+app.use(express.static(clientDistPath));
 app.use(express.static('public'));
 
 app.get('/health', (_req, res) => {
@@ -63,6 +66,11 @@ app.get('/lan-servers', (_req, res) => {
     .filter(s => now - s.lastSeen < 10000)
     .map(s => ({ ip: s.ip, port: s.port, name: s.name }));
   res.json({ servers: activeServers });
+});
+
+// Fallback all other routes to React client index.html
+app.get('*', (_req, res) => {
+  res.sendFile(path.join(clientDistPath, 'index.html'));
 });
 
 setInterval(() => {
@@ -216,3 +224,22 @@ server.listen(PORT, () => {
     }
   }, 2000);
 });
+
+// Production resilience error boundaries
+process.on('uncaughtException', (err) => {
+  console.error('UNCAUGHT EXCEPTION:', err);
+});
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('UNHANDLED REJECTION AT:', promise, 'REASON:', reason);
+});
+
+// Graceful Shutdown
+const gracefulShutdown = () => {
+  console.log('Shutting down server gracefully...');
+  server.close(() => {
+    console.log('HTTP server closed.');
+    process.exit(0);
+  });
+};
+process.on('SIGTERM', gracefulShutdown);
+process.on('SIGINT', gracefulShutdown);
