@@ -271,11 +271,16 @@ export default function App() {
       }, 3000);
     });
 
-    socketClient.on('game:playerLeft', () => {
-      setErrorMsg('OPPONENT DISCONNECTED FROM SYSTEM.');
-      setTimeout(() => {
-        handleDisconnect();
-      }, 3000);
+    socketClient.on('game:playerLeft', (data: { playerId: string }) => {
+      // Mark disconnected player as dead in UI
+      // Server handles game state - will send game:over if game should end,
+      // or continue the game with remaining players
+      setPlayers(prev => prev.map(p => {
+        if (p.id === data.playerId) {
+          return { ...p, isAlive: false };
+        }
+        return p;
+      }));
     });
 
     socketClient.on('game:playerLeftAfterDeath', (data: { playerId: string }) => {

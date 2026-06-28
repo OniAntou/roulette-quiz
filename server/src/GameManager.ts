@@ -401,13 +401,26 @@ export class GameManager {
     console.log(`Player ${player.name} left after death in room ${roomId}`);
   }
 
+  /** Skip current action and advance to the next alive player's turn */
+  private advanceToNextTurn(roomId: string, game: GameState): void {
+    const fromIndex = game.currentPlayer ?? game.currentTurn;
+    game.currentTurn = this.getNextAlivePlayer(game, fromIndex);
+    game.phase = 'choosing';
+
+    this.dealCards(roomId).then(() => {
+      this.io.to(roomId).emit('game:turn', { playerId: game.players[game.currentTurn].id });
+    }).catch(err => {
+      console.error('Error dealing cards after disconnect:', err);
+    });
+  }
+
   handleDisconnect(socketId: string): void {
     for (const [roomId, game] of this.games.entries()) {
       const playerIndex = game.players.findIndex(p => p.id === socketId);
       if (playerIndex !== -1) {
         // Count alive players excluding the disconnecting player
         const alivePlayersBefore = game.players.filter(p => p.isAlive && p.id !== socketId);
-        
+
         // Mark player as dead
         game.players[playerIndex].isAlive = false;
 
@@ -415,11 +428,10 @@ export class GameManager {
           playerId: socketId,
         });
 
-        // Clear all pending timeouts to prevent stale callbacks
-        this.clearAllTimeouts(game);
-
         // Check if game should end
         if (alivePlayersBefore.length <= 1) {
+          // Game over - clear everything
+          this.clearAllTimeouts(game);
           game.phase = 'game_over';
           this.io.to(roomId).emit('game:over', {
             winner: alivePlayersBefore[0]?.name || 'No one',
@@ -427,15 +439,57 @@ export class GameManager {
             reason: 'disconnect',
           });
           this.games.delete(roomId);
-        } else if (game.phase === 'questioning' && 
-                   (game.targetPlayer === playerIndex || game.currentPlayer === playerIndex)) {
-          // If the target or questioner disconnects during questioning, handle timeout
-          this.handleTimeout(roomId);
-        } else if (game.phase === 'choosing' && game.currentTurn === playerIndex) {
-          // If current player disconnects during choosing phase, skip to next player
-          game.currentTurn = this.getNextAlivePlayer(game, playerIndex);
-          this.io.to(roomId).emit('game:turn', { playerId: game.players[game.currentTurn].id });
+          break;
         }
+
+        // Game continues with 2+ alive players.
+        // Only intervene if the disconnecting player is involved in the current action.
+        // Do NOT clear timeouts for uninvolved players - that would break the game flow.
+        const isTarget = game.targetPlayer === playerIndex;
+        const isQuestioner = game.currentPlayer === playerIndex;
+        const isCurrentTurn = game.currentTurn === playerIndex;
+
+        switch (game.phase) {
+          case 'questioning':
+            if (isTarget || isQuestioner) {
+              // Target or questioner left mid-question - cancel and advance
+              this.clearAnswerTimeout(game);
+              this.advanceToNextTurn(roomId, game);
+            }
+            // If uninvolved player disconnects, answerTimeout stays intact
+            break;
+
+          case 'result':
+            if (isTarget) {
+              // Target left while waiting for trigger/choosing transition - cancel and advance
+              this.clearTriggerTimeout(game);
+              this.advanceToNextTurn(roomId, game);
+            }
+            // If uninvolved player disconnects, triggerTimeout stays intact
+            break;
+
+          case 'trigger':
+            if (isTarget) {
+              // Target left during trigger resolution - cancel post-trigger and advance
+              this.clearPostTriggerTimeout(game);
+              this.advanceToNextTurn(roomId, game);
+            }
+            // If uninvolved player disconnects, postTriggerTimeout stays intact
+            break;
+
+          case 'choosing':
+            if (isCurrentTurn) {
+              // Current player left during card selection - skip to next
+              game.currentTurn = this.getNextAlivePlayer(game, playerIndex);
+              this.io.to(roomId).emit('game:turn', { playerId: game.players[game.currentTurn].id });
+            }
+            break;
+
+          default:
+            // dealing, game_over, etc. - no action needed
+            break;
+        }
+
         break;
       }
     }
