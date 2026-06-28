@@ -48,9 +48,9 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
         {/* Inner container handles recoil animation locally */}
         <motion.div
           animate={isFiring ? { 
-            x: [0, -30, 8, -2, 0], 
-            y: [0, -12, 4, -2, 0], 
-            rotate: [0, 6, -2, 0] 
+            x: [0, -45, 10, -3, 0], 
+            y: [0, -18, 5, -2, 0], 
+            rotate: [0, 10, -3, 1, 0] 
           } : {
             x: 0,
             y: 0,
