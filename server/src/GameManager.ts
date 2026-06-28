@@ -61,6 +61,13 @@ export class GameManager {
         this.io.to(roomId).emit('game:turn', { playerId: currentPlayer.id });
       } catch (err) {
         console.error('Error starting game:', err);
+        // Send error feedback to client
+        this.io.to(roomId).emit('error', { 
+          code: 'DEAL_CARDS_FAILED', 
+          message: 'Failed to deal cards. Please try again.' 
+        });
+        // Clean up the game state
+        this.games.delete(roomId);
       }
     }, 1000);
   }
@@ -101,7 +108,9 @@ export class GameManager {
       if (player.isAlive && player.hand.length === 4) {
         const socket = this.io.sockets.sockets.get(player.id);
         if (socket) {
-          socket.emit('game:deal', { cards: player.hand });
+          // Strip correct field from cards before sending to client
+          const safeCards = player.hand.map(({ correct, ...rest }) => rest);
+          socket.emit('game:deal', { cards: safeCards });
         }
       }
     });
@@ -161,7 +170,7 @@ export class GameManager {
     const timerDuration = this.getTimerDuration(card.difficulty);
     game.answerTimeout = setTimeout(() => {
       this.handleTimeout(roomId);
-    }, (timerDuration + 1) * 1000);
+    }, timerDuration * 1000);
   }
 
   private handleTimeout(roomId: string): void {
@@ -352,29 +361,58 @@ export class GameManager {
     for (const [roomId, game] of this.games.entries()) {
       const playerIndex = game.players.findIndex(p => p.id === socketId);
       if (playerIndex !== -1) {
-        if (game.phase === 'questioning' && game.targetPlayer === playerIndex) {
-          if (game.answerTimeout) {
-            clearTimeout(game.answerTimeout);
-            game.answerTimeout = undefined;
-          }
-          this.handleTimeout(roomId);
-        }
-
+        // Count alive players excluding the disconnecting player
+        const alivePlayersBefore = game.players.filter(p => p.isAlive && p.id !== socketId);
+        
+        // Mark player as dead
         game.players[playerIndex].isAlive = false;
 
         this.io.to(roomId).emit('game:playerLeft', {
           playerId: socketId,
         });
 
-        const alivePlayers = game.players.filter(p => p.isAlive);
-        if (alivePlayers.length <= 1) {
+        // Handle disconnect based on current phase
+        switch (game.phase) {
+          case 'questioning':
+            // Clear any pending timeouts
+            if (game.answerTimeout) {
+              clearTimeout(game.answerTimeout);
+              game.answerTimeout = undefined;
+            }
+            // If the target player or questioner disconnects, trigger timeout
+            if (game.targetPlayer === playerIndex || game.currentPlayer === playerIndex) {
+              this.handleTimeout(roomId);
+            }
+            break;
+          
+          case 'dealing':
+          case 'choosing':
+          case 'result':
+          case 'trigger':
+          case 'round_end':
+            // For other phases, just mark player as dead and check game state
+            break;
+          
+          case 'game_over':
+            // Game is already over, just clean up
+            break;
+        }
+
+        // Check if game should end
+        if (alivePlayersBefore.length <= 1) {
+          // Clear any pending timeouts before ending game
+          if (game.answerTimeout) {
+            clearTimeout(game.answerTimeout);
+            game.answerTimeout = undefined;
+          }
           this.io.to(roomId).emit('game:over', {
-            winner: alivePlayers[0]?.name || 'No one',
-            winnerId: alivePlayers[0]?.id || '',
+            winner: alivePlayersBefore[0]?.name || 'No one',
+            winnerId: alivePlayersBefore[0]?.id || '',
             reason: 'disconnect',
           });
           this.games.delete(roomId);
         } else if (game.phase === 'choosing' && game.currentTurn === playerIndex) {
+          // If current player disconnects during choosing phase, skip to next player
           game.currentTurn = this.getNextAlivePlayer(game, playerIndex);
           this.io.to(roomId).emit('game:turn', { playerId: game.players[game.currentTurn].id });
         }

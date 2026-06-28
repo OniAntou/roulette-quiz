@@ -86,14 +86,26 @@ setInterval(() => {
   }
 }, 30000);
 
+// Clean up old discovered servers (not seen in 30 seconds)
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, server] of discoveredServers.entries()) {
+    if (now - server.lastSeen > 30000) {
+      discoveredServers.delete(key);
+    }
+  }
+}, 30000);
+
 io.on('connection', (socket) => {
   console.log(`Player connected: ${socket.id}`);
 
-  socket.onAny((event: string, ...args: unknown[]) => {
+  // Rate limiter middleware - blocks events when limit exceeded
+  socket.use(([event, ...args], next) => {
     if (!checkRateLimit(socket.id)) {
       socket.emit('error', { code: 'RATE_LIMIT_EXCEEDED', message: 'Rate limit exceeded. Please slow down.' });
-      return;
+      return; // Don't call next() - blocks the event
     }
+    next();
   });
 
   socket.on('room:create', (data: { playerName: string }) => {

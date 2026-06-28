@@ -12,6 +12,9 @@ let bgmLfo: OscillatorNode | null = null;
 let menuMusicInterval: number | null = null;
 let menuNextNoteTime = 0;
 let menuCurrentNote = 0;
+let menuDistNode: WaveShaperNode | null = null;
+let menuCompNode: DynamicsCompressorNode | null = null;
+let menuGainNode: GainNode | null = null;
 
 function getCtx(): AudioContext {
   if (!audioCtx) {
@@ -149,24 +152,24 @@ export const Sounds = {
         distCurve[i] = ((3 + 400) * x * 20 * (Math.PI / 180)) / (Math.PI + 400 * Math.abs(x));
       }
       
-      const distNode = ctx.createWaveShaper();
-      distNode.curve = distCurve;
-      distNode.oversample = '4x';
+      menuDistNode = ctx.createWaveShaper();
+      menuDistNode.curve = distCurve;
+      menuDistNode.oversample = '4x';
       
-      const compNode = ctx.createDynamicsCompressor();
-      compNode.threshold.value = -10;
-      compNode.knee.value = 10;
-      compNode.ratio.value = 12;
-      compNode.attack.value = 0.003;
-      compNode.release.value = 0.1;
+      menuCompNode = ctx.createDynamicsCompressor();
+      menuCompNode.threshold.value = -10;
+      menuCompNode.knee.value = 10;
+      menuCompNode.ratio.value = 12;
+      menuCompNode.attack.value = 0.003;
+      menuCompNode.release.value = 0.1;
 
       // Master volume for menu
-      const menuGain = ctx.createGain();
-      menuGain.gain.value = 0.3; // keep it a bit lower to not blast ears completely
+      menuGainNode = ctx.createGain();
+      menuGainNode.gain.value = 0.3; // keep it a bit lower to not blast ears completely
       
-      distNode.connect(compNode);
-      compNode.connect(menuGain);
-      menuGain.connect(masterGain!);
+      menuDistNode.connect(menuCompNode);
+      menuCompNode.connect(menuGainNode);
+      menuGainNode.connect(masterGain!);
 
       function nextNote() {
         const secondsPerStep = secondsPerBeat / 4; // 16th notes
@@ -209,7 +212,7 @@ export const Sounds = {
         osc1.connect(filter);
         osc2.connect(filter);
         filter.connect(gain1);
-        gain1.connect(distNode);
+        gain1.connect(menuDistNode!);
         
         osc1.start(time);
         osc1.stop(time + decayTime);
@@ -229,7 +232,7 @@ export const Sounds = {
           kickGain.gain.exponentialRampToValueAtTime(0.001, time + 0.15);
           
           kick.connect(kickGain);
-          kickGain.connect(compNode);
+          kickGain.connect(menuCompNode!);
           kick.start(time);
           kick.stop(time + 0.15);
         }
@@ -255,7 +258,7 @@ export const Sounds = {
           
           snareNoise.connect(snareFilter);
           snareFilter.connect(snareGain);
-          snareGain.connect(compNode);
+          snareGain.connect(menuCompNode!);
           snareNoise.start(time);
           
           // Snare body/pop
@@ -268,7 +271,7 @@ export const Sounds = {
           popGain.gain.linearRampToValueAtTime(0.7, time + 0.01);
           popGain.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
           pop.connect(popGain);
-          popGain.connect(compNode);
+          popGain.connect(menuCompNode!);
           pop.start(time);
           pop.stop(time + 0.1);
         }
@@ -294,7 +297,7 @@ export const Sounds = {
           
           hhSource.connect(hhFilter);
           hhFilter.connect(hhGain);
-          hhGain.connect(compNode);
+          hhGain.connect(menuCompNode!);
           
           hhSource.start(time);
         }
@@ -316,6 +319,19 @@ export const Sounds = {
       if (menuMusicInterval) {
         window.clearInterval(menuMusicInterval);
         menuMusicInterval = null;
+      }
+      // Disconnect audio nodes to prevent memory leaks
+      if (menuDistNode) {
+        menuDistNode.disconnect();
+        menuDistNode = null;
+      }
+      if (menuCompNode) {
+        menuCompNode.disconnect();
+        menuCompNode = null;
+      }
+      if (menuGainNode) {
+        menuGainNode.disconnect();
+        menuGainNode = null;
       }
     } catch (e) {}
   },

@@ -301,6 +301,9 @@ export function GameBoard({
       }
       setRotationAngle(targetAngle);
       
+      // Track all timers for proper cleanup
+      const timers: ReturnType<typeof setTimeout>[] = [];
+      
       const spinTimer = setTimeout(() => {
         setIsSpinning(false);
         setIsFiring(true);
@@ -359,18 +362,18 @@ export function GameBoard({
           setRotationAngle(-90);
           setIsGunInCenter(false);
         }, 150);
+        timers.push(fireDelayTimer);
 
         const resetFireTimer = setTimeout(() => {
           setIsFiring(false);
         }, 2000);
-
-        return () => {
-          clearTimeout(resetFireTimer);
-          clearTimeout(fireDelayTimer);
-        };
+        timers.push(resetFireTimer);
       }, 1200);
+      timers.push(spinTimer);
 
-      return () => clearTimeout(spinTimer);
+      return () => {
+        timers.forEach(t => clearTimeout(t));
+      };
     } else {
       lastProcessedTriggerRef.current = null;
     }

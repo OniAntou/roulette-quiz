@@ -142,6 +142,9 @@ export default function App() {
     });
 
     socketClient.on('game:start', (data: { players: Player[]; round: number }) => {
+      // Phase guard: only process if we're not already in a game
+      if (screen === 'game' && phase !== 'waiting') return;
+      
       setPlayers(data.players);
       setRound(data.round || 1);
       setPhase('waiting');
@@ -153,17 +156,26 @@ export default function App() {
     });
 
     socketClient.on('game:deal', (data: { cards: CardData[] }) => {
+      // Phase guard: only process if we're in waiting or dealing phase
+      if (phase !== 'waiting' && phase !== 'choosing') return;
+      
       setHandCards(data.cards);
       setPhase('choosing');
     });
 
     socketClient.on('game:turn', (data: { playerId: string }) => {
+      // Phase guard: only process if we're in waiting or choosing phase
+      if (phase !== 'waiting' && phase !== 'choosing') return;
+      
       setCurrentTurnId(data.playerId);
       setPhase('choosing');
       setPlayedCard(null);
     });
 
     socketClient.on('game:cardPlayed', (data: { playerId: string; card: CardData }) => {
+      // Phase guard: only process if we're in choosing phase
+      if (phase !== 'choosing') return;
+      
       setPlayedCard(data.card);
       setPhase('questioning');
 
@@ -173,9 +185,17 @@ export default function App() {
         }
         return p;
       }));
+
+      // Remove played card from local player's hand
+      if (data.playerId === localPlayerId) {
+        setHandCards(prev => prev.filter(c => c.id !== data.card.id));
+      }
     });
 
     socketClient.on('game:question', (data: { card: any; timer: number; from: string }) => {
+      // Phase guard: only process if we're in questioning phase
+      if (phase !== 'questioning') return;
+      
       setActiveQuestion({
         card: data.card,
         timer: data.timer,
@@ -185,6 +205,9 @@ export default function App() {
     });
 
     socketClient.on('game:result', (data: { correct: boolean; correctAnswer: string }) => {
+      // Phase guard: only process if we're in answering or questioning phase
+      if (phase !== 'answering' && phase !== 'questioning') return;
+      
       if (data.correct) {
         Sounds.correct();
       } else {
@@ -203,6 +226,9 @@ export default function App() {
     });
 
     socketClient.on('game:trigger', (data: TriggerResult) => {
+      // Phase guard: only process if we're in result or trigger phase
+      if (phase !== 'result' && phase !== 'trigger') return;
+      
       setPhase('trigger');
       setTriggerResult({
         alive: data.alive,
@@ -236,6 +262,9 @@ export default function App() {
     });
 
     socketClient.on('game:over', (data: { winner: string; winnerId?: string }) => {
+      // Phase guard: only process if we're not already in game_over phase
+      if (phase === 'game_over') return;
+      
       const isLocal = data.winnerId ? data.winnerId === localPlayerId : data.winner === playerName;
       if (isLocal) {
         Sounds.victory();
