@@ -550,7 +550,7 @@ export function GameBoard({
             className="absolute -top-10 left-1/2 -translate-x-1/2 px-3 py-1 border border-amber-theme-border bg-surface text-amber-theme font-mono text-[10px] font-black tracking-wider uppercase rounded shadow-[0_0_10px_rgba(245,158,11,0.15)] whitespace-nowrap z-30 animate-pulse flex items-center gap-1.5"
           >
             <span className="w-2 h-2 rounded-full bg-amber-theme" />
-            DECRYPTING...
+            ĐANG TRẢ LỜI...
           </motion.div>
         );
       }
@@ -569,7 +569,7 @@ export function GameBoard({
               className="absolute -top-10 left-1/2 -translate-x-1/2 px-3 py-1 border border-emerald-theme-border bg-surface text-emerald-theme font-mono text-[10px] font-black tracking-wider uppercase rounded shadow-[0_0_10px_rgba(16,185,129,0.15)] whitespace-nowrap z-30 flex items-center gap-1.5"
             >
               <span className="w-2 h-2 rounded-full bg-emerald-theme animate-ping" />
-              SUCCESS!
+              ĐÚNG!
             </motion.div>
           );
         } else {
@@ -581,7 +581,7 @@ export function GameBoard({
               className="absolute -top-10 left-1/2 -translate-x-1/2 px-3 py-1 border border-red-theme-border bg-surface text-red-theme font-mono text-[10px] font-black tracking-wider uppercase rounded shadow-[0_0_10px_rgba(239,68,68,0.15)] whitespace-nowrap z-30 flex items-center gap-1.5"
             >
               <span className="w-2 h-2 rounded-full bg-red-theme animate-ping" />
-              FAILED!
+              SAI!
             </motion.div>
           );
         }
@@ -815,7 +815,7 @@ export function GameBoard({
                 : phase === 'choosing' && isCurrentTurn 
                   ? '// CHOSING_CARD' 
                   : phase === 'answering' && isCurrentTurn 
-                    ? '// DECRYPTING' 
+                    ? '// ĐANG TRẢ LỜI' 
                     : `CARDS // [0${cardCount}]`
               }
             </span>
@@ -1113,7 +1113,7 @@ export function GameBoard({
                 : phase === 'choosing' && isMyTurn 
                   ? '// YOUR TURN // SELECT CARD' 
                   : phase === 'answering' && isAnswering 
-                    ? '// DECRYPTING CHALLENGE' 
+                    ? '// ĐANG TRẢ LỜI' 
                     : 'LINK STATE // SECURED'
               }
             </span>
@@ -1171,7 +1171,7 @@ export function GameBoard({
               <div className="flex justify-between items-center mb-6">
                 <span className="text-[10px] text-cyan-theme-light font-bold tracking-widest uppercase flex items-center gap-2 font-mono">
                   <span className="w-1.5 h-1.5 rotate-45 bg-red-theme animate-pulse"></span>
-                  {isBotSpectating ? 'SPECTATING // DECRYPTING PROTOCOL' : 'DECRYPTING PROTOCOL'} // {activeQuestion.card.topic.toUpperCase()}
+                  {isBotSpectating ? 'SPECTATING // ĐANG TRẢ LỜI' : 'ĐANG TRẢ LỜI'} // {activeQuestion.card.topic.toUpperCase()}
                 </span>
                 <span className={`text-lg font-mono font-bold tracking-widest ${
                   timeLeft <= 3 ? 'text-red-theme animate-pulse font-black' : 'text-text-theme-muted'
