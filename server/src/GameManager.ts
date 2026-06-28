@@ -11,7 +11,7 @@ export class GameManager {
   private questionManager: QuestionManager;
   private games: Map<string, GameState> = new Map();
   private readonly startDelayMs = 400;
-  private readonly resultDelayMs = 3500;
+  private readonly resultDelayMs = 3000;
   private readonly postTriggerDelayMs = 3000;
 
   constructor(roomManager: RoomManager, io: Server) {
@@ -231,7 +231,7 @@ export class GameManager {
     game.triggerTimeout = setTimeout(() => {
       game.triggerTimeout = undefined;
       this.pullTrigger(roomId);
-    }, 3500);
+    }, this.resultDelayMs);
   }
 
   handleAnswer(roomId: string, socketId: string, answer: string): void {
