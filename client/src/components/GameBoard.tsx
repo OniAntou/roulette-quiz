@@ -134,6 +134,7 @@ export function GameBoard({
   const lastProcessedTriggerRef = useRef<string | null>(null);
   const lastMouseMoveRef = useRef<number>(0);
   const lastPlayedCardRef = useRef<string | null>(null);
+  const triggerTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   // Sync mute state with Sounds
   useEffect(() => {
@@ -211,6 +212,10 @@ export function GameBoard({
   }, [phase, currentTurnId, localId, questionResult]);
 
   useEffect(() => {
+    // Clear any pending trigger timers first
+    triggerTimersRef.current.forEach(t => clearTimeout(t));
+    triggerTimersRef.current = [];
+    
     setIsSpinning(false);
     setIsFiring(false);
     setRotationAngle(-90);
@@ -274,13 +279,18 @@ export function GameBoard({
       if (lastProcessedTriggerRef.current === triggerKey) return;
       lastProcessedTriggerRef.current = triggerKey;
 
+      // Clear any existing trigger timers before starting new ones
+      triggerTimersRef.current.forEach(t => clearTimeout(t));
+      triggerTimersRef.current = [];
+
       setDisplayedShots(triggerResult.bulletsFired || 0);
       
       // If the bullet is lethal, the round will reset. Reset the HUD counter immediately after the shot is fired.
       if (!triggerResult.alive) {
-        setTimeout(() => {
+        const t = setTimeout(() => {
           setDisplayedShots(0);
         }, 1400); // 1200ms spin + 150ms fire delay + 50ms buffer
+        triggerTimersRef.current.push(t);
       }
 
       setCurrentPositionState(triggerResult.currentPosition ?? 0);
@@ -300,9 +310,6 @@ export function GameBoard({
         }
       }
       setRotationAngle(targetAngle);
-      
-      // Track all timers for proper cleanup
-      const timers: ReturnType<typeof setTimeout>[] = [];
       
       const spinTimer = setTimeout(() => {
         setIsSpinning(false);
@@ -362,17 +369,18 @@ export function GameBoard({
           setRotationAngle(-90);
           setIsGunInCenter(false);
         }, 150);
-        timers.push(fireDelayTimer);
+        triggerTimersRef.current.push(fireDelayTimer);
 
         const resetFireTimer = setTimeout(() => {
           setIsFiring(false);
         }, 2000);
-        timers.push(resetFireTimer);
+        triggerTimersRef.current.push(resetFireTimer);
       }, 1200);
-      timers.push(spinTimer);
+      triggerTimersRef.current.push(spinTimer);
 
       return () => {
-        timers.forEach(t => clearTimeout(t));
+        triggerTimersRef.current.forEach(t => clearTimeout(t));
+        triggerTimersRef.current = [];
       };
     } else {
       lastProcessedTriggerRef.current = null;
