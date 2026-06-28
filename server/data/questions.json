@@ -466,5 +466,720 @@
       "D": "Tạo website"
     },
     "correct": "B"
+  },
+  {
+    "id": "q_037",
+    "topic": "cybersecurity",
+    "difficulty": "easy",
+    "question": "Số hiệu Nghị định bảo vệ dữ liệu cá nhân Việt Nam?",
+    "answers": {
+      "A": "Nghị định 13/2023/NĐ-CP",
+      "B": "Nghị định 15/2020/NĐ-CP",
+      "C": "Nghị định 53/2022/NĐ-CP",
+      "D": "Nghị định 64/2007/NĐ-CP"
+    },
+    "correct": "A"
+  },
+  {
+    "id": "q_038",
+    "topic": "cybersecurity",
+    "difficulty": "medium",
+    "question": "Theo Nghị định 13/2023/NĐ-CP, dữ liệu cá nhân được chia thành mấy loại chính?",
+    "answers": {
+      "A": "1 loại",
+      "B": "2 loại (cơ bản & nhạy cảm)",
+      "C": "3 loại",
+      "D": "4 loại"
+    },
+    "correct": "B"
+  },
+  {
+    "id": "q_039",
+    "topic": "cybersecurity",
+    "difficulty": "hard",
+    "question": "Dữ liệu cá nhân nhạy cảm theo Nghị định 13 gồm những gì?",
+    "answers": {
+      "A": "Họ tên",
+      "B": "Số điện thoại",
+      "C": "Sức khỏe, tôn giáo, sinh trắc học",
+      "D": "Địa chỉ email"
+    },
+    "correct": "C"
+  },
+  {
+    "id": "q_040",
+    "topic": "cybersecurity",
+    "difficulty": "easy",
+    "question": "Chủ thể dữ liệu trong Nghị định 13/2023/NĐ-CP được hiểu là ai?",
+    "answers": {
+      "A": "Cơ quan quản lý nhà nước",
+      "B": "Doanh nghiệp xử lý dữ liệu",
+      "C": "Cá nhân sở hữu dữ liệu đó",
+      "D": "Nhà cung cấp dịch vụ Internet"
+    },
+    "correct": "C"
+  },
+  {
+    "id": "q_041",
+    "topic": "cybersecurity",
+    "difficulty": "medium",
+    "question": "Bên kiểm soát dữ liệu cá nhân có trách nhiệm gì theo quy định?",
+    "answers": {
+      "A": "Chỉ lưu trữ dữ liệu",
+      "B": "Quyết định mục đích & cách xử lý dữ liệu",
+      "C": "Chỉ thu thập dữ liệu",
+      "D": "Không có trách nhiệm pháp lý"
+    },
+    "correct": "B"
+  },
+  {
+    "id": "q_042",
+    "topic": "cybersecurity",
+    "difficulty": "hard",
+    "question": "Theo nguyên tắc bảo vệ dữ liệu cá nhân, dữ liệu chỉ được xử lý khi nào?",
+    "answers": {
+      "A": "Bất kỳ lúc nào doanh nghiệp muốn",
+      "B": "Được chủ thể dữ liệu đồng ý hoặc theo quy định pháp luật",
+      "C": "Chỉ khi có yêu cầu của cơ quan thuế",
+      "D": "Khi dữ liệu đã được công khai trên mạng"
+    },
+    "correct": "B"
+  },
+  {
+    "id": "q_043",
+    "topic": "cybersecurity",
+    "difficulty": "easy",
+    "question": "Sự đồng ý của chủ thể dữ liệu phải được thể hiện như thế nào?",
+    "answers": {
+      "A": "Ngầm định, không cần thông báo",
+      "B": "Thể hiện rõ ràng, tự nguyện và xác minh được",
+      "C": "Chỉ cần một lần cho mọi mục đích vĩnh viễn",
+      "D": "Không cần thiết nếu là doanh nghiệp nhỏ"
+    },
+    "correct": "B"
+  },
+  {
+    "id": "q_044",
+    "topic": "cybersecurity",
+    "difficulty": "medium",
+    "question": "Thời hạn thông báo cho cơ quan chức năng khi lộ lọt dữ liệu?",
+    "answers": {
+      "A": "72 giờ",
+      "B": "24 giờ",
+      "C": "7 ngày",
+      "D": "30 ngày"
+    },
+    "correct": "A"
+  },
+  {
+    "id": "q_045",
+    "topic": "cybersecurity",
+    "difficulty": "hard",
+    "question": "Cơ quan quản lý nhà nước về bảo vệ dữ liệu cá nhân VN?",
+    "answers": {
+      "A": "Bộ Thông tin và Truyền thông",
+      "B": "Bộ Công an",
+      "C": "Bộ Tư pháp",
+      "D": "Ngân hàng Nhà nước"
+    },
+    "correct": "B"
+  },
+  {
+    "id": "q_046",
+    "topic": "cybersecurity",
+    "difficulty": "easy",
+    "question": "Quyền nào sau đây KHÔNG phải là quyền của chủ thể dữ liệu theo Nghị định 13/2023/NĐ-CP?",
+    "answers": {
+      "A": "Quyền được biết",
+      "B": "Quyền xóa dữ liệu",
+      "C": "Quyền rút lại sự đồng ý",
+      "D": "Quyền bán dữ liệu của người khác"
+    },
+    "correct": "D"
+  },
+  {
+    "id": "q_047",
+    "topic": "cybersecurity",
+    "difficulty": "medium",
+    "question": "Việc chuyển dữ liệu cá nhân của công dân Việt Nam ra nước ngoài cần điều kiện gì?",
+    "answers": {
+      "A": "Không cần điều kiện gì",
+      "B": "Lập hồ sơ đánh giá tác động và có thể phải thông báo cho cơ quan có thẩm quyền",
+      "C": "Chỉ cần thông báo cho chủ thể dữ liệu",
+      "D": "Chỉ áp dụng với dữ liệu doanh nghiệp"
+    },
+    "correct": "B"
+  },
+  {
+    "id": "q_048",
+    "topic": "cybersecurity",
+    "difficulty": "hard",
+    "question": "Đánh giá tác động xử lý dữ liệu cá nhân (DPIA) cần được lập khi nào?",
+    "answers": {
+      "A": "Chỉ khi có yêu cầu của khách hàng",
+      "B": "Trước khi bắt đầu xử lý dữ liệu cá nhân",
+      "C": "Sau khi xảy ra sự cố",
+      "D": "Không bắt buộc trong mọi trường hợp"
+    },
+    "correct": "B"
+  },
+  {
+    "id": "q_049",
+    "topic": "cybersecurity",
+    "difficulty": "easy",
+    "question": "Mức xử phạt đối với hành vi vi phạm quy định bảo vệ dữ liệu cá nhân tại Việt Nam được quy định theo hướng nào?",
+    "answers": {
+      "A": "Cố định cho mọi vi phạm",
+      "B": "Có thể tính theo tổng doanh thu của tổ chức vi phạm",
+      "C": "Chỉ áp dụng cảnh cáo",
+      "D": "Không có quy định xử phạt"
+    },
+    "correct": "B"
+  },
+  {
+    "id": "q_050",
+    "topic": "cybersecurity",
+    "difficulty": "medium",
+    "question": "Luật An ninh mạng của Việt Nam được Quốc hội thông qua vào năm nào?",
+    "answers": {
+      "A": "2016",
+      "B": "2017",
+      "C": "2018",
+      "D": "2020"
+    },
+    "correct": "C"
+  },
+  {
+    "id": "q_051",
+    "topic": "cybersecurity",
+    "difficulty": "hard",
+    "question": "Luật An ninh mạng 2018 có hiệu lực thi hành từ ngày nào?",
+    "answers": {
+      "A": "01/01/2018",
+      "B": "01/01/2019",
+      "C": "01/07/2019",
+      "D": "01/01/2020"
+    },
+    "correct": "B"
+  },
+  {
+    "id": "q_052",
+    "topic": "cybersecurity",
+    "difficulty": "easy",
+    "question": "Theo Luật An ninh mạng, an ninh mạng được định nghĩa là gì?",
+    "answers": {
+      "A": "Chỉ là bảo vệ phần cứng máy tính",
+      "B": "Đảm bảo hoạt động mạng không gây hại an ninh quốc gia, trật tự xã hội",
+      "C": "Chỉ liên quan đến mạng xã hội",
+      "D": "Chỉ áp dụng cho cơ quan nhà nước"
+    },
+    "correct": "B"
+  },
+  {
+    "id": "q_053",
+    "topic": "cybersecurity",
+    "difficulty": "medium",
+    "question": "Luật An ninh mạng 2018 yêu cầu doanh nghiệp nước ngoài cung cấp dịch vụ tại Việt Nam phải làm gì?",
+    "answers": {
+      "A": "Không có yêu cầu gì đặc biệt",
+      "B": "Lưu trữ dữ liệu và đặt văn phòng đại diện tại Việt Nam trong một số trường hợp",
+      "C": "Chuyển toàn bộ dữ liệu về nước sở tại",
+      "D": "Chỉ cần đăng ký kinh doanh tại Việt Nam"
+    },
+    "correct": "B"
+  },
+  {
+    "id": "q_054",
+    "topic": "cybersecurity",
+    "difficulty": "hard",
+    "question": "Cơ quan nào có trách nhiệm chính trong việc bảo vệ an ninh mạng quốc gia theo Luật An ninh mạng?",
+    "answers": {
+      "A": "Bộ Công an",
+      "B": "Bộ Quốc phòng",
+      "C": "Bộ Thông tin và Truyền thông",
+      "D": "Cả Bộ Công an và Bộ Quốc phòng theo phân nhiệm"
+    },
+    "correct": "D"
+  },
+  {
+    "id": "q_055",
+    "topic": "cybersecurity",
+    "difficulty": "easy",
+    "question": "Hành vi nào sau đây bị nghiêm cấm theo Luật An ninh mạng 2018?",
+    "answers": {
+      "A": "Sử dụng mạng để học tập",
+      "B": "Tổ chức, hoạt động chống Nhà nước trên không gian mạng",
+      "C": "Mua sắm trực tuyến",
+      "D": "Gửi email công việc"
+    },
+    "correct": "B"
+  },
+  {
+    "id": "q_056",
+    "topic": "cybersecurity",
+    "difficulty": "medium",
+    "question": "Theo Luật An ninh mạng, 'hệ thống thông tin quan trọng về an ninh quốc gia' là gì?",
+    "answers": {
+      "A": "Mọi website cá nhân",
+      "B": "Hệ thống bị sự cố/xâm nhập gây tổn hại nghiêm trọng an ninh quốc gia",
+      "C": "Chỉ các mạng xã hội phổ biến",
+      "D": "Chỉ hệ thống của doanh nghiệp tư nhân"
+    },
+    "correct": "B"
+  },
+  {
+    "id": "q_057",
+    "topic": "cybersecurity",
+    "difficulty": "hard",
+    "question": "Lực lượng chuyên trách bảo vệ an ninh mạng có quyền yêu cầu gì đối với doanh nghiệp khi phát hiện vi phạm?",
+    "answers": {
+      "A": "Không có quyền can thiệp",
+      "B": "Yêu cầu xóa bỏ thông tin vi phạm pháp luật trên không gian mạng",
+      "C": "Chỉ có quyền khuyến nghị",
+      "D": "Phải xin phép tòa án trong mọi trường hợp trước"
+    },
+    "correct": "B"
+  },
+  {
+    "id": "q_058",
+    "topic": "cybersecurity",
+    "difficulty": "easy",
+    "question": "Luật An ninh mạng 2018 áp dụng đối với đối tượng nào?",
+    "answers": {
+      "A": "Chỉ cơ quan nhà nước",
+      "B": "Chỉ doanh nghiệp viễn thông",
+      "C": "Tổ chức, cá nhân Việt Nam & nước ngoài hoạt động mạng tại Việt Nam",
+      "D": "Chỉ áp dụng cho công dân Việt Nam ở nước ngoài"
+    },
+    "correct": "C"
+  },
+  {
+    "id": "q_059",
+    "topic": "cybersecurity",
+    "difficulty": "medium",
+    "question": "Dữ liệu người dùng nào cần lưu trữ tại VN theo Luật An ninh mạng?",
+    "answers": {
+      "A": "Không có dữ liệu nào",
+      "B": "Dữ liệu về thông tin cá nhân, mối quan hệ của người sử dụng dịch vụ tại Việt Nam",
+      "C": "Chỉ dữ liệu tài chính",
+      "D": "Chỉ dữ liệu công khai"
+    },
+    "correct": "B"
+  },
+  {
+    "id": "q_060",
+    "topic": "cybersecurity",
+    "difficulty": "hard",
+    "question": "Thời gian lưu trữ dữ liệu tối thiểu theo Luật An ninh mạng là bao lâu?",
+    "answers": {
+      "A": "12 tháng",
+      "B": "24 tháng",
+      "C": "36 tháng",
+      "D": "6 tháng"
+    },
+    "correct": "B"
+  },
+  {
+    "id": "q_061",
+    "topic": "cybersecurity",
+    "difficulty": "easy",
+    "question": "ISO/IEC 27001 là chuẩn quốc tế về lĩnh vực nào?",
+    "answers": {
+      "A": "Quản lý chất lượng",
+      "B": "Hệ thống quản lý an toàn thông tin (ISMS)",
+      "C": "Quản lý môi trường",
+      "D": "Quản lý nhân sự"
+    },
+    "correct": "B"
+  },
+  {
+    "id": "q_062",
+    "topic": "cybersecurity",
+    "difficulty": "medium",
+    "question": "Phiên bản mới nhất hiện hành của ISO/IEC 27001 được ban hành vào năm nào?",
+    "answers": {
+      "A": "2005",
+      "B": "2013",
+      "C": "2022",
+      "D": "2018"
+    },
+    "correct": "C"
+  },
+  {
+    "id": "q_063",
+    "topic": "cybersecurity",
+    "difficulty": "hard",
+    "question": "ISMS trong ISO 27001 là viết tắt của gì?",
+    "answers": {
+      "A": "Information Security Management System",
+      "B": "Internet Service Management Standard",
+      "C": "Internal Security Monitoring System",
+      "D": "Information System Management Standard"
+    },
+    "correct": "A"
+  },
+  {
+    "id": "q_064",
+    "topic": "cybersecurity",
+    "difficulty": "easy",
+    "question": "ISO 27001 áp dụng mô hình chu trình quản lý nào để cải tiến liên tục?",
+    "answers": {
+      "A": "Mô hình SWOT",
+      "B": "Chu trình PDCA (Plan-Do-Check-Act)",
+      "C": "Mô hình SMART",
+      "D": "Chu trình 5S"
+    },
+    "correct": "B"
+  },
+  {
+    "id": "q_065",
+    "topic": "cybersecurity",
+    "difficulty": "medium",
+    "question": "Annex A của ISO/IEC 27001:2022 quy định về điều gì?",
+    "answers": {
+      "A": "Lịch sử hình thành tiêu chuẩn",
+      "B": "Danh mục các biện pháp kiểm soát (controls) an toàn thông tin",
+      "C": "Quy định về giá cả chứng nhận",
+      "D": "Danh sách các quốc gia áp dụng"
+    },
+    "correct": "B"
+  },
+  {
+    "id": "q_066",
+    "topic": "cybersecurity",
+    "difficulty": "hard",
+    "question": "Số lượng biện pháp kiểm soát (controls) trong Annex A của ISO/IEC 27001:2022 là bao nhiêu?",
+    "answers": {
+      "A": "93",
+      "B": "114",
+      "C": "133",
+      "D": "27"
+    },
+    "correct": "A"
+  },
+  {
+    "id": "q_067",
+    "topic": "cybersecurity",
+    "difficulty": "easy",
+    "question": "Trong ISO 27001:2022, các biện pháp kiểm soát được phân nhóm theo bao nhiêu chủ đề (themes)?",
+    "answers": {
+      "A": "2 chủ đề",
+      "B": "3 chủ đề",
+      "C": "4 chủ đề",
+      "D": "5 chủ đề"
+    },
+    "correct": "C"
+  },
+  {
+    "id": "q_068",
+    "topic": "cybersecurity",
+    "difficulty": "medium",
+    "question": "Tài liệu nào sau đây là bắt buộc theo yêu cầu của ISO 27001?",
+    "answers": {
+      "A": "Báo cáo tài chính hàng năm",
+      "B": "Tuyên bố áp dụng (Statement of Applicability - SoA)",
+      "C": "Hợp đồng lao động nhân viên",
+      "D": "Kế hoạch marketing"
+    },
+    "correct": "B"
+  },
+  {
+    "id": "q_069",
+    "topic": "cybersecurity",
+    "difficulty": "hard",
+    "question": "Quá trình đánh giá rủi ro an toàn thông tin trong ISO 27001 nhằm mục đích gì?",
+    "answers": {
+      "A": "Tăng doanh thu công ty",
+      "B": "Xác định, phân tích, đánh giá rủi ro thông tin và xử lý phù hợp",
+      "C": "Chỉ để phục vụ kiểm toán tài chính",
+      "D": "Không có mục đích cụ thể"
+    },
+    "correct": "B"
+  },
+  {
+    "id": "q_070",
+    "topic": "cybersecurity",
+    "difficulty": "easy",
+    "question": "Ba thuộc tính cốt lõi (CIA triad) mà ISO 27001 hướng tới bảo vệ là gì?",
+    "answers": {
+      "A": "Cost, Income, Asset",
+      "B": "Confidentiality, Integrity, Availability",
+      "C": "Control, Inspection, Audit",
+      "D": "Compliance, Identity, Access"
+    },
+    "correct": "B"
+  },
+  {
+    "id": "q_071",
+    "topic": "cybersecurity",
+    "difficulty": "medium",
+    "question": "Chứng nhận ISO 27001 có hiệu lực trong bao lâu?",
+    "answers": {
+      "A": "1 năm",
+      "B": "3 năm",
+      "C": "5 năm",
+      "D": "10 năm"
+    },
+    "correct": "B"
+  },
+  {
+    "id": "q_072",
+    "topic": "cybersecurity",
+    "difficulty": "hard",
+    "question": "Tần suất đánh giá giám sát trong chu kỳ ISO 27001?",
+    "answers": {
+      "A": "Hàng tháng",
+      "B": "Hàng năm (trong các năm giữa kỳ chứng nhận)",
+      "C": "Mỗi 5 năm",
+      "D": "Không cần đánh giá giám sát"
+    },
+    "correct": "B"
+  },
+  {
+    "id": "q_073",
+    "topic": "cybersecurity",
+    "difficulty": "easy",
+    "question": "Vai trò của lãnh đạo cao nhất trong ISO 27001 là gì?",
+    "answers": {
+      "A": "Không cần tham gia vào ISMS",
+      "B": "Cam kết, phê duyệt chính sách và phân bổ nguồn lực cho ISMS",
+      "C": "Chỉ ký các văn bản hành chính",
+      "D": "Chỉ chịu trách nhiệm về tài chính"
+    },
+    "correct": "B"
+  },
+  {
+    "id": "q_074",
+    "topic": "cybersecurity",
+    "difficulty": "medium",
+    "question": "NIST Cybersecurity Framework (CSF) được phát triển bởi cơ quan nào?",
+    "answers": {
+      "A": "ISO quốc tế",
+      "B": "Viện Tiêu chuẩn và Công nghệ Quốc gia Hoa Kỳ (NIST)",
+      "C": "Liên minh Châu Âu",
+      "D": "Tổ chức Y tế Thế giới"
+    },
+    "correct": "B"
+  },
+  {
+    "id": "q_075",
+    "topic": "cybersecurity",
+    "difficulty": "hard",
+    "question": "Phiên bản NIST CSF 2.0 được công bố chính thức vào năm nào?",
+    "answers": {
+      "A": "2014",
+      "B": "2018",
+      "C": "2024",
+      "D": "2010"
+    },
+    "correct": "C"
+  },
+  {
+    "id": "q_076",
+    "topic": "cybersecurity",
+    "difficulty": "easy",
+    "question": "NIST CSF 2.0 bổ sung thêm chức năng (Function) nào so với phiên bản trước (1.1)?",
+    "answers": {
+      "A": "Recover",
+      "B": "Respond",
+      "C": "Govern",
+      "D": "Protect"
+    },
+    "correct": "C"
+  },
+  {
+    "id": "q_077",
+    "topic": "cybersecurity",
+    "difficulty": "medium",
+    "question": "NIST CSF 2.0 gồm Govern, Identify, Protect, Detect, Respond và gì?",
+    "answers": {
+      "A": "Review",
+      "B": "Recover",
+      "C": "Report",
+      "D": "Resolve"
+    },
+    "correct": "B"
+  },
+  {
+    "id": "q_078",
+    "topic": "cybersecurity",
+    "difficulty": "hard",
+    "question": "Chức năng 'Identify' trong NIST CSF tập trung vào việc gì?",
+    "answers": {
+      "A": "Khôi phục hệ thống sau sự cố",
+      "B": "Hiểu bối cảnh, tài sản, rủi ro để quản lý an ninh mạng",
+      "C": "Phản ứng với sự cố đang xảy ra",
+      "D": "Mua sắm thiết bị bảo mật"
+    },
+    "correct": "B"
+  },
+  {
+    "id": "q_079",
+    "topic": "cybersecurity",
+    "difficulty": "easy",
+    "question": "Chức năng 'Detect' trong NIST CSF liên quan đến hoạt động nào?",
+    "answers": {
+      "A": "Phát hiện kịp thời các sự kiện an ninh mạng bất thường",
+      "B": "Lập kế hoạch kinh doanh",
+      "C": "Đào tạo nhân viên mới",
+      "D": "Thiết kế logo công ty"
+    },
+    "correct": "A"
+  },
+  {
+    "id": "q_080",
+    "topic": "cybersecurity",
+    "difficulty": "medium",
+    "question": "NIST CSF được thiết kế để áp dụng cho đối tượng nào?",
+    "answers": {
+      "A": "Chỉ cơ quan chính phủ Hoa Kỳ",
+      "B": "Mọi tổ chức không phân biệt quy mô, lĩnh vực",
+      "C": "Chỉ ngân hàng",
+      "D": "Chỉ doanh nghiệp công nghệ"
+    },
+    "correct": "B"
+  },
+  {
+    "id": "q_081",
+    "topic": "cybersecurity",
+    "difficulty": "hard",
+    "question": "Trong NIST CSF, 'Tiers' (cấp độ) được dùng để làm gì?",
+    "answers": {
+      "A": "Xếp hạng tín dụng doanh nghiệp",
+      "B": "Mức trưởng thành quản lý rủi ro an ninh mạng",
+      "C": "Phân loại sản phẩm phần mềm",
+      "D": "Định giá dịch vụ bảo mật"
+    },
+    "correct": "B"
+  },
+  {
+    "id": "q_082",
+    "topic": "cybersecurity",
+    "difficulty": "easy",
+    "question": "NIST CSF có bao nhiêu cấp độ (Tier) thể hiện mức độ trưởng thành quản lý rủi ro?",
+    "answers": {
+      "A": "2 cấp độ",
+      "B": "3 cấp độ",
+      "C": "4 cấp độ",
+      "D": "5 cấp độ"
+    },
+    "correct": "C"
+  },
+  {
+    "id": "q_083",
+    "topic": "cybersecurity",
+    "difficulty": "medium",
+    "question": "'Profile' trong NIST CSF được hiểu là gì?",
+    "answers": {
+      "A": "Hồ sơ cá nhân của nhân viên IT",
+      "B": "Liên kết các chức năng với mục tiêu kinh doanh của tổ chức",
+      "C": "Một loại virus máy tính",
+      "D": "Giao diện đăng nhập hệ thống"
+    },
+    "correct": "B"
+  },
+  {
+    "id": "q_084",
+    "topic": "cybersecurity",
+    "difficulty": "hard",
+    "question": "Chức năng 'Govern' mới của NIST CSF 2.0 nhấn mạnh vai trò ai?",
+    "answers": {
+      "A": "Chỉ bộ phận IT",
+      "B": "Lãnh đạo cấp cao tích hợp an ninh mạng vào quản trị tổng thể",
+      "C": "Chỉ khách hàng",
+      "D": "Chỉ nhà cung cấp dịch vụ thuê ngoài"
+    },
+    "correct": "B"
+  },
+  {
+    "id": "q_085",
+    "topic": "cybersecurity",
+    "difficulty": "easy",
+    "question": "NIST CSF khác với ISO 27001 ở điểm nào?",
+    "answers": {
+      "A": "NIST CSF là chuẩn chứng nhận bắt buộc giống ISO 27001",
+      "B": "NIST CSF mang tính tự nguyện, không cấp chứng nhận như ISO 27001",
+      "C": "ISO 27001 không có biện pháp kiểm soát",
+      "D": "Cả hai hoàn toàn giống nhau"
+    },
+    "correct": "B"
+  },
+  {
+    "id": "q_086",
+    "topic": "cybersecurity",
+    "difficulty": "medium",
+    "question": "Điểm chung của Luật bảo vệ dữ liệu, ISO 27001 và NIST CSF?",
+    "answers": {
+      "A": "Đều không liên quan đến bảo mật",
+      "B": "Đều hướng tới bảo vệ dữ liệu và quản lý rủi ro an toàn thông tin",
+      "C": "Chỉ áp dụng cho ngành ngân hàng",
+      "D": "Đều là luật bắt buộc trên toàn cầu"
+    },
+    "correct": "B"
+  },
+  {
+    "id": "q_087",
+    "topic": "cybersecurity",
+    "difficulty": "hard",
+    "question": "Điểm khác của Luật ANM, NĐ 13 so với ISO 27001 & NIST CSF?",
+    "answers": {
+      "A": "Cũng hoàn toàn tự nguyện áp dụng",
+      "B": "Là văn bản luật bắt buộc thi hành tại Việt Nam",
+      "C": "Không có cơ chế xử phạt",
+      "D": "Chỉ áp dụng cho doanh nghiệp nước ngoài"
+    },
+    "correct": "B"
+  },
+  {
+    "id": "q_088",
+    "topic": "cybersecurity",
+    "difficulty": "easy",
+    "question": "Cách xây dựng hệ thống quản trị an toàn thông tin toàn diện?",
+    "answers": {
+      "A": "Chỉ cần tuân thủ luật, không cần áp dụng tiêu chuẩn quốc tế",
+      "B": "Kết hợp luật trong nước (NĐ 13) với tiêu chuẩn quốc tế (ISO 27001)",
+      "C": "Chỉ áp dụng ISO 27001 là đủ, không cần tuân thủ luật Việt Nam",
+      "D": "Không cần làm gì cả nếu doanh nghiệp nhỏ"
+    },
+    "correct": "B"
+  },
+  {
+    "id": "q_089",
+    "topic": "cybersecurity",
+    "difficulty": "medium",
+    "question": "Biện pháp kiểm soát kỹ thuật trong ISO 27001 Annex A?",
+    "answers": {
+      "A": "Chính sách nhân sự",
+      "B": "Mã hóa dữ liệu (Cryptography)",
+      "C": "Hợp đồng thương mại",
+      "D": "Báo cáo tài chính"
+    },
+    "correct": "B"
+  },
+  {
+    "id": "q_090",
+    "topic": "cybersecurity",
+    "difficulty": "hard",
+    "question": "Yếu tố bảo mật 'Privacy by Design' cần tích hợp khi nào?",
+    "answers": {
+      "A": "Sau khi hệ thống đã vận hành nhiều năm",
+      "B": "Ngay từ giai đoạn thiết kế hệ thống/sản phẩm",
+      "C": "Chỉ khi có khách hàng yêu cầu",
+      "D": "Không cần tích hợp nếu chi phí cao"
+    },
+    "correct": "B"
+  },
+  {
+    "id": "q_091",
+    "topic": "cybersecurity",
+    "difficulty": "easy",
+    "question": "Bước đầu tiên sau khi phát hiện sự cố an ninh mạng là gì?",
+    "answers": {
+      "A": "Xóa toàn bộ dữ liệu hệ thống ngay lập tức",
+      "B": "Đánh giá, phân loại và cô lập sự cố (containment)",
+      "C": "Thông báo cho báo chí ngay lập tức",
+      "D": "Bỏ qua không xử lý"
+    },
+    "correct": "B"
   }
 ]
