@@ -118,8 +118,8 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
               animate={{ 
                 rotate: isFiring ? [0, 35, -20, 0] : isSpinning ? 35 : 0 
               }}
-              transition={{ 
-                duration: isFiring ? 0.34 : 0.25,
+              transition={{
+                duration: isFiring ? 0.48 : 0.32,
                 ease: "easeInOut"
               }}
             >
@@ -172,9 +172,9 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
               stroke="var(--cyan-theme)" 
               strokeWidth="2.5" 
               strokeLinecap="round"
-              animate={isFiring ? { rotate: [0, -15, 0] } : {}}
+              animate={isFiring ? { rotate: [0, -15, -6, 0] } : {}}
               style={{ transformOrigin: '116px 122px' }}
-              transition={{ duration: 0.18 }}
+              transition={{ duration: 0.34, ease: "easeOut" }}
             />
 
             {/* 5. Cylinder Slot Cutout */}
@@ -191,7 +191,7 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
                   animate={isSpinning ? {
                     y: [0, -15]
                   } : isFiring ? {
-                    y: [0, -7.5]
+                    y: [0, -7.5, 0]
                   } : {
                     y: 0
                   }}
@@ -200,7 +200,7 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
                     repeat: Infinity,
                     ease: "linear"
                   } : isFiring ? {
-                    duration: 0.32,
+                    duration: 0.42,
                     ease: "easeOut"
                   } : {
                     duration: 0.3

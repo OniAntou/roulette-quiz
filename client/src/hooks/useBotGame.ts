@@ -366,7 +366,7 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
           const botAnswerDelay = 2500 + Math.random() * 1500;
           const answerTimer = setTimeout(() => {
             if (!botModeRef.current) return;
-            const isCorrect = Math.random() < 0.65;
+            const isCorrect = Math.random() < 0.5;
             const answered = isCorrect ? (card.correct || 'A') : 'X';
             processAnswerRef.current(targetId, answered, card.correct || 'A');
           }, botAnswerDelay);
@@ -421,7 +421,7 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
     if (isTargetBot) {
       const botAnswerDelay = 2500 + Math.random() * 1500;
       const answerTimer = setTimeout(() => {
-        const isCorrect = Math.random() < 0.65;
+        const isCorrect = Math.random() < 0.5;
         const answered = isCorrect ? (card.correct || 'A') : 'X';
         processAnswerRef.current(targetId, answered, card.correct || 'A');
       }, botAnswerDelay);

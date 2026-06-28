@@ -349,14 +349,14 @@ export function GameBoard({
       setRotationAngle(targetAngle);
       
       const triggerAnimationDelay = 800;
-      const fireEffectDelay = 400;
+      const fireEffectDelay = 120;
       const spinTimer = setTimeout(() => {
         setIsSpinning(false);
         setIsFiring(true);
 
         const fireDelayTimer = setTimeout(() => {
           setShowShotEffect(true);
-          const shotEffectTimer = setTimeout(() => setShowShotEffect(false), 120);
+          const shotEffectTimer = setTimeout(() => setShowShotEffect(false), 280);
           triggerTimersRef.current.push(shotEffectTimer);
 
           // Screen Shake & Red flash effect
@@ -978,7 +978,7 @@ export function GameBoard({
           top: "48%",
           scale: isGunInCenter ? 1.5 : 1.25
         }}
-        transition={{ duration: 0.6, type: "spring", bounce: 0.2 }}
+        transition={{ duration: 1.0, type: "spring", bounce: 0.15, ease: "easeOut" }}
         className="absolute -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none flex flex-col items-center"
       >
         <Revolver 
@@ -1061,11 +1061,12 @@ export function GameBoard({
                   onClick={() => handleCardClick(card)}
                   className={`absolute w-64 h-96 border rounded-none p-6 flex flex-col justify-between select-none overflow-hidden bg-card-theme ${
                     !isPlayable ? 'cursor-default' : 'cursor-pointer group'
-                  }`}
+                  } pointer-events-auto`}
                   style={{
                     transformOrigin: 'center 110%',
                     zIndex: hoverZ,
                     transformStyle: 'preserve-3d',
+                    pointerEvents: 'auto',
                     borderColor: isHovered && colors ? colors.glow : colors ? colors.border : 'var(--border-cyan-theme-muted)',
                   }}
                 >
