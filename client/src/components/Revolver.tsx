@@ -48,15 +48,15 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
         {/* Inner container handles recoil animation locally */}
         <motion.div
           animate={isFiring ? { 
-            x: [0, -15, 4, -1, 0], 
-            y: [0, -6, 2, -1, 0], 
-            rotate: [0, 4, -1, 0] 
+            x: [0, -30, 8, -2, 0], 
+            y: [0, -12, 4, -2, 0], 
+            rotate: [0, 6, -2, 0] 
           } : {
             x: 0,
             y: 0,
             rotate: 0
           }}
-          transition={{ duration: 0.22, ease: "easeOut" }}
+          transition={{ duration: 0.25, ease: "easeOut" }}
           className="w-full h-full relative flex items-center justify-center"
           style={{ willChange: 'transform', transform: 'translateZ(0)' }}
         >
