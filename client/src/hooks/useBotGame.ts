@@ -27,35 +27,18 @@ interface BotGameCallbacks {
   setLocalPlayerId: (v: string) => void;
 }
 
+import questionsData from '../data/questions.json';
+
 function generateBotQuestion(): CardData {
   const topics = ['Cybersecurity', 'Network Security', 'Cryptography', 'Malware', 'Ethical Hacking', 'Forensics'];
-  const difficulties: Array<'easy' | 'medium' | 'hard'> = ['easy', 'medium', 'hard'];
-  const questions = [
-    { q: 'Phishing là gì?', a: { A: 'Bắt cá', B: 'Lừa đảo giả mạo đánh cắp thông tin', C: 'Một loại virus', D: 'Phần mềm diệt virus' }, c: 'B' },
-    { q: '2FA viết tắt của gì?', a: { A: 'Two Factor Authentication', B: 'First File Access', C: 'Free Firewall Agent', D: 'Fast Data Attack' }, c: 'A' },
-    { q: 'Firewall dùng để làm gì?', a: { A: 'Tăng tốc internet', B: 'Lọc và chặn truy cập trái phép', C: 'Tạo website', D: 'Lưu trữ dữ liệu' }, c: 'B' },
-    { q: 'Ransomware làm gì?', a: { A: 'Xóa dữ liệu', B: 'Mã hóa và yêu cầu tiền chuộc', C: 'Sao chép dữ liệu', D: 'Tăng tốc máy' }, c: 'B' },
-    { q: 'DDoS là dạng tấn công gì?', a: { A: 'Đánh cắp mật khẩu', B: 'Tấn công từ chối dịch vụ bằng lưu lượng khổng lồ', C: 'Gửi email spam', D: 'Hack webcam' }, c: 'B' },
-    { q: 'SQL Injection tấn công vào đâu?', a: { A: 'Mạng WiFi', B: 'Cơ sở dữ liệu qua input chưa lọc', C: 'CPU', D: 'Màn hình' }, c: 'B' },
-    { q: 'VPN giúp bảo vệ bằng cách nào?', a: { A: 'Tăng tốc mạng', B: 'Mã hóa kết nối và ẩn IP', C: 'Xóa cookie', D: 'Cài antivirus' }, c: 'B' },
-    { q: 'Zero-day exploit lợi dụng gì?', a: { A: 'Lỗ hổng đã vá', B: 'Lỗ hổng chưa được phát hiện và vá', C: 'Lỗ hổng phần cứng', D: 'Lỗ hổng WiFi' }, c: 'B' },
-    { q: 'Keylogger là gì?', a: { A: 'Ghi lại thao tác bàn phím', B: 'Khóa cửa thông minh', C: 'Antivirus', D: 'Quản lý mật khẩu' }, c: 'A' },
-    { q: 'Worm khác Virus ở đâu?', a: { A: 'Worm tự lây lan không cần file host', B: 'Worm chỉ tấn công Windows', C: 'Virus nhanh hơn', D: 'Không khác nhau' }, c: 'A' },
-    { q: 'Social Engineering tấn công vào?', a: { A: 'Phần cứng', B: 'Yếu tố con người - tâm lý và lòng tin', C: 'WiFi', D: 'Cơ sở dữ liệu' }, c: 'B' },
-    { q: 'Brute Force Attack hoạt động thế nào?', a: { A: 'Tấn công tâm lý', B: 'Thử liên tục tổ hợp mật khẩu', C: 'Gửi virus qua email', D: 'Hack qua Bluetooth' }, c: 'B' },
-    { q: 'HTTPS bảo vệ dữ liệu bằng cách nào?', a: { A: 'Mã hóa dữ liệu', B: 'Xóa dữ liệu', C: 'Chia nhỏ dữ liệu', D: 'Gửi nhanh hơn' }, c: 'A' },
-    { q: 'Spoofing là hành động gì?', a: { A: 'Giả mạo danh tính đánh lừa hệ thống', B: 'Tạo mật khẩu mới', C: 'Cập nhật phần mềm', D: 'Sao lưu dữ liệu' }, c: 'A' },
-    { q: 'Rootkit được thiết kế để làm gì?', a: { A: 'Tăng tốc máy', B: 'Ẩn giấu mã độc trong hệ thống', C: 'Quản lý file', D: 'Tạo mật khẩu' }, c: 'B' },
-    { q: 'Phishing qua SMS được gọi là?', a: { A: 'Smishing', B: 'Vishing', C: 'Pharming', D: 'Spoofing' }, c: 'A' },
-  ];
-  const q = questions[Math.floor(Math.random() * questions.length)];
+  const q = questionsData[Math.floor(Math.random() * questionsData.length)];
   return {
     id: `bot-q-${Date.now()}-${Math.random()}`,
-    topic: topics[Math.floor(Math.random() * topics.length)],
-    difficulty: difficulties[Math.floor(Math.random() * difficulties.length)],
-    question: q.q,
-    answers: q.a,
-    correct: q.c,
+    topic: q.topic || topics[Math.floor(Math.random() * topics.length)],
+    difficulty: (q.difficulty || 'medium') as 'easy' | 'medium' | 'hard',
+    question: q.question,
+    answers: q.answers,
+    correct: q.correct,
   };
 }
 
