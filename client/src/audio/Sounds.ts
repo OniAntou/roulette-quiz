@@ -359,7 +359,10 @@ export const Sounds = {
       lfoGain.connect(filter.frequency);
 
       bgmGain = ctx.createGain();
-      bgmGain.gain.value = 0.12; 
+      const fadeDuration = 1.0;
+      const startTime = ctx.currentTime;
+      bgmGain.gain.setValueAtTime(0, startTime);
+      bgmGain.gain.linearRampToValueAtTime(0.12, startTime + fadeDuration);
       
       bgmOsc.connect(filter);
       filter.connect(bgmGain);

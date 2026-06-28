@@ -6,11 +6,12 @@ interface RevolverProps {
   currentPosition: number;
   isSpinning: boolean;
   isFiring: boolean;
+  showShotEffect: boolean;
   alive: boolean;
   rotationAngle: number;
 }
 
-export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, alive, rotationAngle }: RevolverProps) {
+export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, showShotEffect, alive, rotationAngle }: RevolverProps) {
   // Memoize spark trajectories so they don't jump around on re-renders
   const sparks = useMemo(() => {
     return [...Array(14)].map(() => {
@@ -118,7 +119,7 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
                 rotate: isFiring ? [0, 35, -20, 0] : isSpinning ? 35 : 0 
               }}
               transition={{ 
-                duration: isFiring ? 0.22 : 0.15,
+                duration: isFiring ? 0.34 : 0.25,
                 ease: "easeInOut"
               }}
             >
@@ -195,11 +196,11 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
                     y: 0
                   }}
                   transition={isSpinning ? {
-                    duration: 0.25,
+                    duration: 0.28,
                     repeat: Infinity,
                     ease: "linear"
                   } : isFiring ? {
-                    duration: 0.18,
+                    duration: 0.32,
                     ease: "easeOut"
                   } : {
                     duration: 0.3
@@ -325,7 +326,7 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
               BRUTALIST MUZZLE FLASH & SPARKS (Flat Drawing)
               ======================================================= */}
           <AnimatePresence>
-            {isFiring && !alive && (
+            {showShotEffect && !alive && (
               <div className="absolute inset-0 pointer-events-none z-50">
                 <svg className="w-full h-full overflow-visible" viewBox="0 0 320 220">
                   {/* 1. Supersonic Shockwave */}
@@ -389,7 +390,7 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
 
           {/* 3. Electric vector discharge on surviving click */}
           <AnimatePresence>
-            {isFiring && alive && (
+            {showShotEffect && alive && (
               <motion.div 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: [0, 1, 0] }}

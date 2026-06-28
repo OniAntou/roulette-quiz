@@ -88,6 +88,7 @@ export function GameBoard({
   
   const [isSpinning, setIsSpinning] = useState<boolean>(false);
   const [isFiring, setIsFiring] = useState<boolean>(false);
+  const [showShotEffect, setShowShotEffect] = useState<boolean>(false);
   const [timeLeft, setTimeLeft] = useState<number>(10);
   const [maxTime, setMaxTime] = useState<number>(10);
   const [hudMessage, setHudMessage] = useState<HudMessage | null>(null);
@@ -118,6 +119,7 @@ export function GameBoard({
   const [isMuted, setIsMuted] = useState<boolean>(() => {
     return localStorage.getItem('roulette-quiz-muted') === 'true';
   });
+  const [pendingActionText, setPendingActionText] = useState<string | null>(null);
   const opponentPlayers = players.filter(p => p.id !== localId);
   
   interface PileCard {
@@ -135,6 +137,7 @@ export function GameBoard({
   const lastMouseMoveRef = useRef<number>(0);
   const lastPlayedCardRef = useRef<string | null>(null);
   const triggerTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const bgmDeathStopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Sync mute state with Sounds
   useEffect(() => {
@@ -149,14 +152,47 @@ export function GameBoard({
   
   useEffect(() => {
     const isLethalShot = triggerResult !== null && !triggerResult.alive;
-    
-    if (isDeadSpectating || (isFiring && isLethalShot)) {
+    const stopDelay = 1800;
+
+    const clearDeathStopTimer = () => {
+      if (bgmDeathStopTimerRef.current) {
+        clearTimeout(bgmDeathStopTimerRef.current);
+        bgmDeathStopTimerRef.current = null;
+      }
+    };
+
+    if (isDeadSpectating) {
+      clearDeathStopTimer();
       Sounds.stopBGM();
+      return;
+    }
+
+    if (isLethalShot) {
+      clearDeathStopTimer();
+      Sounds.startBGM();
+      bgmDeathStopTimerRef.current = setTimeout(() => {
+        Sounds.stopBGM();
+        bgmDeathStopTimerRef.current = null;
+      }, stopDelay);
     } else {
+      clearDeathStopTimer();
       Sounds.startBGM();
     }
-    return () => Sounds.stopBGM();
-  }, [isDeadSpectating, isFiring, triggerResult]);
+
+    return () => {
+      clearDeathStopTimer();
+    };
+  }, [isDeadSpectating, triggerResult]);
+
+  useEffect(() => {
+    return () => {
+      if (bgmDeathStopTimerRef.current) {
+        clearTimeout(bgmDeathStopTimerRef.current);
+        bgmDeathStopTimerRef.current = null;
+      }
+      Sounds.stopBGM();
+    };
+  }, []);
 
   // Heartbeat Effect (căng thẳng tăng dần theo số đạn đã bắn)
   useEffect(() => {
@@ -218,6 +254,7 @@ export function GameBoard({
     
     setIsSpinning(false);
     setIsFiring(false);
+    setShowShotEffect(false);
     setRotationAngle(-90);
     setIsGunInCenter(false);
     setIsDealing(false);
@@ -311,11 +348,17 @@ export function GameBoard({
       }
       setRotationAngle(targetAngle);
       
+      const triggerAnimationDelay = 800;
+      const fireEffectDelay = 400;
       const spinTimer = setTimeout(() => {
         setIsSpinning(false);
         setIsFiring(true);
 
         const fireDelayTimer = setTimeout(() => {
+          setShowShotEffect(true);
+          const shotEffectTimer = setTimeout(() => setShowShotEffect(false), 120);
+          triggerTimersRef.current.push(shotEffectTimer);
+
           // Screen Shake & Red flash effect
           if (!isPresentationMode) {
             setIsScreenShaking(true);
@@ -368,14 +411,15 @@ export function GameBoard({
           }
           setRotationAngle(-90);
           setIsGunInCenter(false);
-        }, 150);
+        }, fireEffectDelay);
         triggerTimersRef.current.push(fireDelayTimer);
 
         const resetFireTimer = setTimeout(() => {
           setIsFiring(false);
+          setShowShotEffect(false);
         }, 2000);
         triggerTimersRef.current.push(resetFireTimer);
-      }, 1200);
+      }, triggerAnimationDelay);
       triggerTimersRef.current.push(spinTimer);
 
       return () => {
@@ -415,6 +459,7 @@ export function GameBoard({
 
   useEffect(() => {
     if (playedCard) {
+      setPendingActionText(null);
       if (lastPlayedCardRef.current !== playedCard.id) {
         Sounds.cardPlay();
         lastPlayedCardRef.current = playedCard.id;
@@ -455,6 +500,7 @@ export function GameBoard({
     if (onCardChoice) {
       onCardChoice(card.id);
     } else {
+      setPendingActionText('SEND_CARD_SELECTION');
       socketClient.chooseCard(roomId, card.id);
     }
   };
@@ -469,9 +515,16 @@ export function GameBoard({
     if (onAnswerSubmit) {
       onAnswerSubmit(letter);
     } else {
+      setPendingActionText('SEND_ANSWER');
       socketClient.submitAnswer(roomId, letter);
     }
   };
+
+  useEffect(() => {
+    if (questionResult || phase === 'trigger' || phase === 'questioning') {
+      setPendingActionText(null);
+    }
+  }, [questionResult, phase]);
 
   const handleCardMouseMove = (e: React.MouseEvent<HTMLDivElement>, index: number) => {
     const now = performance.now();
@@ -519,6 +572,13 @@ export function GameBoard({
     if (phase === 'trigger') return 'text-red-theme';
     if (phase === 'choosing' || phase === 'answering') return 'text-amber-theme';
     return 'text-text-theme-secondary';
+  };
+
+  const getPendingLabel = () => {
+    if (!pendingActionText) return null;
+    if (pendingActionText === 'SEND_CARD_SELECTION') return 'SENDING CARD...';
+    if (pendingActionText === 'SEND_ANSWER') return 'SENDING ANSWER...';
+    return null;
   };
 
   const getTargetPlayer = () => {
@@ -926,6 +986,7 @@ export function GameBoard({
           currentPosition={currentPositionState}
           isSpinning={isSpinning}
           isFiring={isFiring}
+          showShotEffect={showShotEffect}
           alive={triggerResult ? triggerResult.alive : true}
           rotationAngle={rotationAngle}
         />
@@ -1117,6 +1178,11 @@ export function GameBoard({
                     : 'LINK STATE // SECURED'
               }
             </span>
+            {getPendingLabel() && (
+              <span className="text-[9px] font-mono font-black uppercase tracking-[0.3em] text-amber-theme mt-1">
+                {getPendingLabel()}
+              </span>
+            )}
           </div>
           {!localPlayer.isAlive && (
             <button 

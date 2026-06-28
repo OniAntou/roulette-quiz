@@ -10,6 +10,9 @@ export class GameManager {
   private io: Server;
   private questionManager: QuestionManager;
   private games: Map<string, GameState> = new Map();
+  private readonly startDelayMs = 400;
+  private readonly resultDelayMs = 3500;
+  private readonly postTriggerDelayMs = 3000;
 
   constructor(roomManager: RoomManager, io: Server) {
     this.roomManager = roomManager;
@@ -67,7 +70,7 @@ export class GameManager {
         });
         this.games.delete(roomId);
       }
-    }, 1000);
+    }, this.startDelayMs);
   }
 
   private createGun(): Gun {
@@ -267,13 +270,13 @@ export class GameManager {
         }).catch(err => {
           this.io.to(roomId).emit('error', { code: 'DEAL_CARDS_FAILED', message: 'Failed to deal cards' });
         });
-      }, 3500);
+      }, this.resultDelayMs);
     } else {
       // Wrong answer: pull trigger after delay
       game.triggerTimeout = setTimeout(() => {
         game.triggerTimeout = undefined;
         this.pullTrigger(roomId);
-      }, 3500);
+      }, this.resultDelayMs);
     }
   }
 
@@ -326,7 +329,7 @@ export class GameManager {
             stats: current.stats,
           });
           this.games.delete(roomId);
-        }, 3000);
+        }, this.postTriggerDelayMs);
       } else {
         // Someone died but game continues - NEW ROUND with new gun
         game.postTriggerTimeout = setTimeout(() => {
@@ -341,7 +344,7 @@ export class GameManager {
             this.io.to(roomId).emit('game:newRound', { round: current.round });
             this.io.to(roomId).emit('game:turn', { playerId: current.players[current.currentTurn].id });
           });
-        }, 3000);
+        }, this.postTriggerDelayMs);
       }
     } else {
       // SURVIVED - gun clicked but no bullet
@@ -366,7 +369,7 @@ export class GameManager {
         this.dealCards(roomId).then(() => {
           this.io.to(roomId).emit('game:turn', { playerId: current.players[current.currentTurn].id });
         });
-      }, 3000);
+      }, this.postTriggerDelayMs);
     }
   }
 
