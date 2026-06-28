@@ -10,7 +10,7 @@
     "dev:client": "cd client && npm run dev",
     "build": "npm run build:client && npm run build:server",
     "build:client": "cd client && npm install --production=false && npm run build",
-    "build:server": "cd server && npm install --production=false && npm run build",
+    "build:server": "cd server && npm install --production=false --build-from-source && npm run build",
     "desktop:start": "electron .",
     "desktop:build": "electron-builder"
   },
