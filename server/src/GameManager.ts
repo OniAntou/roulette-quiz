@@ -176,16 +176,10 @@ export class GameManager {
 
     game.phase = 'questioning';
 
-    const targetPlayer = game.players[game.targetPlayer];
-    const targetSocket = this.io.sockets.sockets.get(targetPlayer.id);
-    if (targetSocket) {
-      targetSocket.emit('game:question', {
-        card: { id: card.id, topic: card.topic, difficulty: card.difficulty, question: card.question, answers: card.answers },
-        timer: this.getTimerDuration(card.difficulty),
-        from: player.name,
-      });
-    }
-
+    // IMPORTANT: emit cardPlayed to room FIRST, then question to target.
+    // This ensures the target player processes cardPlayed (phase='questioning')
+    // before question (phase='answering'). Reversing this order would cause
+    // game:cardPlayed to overwrite phase back to 'questioning' and break the timer.
     this.io.to(roomId).emit('game:cardPlayed', {
       playerId: socketId,
       card: {
@@ -195,6 +189,16 @@ export class GameManager {
         question: card.question,
       },
     });
+
+    const targetPlayer = game.players[game.targetPlayer];
+    const targetSocket = this.io.sockets.sockets.get(targetPlayer.id);
+    if (targetSocket) {
+      targetSocket.emit('game:question', {
+        card: { id: card.id, topic: card.topic, difficulty: card.difficulty, question: card.question, answers: card.answers },
+        timer: this.getTimerDuration(card.difficulty),
+        from: player.name,
+      });
+    }
 
     const timerDuration = this.getTimerDuration(card.difficulty);
     game.answerTimeout = setTimeout(() => {
