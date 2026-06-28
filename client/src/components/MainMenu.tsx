@@ -60,6 +60,8 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
   const [loadingText, setLoadingText] = useState<string>('SYS.BOOT: DECRYPTING ENGINE...');
   const [name, setName] = useState<string>('');
   const [isFocused, setIsFocused] = useState<boolean>(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [cursorPos, setCursorPos] = useState<number>(0);
 
   // Fake Loading Progress Effect
   useEffect(() => {
@@ -110,6 +112,21 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
   useEffect(() => {
     Sounds.initMuted();
   }, []);
+
+  // Measure text length for terminal cursor position
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    const style = getComputedStyle(el);
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+    const charWidth = ctx.measureText('M').width;
+    const letterSpacing = parseFloat(style.letterSpacing) || 0;
+    const textLen = name.length;
+    setCursorPos(textLen * charWidth + textLen * letterSpacing);
+  }, [name]);
 
   // Start Menu BGM
   useEffect(() => {
@@ -488,16 +505,24 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
             <label className="font-mono text-[9px] text-text-theme-muted tracking-widest">
               // USER_IDENTIFICATION_KEY
             </label>
-            <div className="flex items-center space-x-2">
+            <div className="relative flex items-center w-full">
               <input
+                ref={inputRef}
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value.substring(0, 12).toUpperCase())}
+                onFocus={() => setIsFocused(true)}
+                onBlur={() => setIsFocused(false)}
                 disabled={status === 'connecting'}
                 className="bg-transparent text-4xl sm:text-5xl font-mono font-bold text-text-theme focus:outline-none w-full uppercase tracking-wider placeholder-text-theme-dim"
                 placeholder="INPUT_NAME"
               />
-              <span className="w-2.5 h-6 bg-text-theme/40 terminal-cursor" />
+              {isFocused && (
+                <span
+                  className="absolute w-2.5 h-6 bg-text-theme/40 terminal-cursor pointer-events-none"
+                  style={{ left: cursorPos }}
+                />
+              )}
             </div>
           </div>
 
