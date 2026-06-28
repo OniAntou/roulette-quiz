@@ -465,10 +465,12 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
     processAnswerRef.current('local-player', letter, activeQuestion.card.correct || 'A');
   }, []);
 
-  const startBotGame = useCallback((count: number) => {
+  const startBotGame = useCallback((count: number, customName?: string) => {
     setBotMode(true);
     setBotCount(count);
     callbacks.setLocalPlayerId('local-player');
+
+    const finalPlayerName = customName || playerName || 'PLAYER';
 
     const botPlayers: BotState[] = [];
     for (let i = 0; i < count; i++) {
@@ -483,7 +485,7 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
     setBots(botPlayers);
 
     const allPlayers: Player[] = [
-      { id: 'local-player', name: playerName, cardsCount: 4, isAlive: true },
+      { id: 'local-player', name: finalPlayerName, cardsCount: 4, isAlive: true },
       ...botPlayers.map(b => ({ id: b.id, name: b.name, cardsCount: 4, isAlive: true })),
     ];
     callbacks.setPlayers(allPlayers);

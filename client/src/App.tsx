@@ -60,7 +60,7 @@ export default function App() {
   const handleStartBotGame = useCallback((count: number, name: string) => {
     setPlayerName(name);
     setLocalPlayerId('local-player');
-    startBotGame(count);
+    startBotGame(count, name);
   }, [startBotGame]);
 
   // Sync state to bot refs
