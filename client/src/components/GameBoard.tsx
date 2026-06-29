@@ -6,6 +6,7 @@ import { ThemeToggle } from './ThemeToggle';
 import { Check, X, ShieldWarning, ArrowLeft, SpeakerSimpleX, SpeakerHigh } from '@phosphor-icons/react';
 import { GamePhase, Player, CardData, ActiveQuestion, QuestionResult, TriggerResult } from '../types';
 import { Sounds } from '../audio/Sounds';
+import { TypewriterText } from './TypewriterText';
 
 interface GameBoardProps {
   round: number;
@@ -106,7 +107,6 @@ export function GameBoard({
   const [revealedCards, setRevealedCards] = useState<Set<string>>(new Set());
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [hoveredCardIndex, setHoveredCardIndex] = useState<number | null>(null);
-  const [tilt, setTilt] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [answerIndicator, setAnswerIndicator] = useState<{ playerId: string; correct: boolean } | null>(null);
   const [isScreenShaking, setIsScreenShaking] = useState<boolean>(false);
   const [showRedFlash, setShowRedFlash] = useState<boolean>(false);
@@ -134,7 +134,6 @@ export function GameBoard({
 
   const prevHandCardsLength = useRef<number>(0);
   const lastProcessedTriggerRef = useRef<string | null>(null);
-  const lastMouseMoveRef = useRef<number>(0);
   const lastPlayedCardRef = useRef<string | null>(null);
   const triggerTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const bgmDeathStopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -455,17 +454,23 @@ export function GameBoard({
       setTimeLeft(activeQuestion.timer);
       setMaxTime(activeQuestion.timer);
 
+      const endTime = Date.now() + activeQuestion.timer * 1000;
+
       const interval = setInterval(() => {
+        const remaining = Math.max(0, Math.ceil((endTime - Date.now()) / 1000));
+        
         setTimeLeft(prev => {
-          if (prev <= 1) {
-            clearInterval(interval);
-            Sounds.timerWarning();
-            return 0;
+          if (remaining !== prev) {
+            if (remaining === 0) {
+              clearInterval(interval);
+              Sounds.timerWarning();
+            } else {
+              Sounds.countdown(remaining <= 3);
+            }
           }
-          Sounds.countdown(prev - 1 <= 3);
-          return prev - 1;
+          return remaining;
         });
-      }, 1000);
+      }, 100);
 
       return () => clearInterval(interval);
     }
@@ -545,23 +550,8 @@ export function GameBoard({
     }
   }, [questionResult, phase]);
 
-  const handleCardMouseMove = (e: React.MouseEvent<HTMLDivElement>, index: number) => {
-    const now = performance.now();
-    if (now - lastMouseMoveRef.current < 50) return; // ~20fps throttle to prevent React re-render flooding
-    lastMouseMoveRef.current = now;
-
-    const rect = e.currentTarget.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-    const x = ((e.clientX - centerX) / (rect.width / 2)) * 12;
-    const y = ((e.clientY - centerY) / (rect.height / 2)) * -8;
-    setTilt({ x, y });
-    setHoveredCardIndex(index);
-  };
-
   const handleCardMouseLeave = () => {
     setHoveredCardIndex(null);
-    setTilt({ x: 0, y: 0 });
   };
 
   const getDifficultyColor = (difficulty: string) => {
@@ -720,17 +710,17 @@ export function GameBoard({
       <div className="absolute top-6 left-6 z-[120] flex items-center gap-4">
         <button 
           onClick={onLeaveAfterDeath}
-          className="px-4 py-2 bg-red-theme/10 hover:bg-red-theme/20 border border-red-theme/50 text-red-theme font-mono text-xs font-bold tracking-[0.1em] transition-colors shadow-[0_0_15px_rgba(239,68,68,0.15)] backdrop-blur-sm"
+          className="px-4 py-2 bg-red-theme/10 hover:bg-red-theme/20 border border-red-theme/50 text-red-theme font-mono text-xs font-bold tracking-[0.1em] transition-colors shadow-[0_0_15px_rgba(239,68,68,0.15)]"
           title="Bỏ cuộc / Rời phòng"
         >
           [ RỜI TRẬN ]
         </button>
-        <div className="border border-cyan-theme/30 p-1.5 shadow-[0_0_15px_rgba(34,211,238,0.1)] bg-bg-surface/50 backdrop-blur-sm rounded-sm">
+        <div className="border border-cyan-theme/30 p-1.5 shadow-[0_0_15px_rgba(34,211,238,0.1)] bg-bg-surface/50 rounded-sm">
           <ThemeToggle />
         </div>
         <button
           onClick={() => setIsMuted(!isMuted)}
-          className="w-10 h-10 flex items-center justify-center border border-cyan-theme/30 shadow-[0_0_15px_rgba(34,211,238,0.1)] bg-bg-surface/50 backdrop-blur-sm rounded-sm transition-colors hover:bg-cyan-theme/10"
+          className="w-10 h-10 flex items-center justify-center border border-cyan-theme/30 shadow-[0_0_15px_rgba(34,211,238,0.1)] bg-bg-surface/50 rounded-sm transition-colors hover:bg-cyan-theme/10"
           title={isMuted ? 'Bật âm thanh' : 'Tắt âm thanh'}
         >
           {isMuted ? (
@@ -741,7 +731,7 @@ export function GameBoard({
         </button>
         <button
           onClick={() => setIsPresentationMode(!isPresentationMode)}
-          className={`px-3 py-2 border font-mono text-xs font-bold tracking-widest uppercase transition-colors backdrop-blur-sm ${
+          className={`px-3 py-2 border font-mono text-xs font-bold tracking-widest uppercase transition-colors ${
             isPresentationMode 
               ? 'border-amber-theme text-amber-theme bg-amber-theme-bg shadow-[0_0_15px_rgba(245,158,11,0.2)]' 
               : 'border-cyan-theme/30 text-cyan-theme/70 bg-surface/50 hover:text-cyan-theme'
@@ -903,18 +893,18 @@ export function GameBoard({
       })}
 
       {opponentPlayers.length === 0 && (
-        <div className="absolute top-24 left-1/2 -translate-x-1/2 flex flex-col items-center space-y-3 p-6 border border-dashed border-border-theme rounded-2xl bg-input-theme z-20">
-          <div className="w-12 h-12 rounded-xl bg-panel-solid/60 border border-border-theme flex items-center justify-center font-bold text-xs text-text-theme-dim animate-pulse">
-            ?
+        <div className="absolute top-24 left-1/2 -translate-x-1/2 flex flex-col items-center space-y-4 p-8 border border-dashed border-cyan-theme-muted rounded-full bg-surface-2/40 backdrop-blur-md z-20">
+          <div className="relative w-16 h-16 rounded-full border border-cyan-theme/30 bg-surface-3 flex items-center justify-center shadow-[0_0_20px_rgba(34,211,238,0.15)] overflow-hidden">
+            <div className="absolute inset-0 radar-sweep opacity-50"></div>
+            <div className="w-2 h-2 rounded-full bg-cyan-theme animate-ping absolute"></div>
+            <div className="w-2 h-2 rounded-full bg-cyan-theme absolute"></div>
           </div>
-          <span className="text-[10px] font-extrabold text-text-theme-muted tracking-widest uppercase">
-            WAITING FOR OPPONENTS //
-          </span>
+          <TypewriterText text="WAITING FOR OPPONENTS" speed={50} className="text-[10px] font-extrabold text-cyan-theme tracking-widest uppercase font-mono drop-shadow-[0_0_5px_rgba(34,211,238,0.5)]" />
         </div>
       )}
 
       {/* 2. Center Table */}
-      <div className="absolute top-[48%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[720px] h-[340px] rounded-none bg-surface-3/70 border border-cyan-theme-muted backdrop-blur-md flex items-center justify-center gap-16 px-12 z-10 overflow-visible">
+      <div className="absolute top-[48%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[720px] h-[340px] rounded-none bg-surface-3/80 border border-cyan-theme-muted flex items-center justify-center gap-16 px-12 z-10 overflow-visible">
 
         {/* Discard Pile / Played Card */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20">
@@ -1067,15 +1057,15 @@ export function GameBoard({
                     opacity: isPlayable ? 1 : 0.3,
                     x: baseX,
                     y: hoverY,
-                    rotateY: isHovered ? tilt.x * 0.5 : 0,
-                    rotateX: isHovered ? tilt.y * 0.5 : 0,
                     rotate: hoverAngle,
                     scale: hoverScale,
                   }}
                   exit={{ opacity: 0, y: -40 }}
                   transition={{ type: "spring", stiffness: 200, damping: 20 }}
-                  onMouseEnter={() => Sounds.cardSelect()}
-                  onMouseMove={(e) => isPlayable && handleCardMouseMove(e, index)}
+                  onMouseEnter={() => {
+                    if (isPlayable) setHoveredCardIndex(index);
+                    Sounds.cardSelect();
+                  }}
                   onMouseLeave={handleCardMouseLeave}
                   onClick={() => handleCardClick(card)}
                   className={`absolute w-64 h-96 border rounded-none p-6 flex flex-col justify-between select-none overflow-hidden bg-card-theme ${
@@ -1102,8 +1092,8 @@ export function GameBoard({
                           card.difficulty === 'easy' ? 'text-emerald-theme' : card.difficulty === 'medium' ? 'text-amber-theme' : 'text-red-theme'
                         }`}>{card.difficulty.toUpperCase()}</span>
                       </div>
-                      <div className="flex-1 flex items-center justify-center py-2 overflow-y-auto pr-0.5">
-                        <p className={`text-sm font-bold leading-normal text-left tracking-wide font-mono uppercase transition-colors duration-300 ${
+                      <div className="flex-1 flex items-center justify-center py-2 overflow-hidden pr-0.5">
+                        <p className={`text-sm font-bold leading-normal text-left tracking-wide font-mono uppercase transition-colors duration-300 break-words w-full line-clamp-6 ${
                           isHovered ? 'text-text-theme' : 'text-text-theme-secondary'
                         }`}>
                           {card.question.substring(0, isHovered ? 100 : 80) + (card.question.length > (isHovered ? 100 : 80) ? '...' : '')}
@@ -1240,14 +1230,14 @@ export function GameBoard({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-overlay-solid/90 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            className={`fixed inset-0 ${isPresentationMode ? 'bg-overlay-solid/98 backdrop-blur-xl' : 'bg-overlay-solid/90 backdrop-blur-sm'} flex items-center justify-center z-50 p-4`}
           >
             <motion.div 
               initial={{ scale: 0.98, y: 15 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.98, y: 15, opacity: 0 }}
               transition={{ type: "spring", stiffness: 350, damping: 30 }}
-              className="bg-surface-3 border-2 border-cyan-theme-light rounded-none p-10 max-w-4xl w-full flex flex-col relative overflow-hidden"
+              className={`bg-surface-3 border-2 ${isPresentationMode ? 'border-cyan-theme shadow-[0_0_40px_rgba(34,211,238,0.25)]' : 'border-cyan-theme-light'} rounded-none p-10 max-w-4xl w-full flex flex-col relative overflow-hidden`}
             >
               <span className="absolute top-2 left-2 text-[10px] font-mono text-cyan-theme-muted select-none font-normal">+</span>
               <span className="absolute top-2 right-2 text-[10px] font-mono text-cyan-theme-muted select-none font-normal">+</span>
@@ -1376,8 +1366,8 @@ export function GameBoard({
                 style={{ transform: 'translate(-50%, -50%)' }}
               >
                 <span className="block font-mono text-[8px] text-red-theme/60 tracking-widest mb-1">// CRITICAL_SYSTEM_ALERT</span>
-                <h2 className="font-mono text-xs font-black text-red-theme tracking-wider uppercase animate-pulse">
-                  {deathMessage}
+                <h2 className="font-mono text-xs font-black text-red-theme tracking-wider uppercase animate-pulse drop-shadow-[0_0_10px_rgba(239,68,68,0.5)]">
+                  <TypewriterText text={deathMessage} speed={40} />
                 </h2>
                 <div className="mt-4 flex justify-center items-center gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-red-theme animate-ping" />

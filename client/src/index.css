@@ -150,6 +150,11 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     transition: background-color 0.3s ease, color 0.3s ease;
+    cursor: crosshair;
+  }
+
+  button, a, .cursor-pointer {
+    cursor: crosshair !important;
   }
 }
 
@@ -161,6 +166,24 @@
 
 .terminal-cursor {
   animation: blink 0.9s infinite;
+}
+
+/* Radar Animation */
+@keyframes radar-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.radar-sweep {
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    rgba(34, 211, 238, 0.05) 240deg,
+    rgba(34, 211, 238, 0.4) 300deg,
+    rgba(34, 211, 238, 0.9) 360deg
+  );
+  animation: radar-spin 2s linear infinite;
 }
 
 /* Scan beam animations */
@@ -346,6 +369,7 @@
   animation: static-noise 0.12s linear infinite;
   will-change: transform;
   transform: translateZ(0);
+  contain: paint;
 }
 
 /* CRT Screen Shutdown animation */
