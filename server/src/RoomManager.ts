@@ -177,4 +177,19 @@ export class RoomManager {
     const roomId = this.playerRooms.get(socketId);
     return roomId ? this.rooms.get(roomId) : undefined;
   }
+
+  getAvailableRooms(): { id: string; players: number; max: number }[] {
+    const available: { id: string; players: number; max: number }[] = [];
+    for (const room of this.rooms.values()) {
+      if (room.state === 'waiting' && room.players.length < 4) {
+        available.push({
+          id: room.id,
+          players: room.players.length,
+          max: 4
+        });
+      }
+    }
+    return available;
+  }
 }
+

@@ -116,6 +116,10 @@ io.on('connection', (socket) => {
     console.log(`Room created: ${room.id}`);
   });
 
+  socket.on('room:list', () => {
+    socket.emit('room:list_result', { rooms: roomManager.getAvailableRooms() });
+  });
+
   socket.on('room:join', (data: { roomId: string; playerName: string }) => {
     const { roomId, playerName } = data;
     console.log(`[JOIN] Player ${playerName} (${socket.id}) joining room ${roomId}`);

@@ -82,6 +82,7 @@ class SocketClient {
     this.socket.on('room:joined', (data: any) => this.emit('room:joined', data));
     this.socket.on('room:players', (data: any) => this.emit('room:players', data));
     this.socket.on('room:left', () => this.emit('room:left'));
+    this.socket.on('room:list_result', (data: any) => this.emit('room:list_result', data));
 
     this.socket.on('game:start', (data: any) => this.emit('game:start', data));
     this.socket.on('game:deal', (data: any) => this.emit('game:deal', data));
@@ -134,7 +135,14 @@ class SocketClient {
   }
 
   createRoom(playerName: string): void {
-    this.send('room:create', { playerName });
+    if (!this.socket) return;
+    this.playerName = playerName;
+    this.socket.emit('room:create', { playerName });
+  }
+
+  getRooms(): void {
+    if (!this.socket) return;
+    this.socket.emit('room:list');
   }
 
   joinRoom(roomId: string, playerName: string): void {

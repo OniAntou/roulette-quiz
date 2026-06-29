@@ -20,6 +20,9 @@ export function Lobby({ roomId, players, localId, error, disconnect }: LobbyProp
   const [shakeModal, setShakeModal] = useState<boolean>(false);
   const [isReady, setIsReady] = useState<boolean>(false);
   const [copied, setCopied] = useState<boolean>(false);
+  const [isBrowseOpen, setIsBrowseOpen] = useState<boolean>(false);
+  const [availableRooms, setAvailableRooms] = useState<{id: string, players: number, max: number}[]>([]);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
   const handleCopyCode = async () => {
     if (!roomId) return;
@@ -29,7 +32,40 @@ export function Lobby({ roomId, players, localId, error, disconnect }: LobbyProp
   };
 
   useEffect(() => {
+    const onRoomList = (data: { rooms: { id: string; players: number; max: number }[] }) => {
+      setAvailableRooms(data.rooms);
+      setIsRefreshing(false);
+    };
+    
+    socketClient.on('room:list_result', onRoomList);
+    
+    return () => {
+      socketClient.off('room:list_result', onRoomList);
+    };
+  }, []);
+
+  const openBrowse = () => {
+    Sounds.buttonClick();
+    setIsBrowseOpen(true);
+    refreshRooms();
+  };
+
+  const closeBrowse = () => {
+    setIsBrowseOpen(false);
+  };
+
+  const refreshRooms = () => {
+    setIsRefreshing(true);
+    socketClient.getRooms();
+  };
+
+  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (isBrowseOpen && e.key === 'Escape') {
+        closeBrowse();
+        return;
+      }
+      
       if (!isModalOpen) return;
 
       if (e.key === 'Escape') {
@@ -60,7 +96,7 @@ export function Lobby({ roomId, players, localId, error, disconnect }: LobbyProp
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('paste', handleGlobalPaste);
     };
-  }, [isModalOpen, modalCode]);
+  }, [isModalOpen, modalCode, isBrowseOpen]);
 
   const openModal = () => {
     Sounds.buttonClick();
@@ -165,6 +201,17 @@ export function Lobby({ roomId, players, localId, error, disconnect }: LobbyProp
                 <span className="flex items-center gap-3 transition-transform duration-300 group-hover:translate-x-2">
                   <Shield size={24} className="text-text-theme-muted group-hover:text-red-theme transition-colors" /> 
                   JOIN PROTOCOL
+                </span>
+                <span className="group-hover:translate-x-1.5 transition-transform duration-300">↗</span>
+              </button>
+              <button 
+                onClick={openBrowse}
+                className="group w-full py-6 bg-panel-solid/80 backdrop-blur-md border border-border-theme hover:border-emerald-theme-border hover:bg-surface-2 rounded-2xl text-base font-extrabold text-text-theme-secondary tracking-widest uppercase flex items-center justify-between px-8 transition-all duration-300 overflow-hidden"
+              >
+                <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-emerald-theme scale-y-0 group-hover:scale-y-100 transition-transform duration-300 origin-center"></div>
+                <span className="flex items-center gap-3 transition-transform duration-300 group-hover:translate-x-2">
+                  <Users size={24} className="text-text-theme-muted group-hover:text-emerald-theme transition-colors" /> 
+                  BROWSE OPEN PROTOCOLS
                 </span>
                 <span className="group-hover:translate-x-1.5 transition-transform duration-300">↗</span>
               </button>
@@ -285,6 +332,80 @@ export function Lobby({ roomId, players, localId, error, disconnect }: LobbyProp
                   className="flex-1 py-4 bg-red-theme-bg border border-red-theme-border hover:border-red-theme text-xs font-extrabold text-red-theme tracking-wider uppercase rounded-xl hover:bg-red-theme-bg-hover transition-all duration-300 cursor-pointer"
                 >
                   CONFIRM // ENTER
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {isBrowseOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-overlay-solid/90 backdrop-blur-md flex items-center justify-center z-50 p-4"
+          >
+            <motion.div 
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 15, opacity: 0 }}
+              className="glass-panel rounded-2xl p-8 max-w-lg w-full flex flex-col relative overflow-hidden max-h-[80vh]"
+            >
+              <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-border-theme-strong to-transparent"></div>
+              
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-[10px] text-emerald-theme font-extrabold tracking-widest uppercase flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-theme animate-pulse"></span>
+                  OPEN_PROTOCOLS_SCANNER //
+                </h3>
+                <button onClick={refreshRooms} className="text-[9px] text-text-theme-muted hover:text-text-theme transition-colors font-bold uppercase tracking-widest border border-border-theme px-3 py-1.5 rounded-lg cursor-pointer">
+                  {isRefreshing ? 'SCANNING...' : 'REFRESH'}
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto pr-2 space-y-3 min-h-[200px]">
+                {availableRooms.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full text-center p-8 text-text-theme-muted italic border border-dashed border-border-theme rounded-xl">
+                    <span className="text-xs mb-2 block">NO OPEN PROTOCOLS DETECTED</span>
+                    <span className="text-[9px] opacity-70">Initiate your own protocol to begin.</span>
+                  </div>
+                ) : (
+                  availableRooms.map((room) => (
+                    <div 
+                      key={room.id}
+                      onClick={() => {
+                        Sounds.buttonClick();
+                        socketClient.joinRoom(room.id, socketClient.playerName || 'GUEST');
+                        closeBrowse();
+                      }}
+                      className="group cursor-pointer bg-surface-2 hover:bg-emerald-theme-bg border border-border-theme hover:border-emerald-theme-border rounded-xl p-4 flex items-center justify-between transition-all duration-300"
+                    >
+                      <div className="flex flex-col">
+                        <span className="font-mono text-text-theme group-hover:text-emerald-theme font-bold tracking-widest uppercase transition-colors">
+                          PROTOCOL_{room.id}
+                        </span>
+                        <span className="text-[9px] text-text-theme-muted tracking-widest mt-1">
+                          STATUS: WAITING_FOR_SUBJECTS
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <span className="text-xs font-mono font-bold text-text-theme-muted group-hover:text-emerald-theme transition-colors">
+                          {room.players} / {room.max}
+                        </span>
+                        <div className="w-8 h-8 rounded-lg bg-input-theme group-hover:bg-emerald-theme-bg border border-border-theme group-hover:border-emerald-theme flex items-center justify-center transition-all">
+                          <span className="text-text-theme-muted group-hover:text-emerald-theme transition-colors font-bold">↗</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              <div className="mt-6 w-full">
+                <button onClick={closeBrowse}
+                  className="w-full py-4 bg-surface-2 border border-border-theme hover:border-red-theme-border text-xs font-extrabold text-text-theme-muted tracking-wider uppercase rounded-xl hover:text-text-theme hover:bg-red-theme-bg transition-all duration-300 cursor-pointer"
+                >
+                  CLOSE_SCANNER // ESC
                 </button>
               </div>
             </motion.div>
