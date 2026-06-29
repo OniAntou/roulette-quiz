@@ -1544,26 +1544,6 @@ export function GameBoard({
               exit={{ opacity: 0 }}
               className="absolute inset-0 static-glitch z-[90] pointer-events-none"
             />
-            
-            {/* Warning card block - Only show if it's NOT local player's death */}
-            {triggerResult && triggerResult.playerId !== localId && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9, x: '-50%', y: '-40%' }}
-                animate={{ opacity: 1, scale: 1, x: '-50%', y: '-50%' }}
-                exit={{ opacity: 0, scale: 0.9, x: '-50%', y: '-40%' }}
-                className="absolute top-1/2 left-1/2 z-[100] bg-surface/90 backdrop-blur-md border-2 border-red-theme-border px-10 py-6 text-center shadow-[0_0_50px_rgba(239,68,68,0.25)] min-w-[340px]"
-                style={{ transform: 'translate(-50%, -50%)' }}
-              >
-                <span className="block font-mono text-[8px] text-red-theme/60 tracking-widest mb-1">// CRITICAL_SYSTEM_ALERT</span>
-                <h2 className="font-mono text-xs font-black text-red-theme tracking-wider uppercase animate-pulse drop-shadow-[0_0_10px_rgba(239,68,68,0.5)]">
-                  {deathMessage}
-                </h2>
-                <div className="mt-4 flex justify-center items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-red-theme animate-ping" />
-                  <span className="font-mono text-[8px] text-text-theme-muted tracking-widest">TRANSMISSION SEVERED</span>
-                </div>
-              </motion.div>
-            )}
           </>
         )}
       </AnimatePresence>
