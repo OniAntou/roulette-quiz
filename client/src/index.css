@@ -642,3 +642,25 @@
 .presentation-mode .animate-crt-turn-on { animation: none !important; filter: none !important; transform: none !important; }
 .presentation-mode .text-xs { font-size: 14px !important; }
 .presentation-mode .text-sm { font-size: 16px !important; }
+
+@keyframes shake-hard {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  10%, 30%, 50%, 70%, 90% { transform: translate(-3px, -3px) rotate(-5deg); }
+  20%, 40%, 60%, 80% { transform: translate(3px, 3px) rotate(5deg); }
+}
+
+.animate-shake-hard {
+  animation: shake-hard 0.4s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+.shatter-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: 
+    linear-gradient(45deg, transparent 48%, rgba(255,255,255,0.6) 49%, rgba(255,255,255,0.6) 51%, transparent 52%),
+    linear-gradient(-45deg, transparent 40%, rgba(255,255,255,0.4) 41%, rgba(255,255,255,0.4) 43%, transparent 44%),
+    linear-gradient(15deg, transparent 30%, rgba(255,255,255,0.7) 31%, rgba(255,255,255,0.7) 32%, transparent 33%),
+    linear-gradient(-75deg, transparent 60%, rgba(255,255,255,0.5) 61%, rgba(255,255,255,0.5) 62%, transparent 63%);
+  mix-blend-mode: overlay;
+}

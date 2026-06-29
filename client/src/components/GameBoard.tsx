@@ -902,26 +902,29 @@ export function GameBoard({
 
               <div className={`w-16 h-16 rounded-none bg-surface-2 border flex items-center justify-center font-mono font-black text-base relative z-10 transition-all duration-300 ${
                 !opponent.isAlive 
-                  ? 'border-red-theme-border text-red-theme/30 opacity-40' 
+                  ? 'border-red-theme-border text-red-theme/30 opacity-90 grayscale contrast-125 animate-shake-hard overflow-hidden' 
                   : isCurrentTurn 
                     ? 'border-red-theme text-text-theme' 
                     : 'border-cyan-theme-muted text-text-theme-muted'
               }`}>
-                <span className="absolute top-0.5 left-0.5 text-[6px] font-mono text-cyan-theme-muted select-none">+</span>
-                <span className="absolute top-0.5 right-0.5 text-[6px] font-mono text-cyan-theme-muted select-none">+</span>
-                <span className="absolute bottom-0.5 left-0.5 text-[6px] font-mono text-cyan-theme-muted select-none">+</span>
-                <span className="absolute bottom-0.5 right-0.5 text-[6px] font-mono text-cyan-theme-muted select-none">+</span>
-
-                {opponent.name.substring(0, 2).toUpperCase()}
+                <span className="absolute top-0.5 left-0.5 text-[6px] font-mono text-cyan-theme-muted select-none z-10">+</span>
+                <span className="absolute bottom-0.5 right-0.5 text-[6px] font-mono text-cyan-theme-muted select-none z-10">+</span>
                 
-                {opponent.isAlive ? (
+                <span className="relative z-10">{opponent.name.substring(0, 2).toUpperCase()}</span>
+
+                {!opponent.isAlive ? (
+                  <>
+                    <div className="shatter-overlay z-20" />
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
+                      <div className="text-[9px] font-black text-red-600 border border-red-600 px-1 py-0.5 tracking-tighter opacity-90 bg-black/40 backdrop-blur-sm shadow-[0_0_8px_rgba(220,38,38,0.6)]" style={{ transform: 'rotate(-20deg)' }}>
+                        ELIMINATED
+                      </div>
+                    </div>
+                  </>
+                ) : (
                   <span className={`absolute -top-1 -right-1 w-2 h-2 rotate-45 border border-bg-body z-20 ${
                     isCurrentTurn ? 'bg-red-theme animate-pulse' : 'bg-emerald-theme'
                   }`} />
-                ) : (
-                  <div className="absolute inset-0 bg-red-theme-bg rounded-none flex items-center justify-center">
-                    <X size={20} className="text-red-theme/60 stroke-[3px]" />
-                  </div>
                 )}
               </div>
             </div>
@@ -1328,14 +1331,22 @@ export function GameBoard({
             {renderProfileIndicator(localId)}
           </AnimatePresence>
           <div className={`w-12 h-12 rounded-none bg-surface-3 border flex items-center justify-center font-mono font-black text-base relative transition-all duration-300 ${
-            !localPlayer.isAlive ? 'border-red-theme-border opacity-30 bg-red-theme-bg' : 'border-cyan-theme-light'
+            !localPlayer.isAlive 
+              ? 'border-red-theme-border opacity-90 text-red-theme/30 grayscale contrast-125 animate-shake-hard overflow-hidden' 
+              : 'border-cyan-theme-light text-text-theme'
           }`}>
  
-            {localPlayer.name.substring(0, 2).toUpperCase()}
+            <span className="relative z-10">{localPlayer.name.substring(0, 2).toUpperCase()}</span>
+
             {!localPlayer.isAlive ? (
-              <div className="absolute inset-0 bg-red-theme-bg rounded-none flex items-center justify-center">
-                <X size={20} className="text-red-theme/60 stroke-[3px]" />
-              </div>
+              <>
+                <div className="shatter-overlay z-20" />
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
+                  <div className="text-[7px] font-black text-red-600 border border-red-600 px-0.5 py-[1px] tracking-tighter opacity-90 bg-black/40 backdrop-blur-sm shadow-[0_0_8px_rgba(220,38,38,0.6)]" style={{ transform: 'rotate(-20deg)' }}>
+                    ELIMINATED
+                  </div>
+                </div>
+              </>
             ) : (
               <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rotate-45 bg-emerald-theme" />
             )}
