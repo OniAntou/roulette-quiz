@@ -902,7 +902,7 @@ export function GameBoard({
 
               <div className={`w-16 h-16 rounded-none bg-surface-2 border flex items-center justify-center font-mono font-black text-base relative z-10 transition-all duration-300 ${
                 !opponent.isAlive 
-                  ? 'border-red-theme-border text-red-theme/30 opacity-90 grayscale contrast-125 animate-shake-hard overflow-hidden' 
+                  ? 'border-red-theme-border text-red-theme/30 opacity-90 grayscale contrast-125 animate-shake-hard' 
                   : isCurrentTurn 
                     ? 'border-red-theme text-text-theme' 
                     : 'border-cyan-theme-muted text-text-theme-muted'
@@ -1332,7 +1332,7 @@ export function GameBoard({
           </AnimatePresence>
           <div className={`w-12 h-12 rounded-none bg-surface-3 border flex items-center justify-center font-mono font-black text-base relative transition-all duration-300 ${
             !localPlayer.isAlive 
-              ? 'border-red-theme-border opacity-90 text-red-theme/30 grayscale contrast-125 animate-shake-hard overflow-hidden' 
+              ? 'border-red-theme-border opacity-90 text-red-theme/30 grayscale contrast-125 animate-shake-hard' 
               : 'border-cyan-theme-light text-text-theme'
           }`}>
  
