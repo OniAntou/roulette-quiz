@@ -427,8 +427,12 @@ export function GameBoard({
               }, 3000);
             }
           }
-          setRotationAngle(-90);
-          setIsGunInCenter(false);
+          // Wait for shot effect to finish before retracting the gun
+          const retractTimer = setTimeout(() => {
+            setRotationAngle(-90);
+            setIsGunInCenter(false);
+          }, 800);
+          triggerTimersRef.current.push(retractTimer);
         }, fireEffectDelay);
         triggerTimersRef.current.push(fireDelayTimer);
 
