@@ -52,7 +52,7 @@ function generateBotHand(chance: number): CardData[] {
         id: 'EASTER_EGG_STANDOFF',
         topic: 'MEXICAN STANDOFF',
         difficulty: 'hard',
-        question: 'Mỗi thằng 1 viên nhé',
+        question: 'Tất cả người chơi sẽ bị bắn',
         answers: {
           A: 'PULL TRIGGER',
           B: 'PULL TRIGGER',
