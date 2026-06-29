@@ -321,15 +321,13 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
           shotsFired: targetShots,
         });
         cb.setPhase('trigger');
-                scheduleTimeout(() => {
-          if (!botModeRef.current) return;
-          cb.setTriggerResult(null);
 
-          if (!alive) {
+        if (!alive) {
+          scheduleTimeout(() => {
+            if (!botModeRef.current) return;
             if (targetId === 'local-player') {
               cb.setPlayers(prev => prev.map(p => p.id === 'local-player' ? { ...p, isAlive: false } : p));
               cb.setHandCards([]);
-              // Cập nhật ref ngay lập tức để logic phía sau chạy đúng
               playersRef.current = playersRef.current.map(p => p.id === 'local-player' ? { ...p, isAlive: false } : p);
             } else {
               setBots(prev => {
@@ -338,10 +336,15 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
                 return updated;
               });
               cb.setPlayers(prev => prev.map(p => p.id === targetId ? { ...p, isAlive: false } : p));
-              // Cập nhật ref ngay lập tức
               playersRef.current = playersRef.current.map(p => p.id === targetId ? { ...p, isAlive: false } : p);
             }
-          }
+          }, 1320);
+        }
+
+        const delay = alive ? 2500 : 5000;
+        scheduleTimeout(() => {
+          if (!botModeRef.current) return;
+          cb.setTriggerResult(null);
 
           if (checkBotGameOver()) return;
 
@@ -404,28 +407,34 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
           results
         });
         cb.setPhase('trigger');
+
+        if (someoneDied) {
+          scheduleTimeout(() => {
+            if (!botModeRef.current) return;
+            results.forEach(r => {
+              if (!r.alive) {
+                if (r.playerId === 'local-player') {
+                  cb.setPlayers(prev => prev.map(p => p.id === 'local-player' ? { ...p, isAlive: false } : p));
+                  cb.setHandCards([]);
+                  playersRef.current = playersRef.current.map(p => p.id === 'local-player' ? { ...p, isAlive: false } : p);
+                } else {
+                  setBots(prev => {
+                    const updated = prev.map(b => b.id === r.playerId ? { ...b, isAlive: false } : b);
+                    botsRef.current = updated;
+                    return updated;
+                  });
+                  cb.setPlayers(prev => prev.map(p => p.id === r.playerId ? { ...p, isAlive: false } : p));
+                  playersRef.current = playersRef.current.map(p => p.id === r.playerId ? { ...p, isAlive: false } : p);
+                }
+              }
+            });
+          }, 920);
+        }
+
         const delay = someoneDied ? 5000 : 2500;
         scheduleTimeout(() => {
           if (!botModeRef.current) return;
           cb.setTriggerResult(null);
-          
-          results.forEach(r => {
-            if (!r.alive) {
-              if (r.playerId === 'local-player') {
-                cb.setPlayers(prev => prev.map(p => p.id === 'local-player' ? { ...p, isAlive: false } : p));
-                cb.setHandCards([]);
-                playersRef.current = playersRef.current.map(p => p.id === 'local-player' ? { ...p, isAlive: false } : p);
-              } else {
-                setBots(prev => {
-                  const updated = prev.map(b => b.id === r.playerId ? { ...b, isAlive: false } : b);
-                  botsRef.current = updated;
-                  return updated;
-                });
-                cb.setPlayers(prev => prev.map(p => p.id === r.playerId ? { ...p, isAlive: false } : p));
-                playersRef.current = playersRef.current.map(p => p.id === r.playerId ? { ...p, isAlive: false } : p);
-              }
-            }
-          });
           
           if (checkBotGameOver()) return;
           

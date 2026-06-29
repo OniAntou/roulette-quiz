@@ -235,12 +235,22 @@ export default function App() {
           if (p.id === data.playerId) {
             return {
               ...p,
-              isAlive: data.alive ? p.isAlive : false,
-              shotsFired: data.shotsFired ?? p.shotsFired,
+              shotsFired: data.shotsFired,
             };
           }
           return p;
         }));
+
+        if (!data.alive) {
+          setTimeout(() => {
+            setPlayers(prev => prev.map(p => {
+              if (p.id === data.playerId) {
+                return { ...p, isAlive: false };
+              }
+              return p;
+            }));
+          }, 1320); // 1200ms spin + 120ms fire delay
+        }
       }
 
       setTimeout(() => {
@@ -267,12 +277,23 @@ export default function App() {
         if (result) {
           return {
             ...p,
-            isAlive: result.alive ? p.isAlive : false,
             shotsFired: (p.shotsFired || 0) + 1,
           };
         }
         return p;
       }));
+
+      if (someoneDied) {
+        setTimeout(() => {
+          setPlayers(prev => prev.map(p => {
+            const result = data.results.find(r => r.playerId === p.id);
+            if (result && !result.alive) {
+              return { ...p, isAlive: false };
+            }
+            return p;
+          }));
+        }, 920); // 800ms spin + 120ms fire delay
+      }
 
       const delay = someoneDied ? 5000 : 2500;
       setTimeout(() => {
