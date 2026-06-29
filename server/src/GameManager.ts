@@ -89,15 +89,52 @@ export class GameManager {
     if (!game) return;
 
     const totalQuestions = this.questionManager.getTotalQuestions();
-    if (game.usedCards.length > totalQuestions - 16) {
-      game.usedCards = [];
+    // Prevent SQLite "too many SQL variables" error (limit is 999)
+    if (game.usedCards.length > Math.min(totalQuestions - 16, 500)) {
+      // Keep only the last 200 cards to maintain some randomness without crashing DB
+      game.usedCards = game.usedCards.slice(-200);
     }
 
     for (const player of game.players) {
       if (player.isAlive && player.hand.length === 0) {
         try {
+          if (player.easterEggChance === undefined) {
+            player.easterEggChance = 0.05;
+          } else {
+            player.easterEggChance += 0.01;
+          }
+
           player.hand = await this.questionManager.getCards(4, game.usedCards);
-          game.usedCards.push(...player.hand.map(c => c.id));
+          
+          if (player.hand.length < 4) {
+            // DB ran out of available cards based on exclusions, reset exclusions
+            game.usedCards = [];
+            const remainingNeeded = 4 - player.hand.length;
+            const additionalCards = await this.questionManager.getCards(remainingNeeded, game.usedCards);
+            player.hand.push(...additionalCards);
+          }
+          
+          let hasEasterEgg = false;
+          for (let i = 0; i < player.hand.length; i++) {
+            if (!hasEasterEgg && Math.random() < player.easterEggChance) {
+              player.hand[i] = {
+                id: 'EASTER_EGG_STANDOFF',
+                topic: 'MEXICAN STANDOFF',
+                difficulty: 'hard',
+                question: 'Mỗi thằng 1 viên nhé',
+                answers: {
+                  A: 'PULL TRIGGER',
+                  B: 'PULL TRIGGER',
+                  C: 'PULL TRIGGER',
+                  D: 'PULL TRIGGER',
+                },
+                correct: 'A'
+              };
+              hasEasterEgg = true;
+            }
+          }
+
+          game.usedCards.push(...player.hand.filter(c => c.id !== 'EASTER_EGG_STANDOFF').map(c => c.id));
         } catch (error) {
           console.error("Failed to fetch cards:", error);
           throw new Error("DEAL_CARDS_FAILED");
@@ -175,8 +212,27 @@ export class GameManager {
 
     game.currentCard = card;
     game.currentPlayer = playerIndex;
-    game.targetPlayer = this.getNextAlivePlayer(game, playerIndex);
 
+    if (card.id === 'EASTER_EGG_STANDOFF') {
+      game.phase = 'trigger'; // Prevent other actions
+      this.io.to(roomId).emit('game:cardPlayed', {
+        playerId: socketId,
+        card: {
+          id: card.id,
+          topic: card.topic,
+          difficulty: card.difficulty,
+          question: card.question,
+        },
+      });
+
+      // Delay to let them see the card, then trigger standoff
+      setTimeout(() => {
+        this.resolveStandoff(roomId);
+      }, 3000);
+      return;
+    }
+
+    game.targetPlayer = this.getNextAlivePlayer(game, playerIndex);
     game.phase = 'questioning';
 
     // IMPORTANT: emit cardPlayed to room FIRST, then question to target.
@@ -278,6 +334,53 @@ export class GameManager {
         this.pullTrigger(roomId);
       }, this.resultDelayMs);
     }
+  }
+
+  private resolveStandoff(roomId: string): void {
+    const game = this.games.get(roomId);
+    if (!game) return;
+
+    game.phase = 'trigger';
+    
+    // Each player has an independent 1/6 chance of dying
+    const results: { playerId: string; alive: boolean }[] = [];
+
+    const alivePlayers = game.players.filter(p => p.isAlive && !p.left);
+    for (const p of alivePlayers) {
+      const isDead = Math.random() < (1/6);
+      p.shotsFired = (p.shotsFired || 0) + 1;
+      if (isDead) {
+        p.isAlive = false;
+      }
+      results.push({ playerId: p.id, alive: !isDead });
+    }
+
+    // Emit result
+    this.io.to(roomId).emit('game:standoffResult', { results });
+
+    const someoneDied = results.some(r => !r.alive);
+    const delay = someoneDied ? this.postTriggerDelayMs + 2000 : 2500;
+
+    // After a delay, go to next turn or end game
+    game.postTriggerTimeout = setTimeout(() => {
+      game.postTriggerTimeout = undefined;
+      const current = this.games.get(roomId);
+      if (!current) return;
+      
+      const remainingAlive = current.players.filter(p => p.isAlive && !p.left);
+      if (remainingAlive.length <= 1) {
+        // Game over
+        this.io.to(roomId).emit('game:over', {
+          winner: remainingAlive.length === 1 ? remainingAlive[0].name : 'No one',
+          winnerId: remainingAlive.length === 1 ? remainingAlive[0].id : '',
+          stats: current.stats,
+        });
+        this.games.delete(roomId);
+      } else {
+        // Next round
+        this.advanceToNextTurn(roomId, current);
+      }
+    }, delay);
   }
 
   private pullTrigger(roomId: string): void {

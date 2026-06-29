@@ -37,24 +37,10 @@ interface OpponentPos {
   angle: number;
 }
 
-const getOpponentPosition = (playerId: string, total: number): OpponentPos => {
-  const posMap: Record<string, OpponentPos> = {
-    'bot-0': {
-      className: "absolute left-8 top-[48%] -translate-y-1/2 flex flex-col items-center space-y-2 z-20",
-      angle: 180
-    },
-    'bot-1': {
-      className: "absolute top-20 left-1/2 -translate-x-1/2 flex flex-col items-center space-y-2 z-20",
-      angle: -90
-    },
-    'bot-2': {
-      className: "absolute right-8 top-[48%] -translate-y-1/2 flex flex-col items-center space-y-2 z-20",
-      angle: 0
-    },
-  };
-
-  if (posMap[playerId]) return posMap[playerId];
-
+const getOpponentPosition = (playerId: string, opponentPlayers: Player[]): OpponentPos => {
+  const index = opponentPlayers.findIndex(p => p.id === playerId);
+  const total = opponentPlayers.length;
+  
   if (total === 1) {
     return {
       className: "absolute top-20 left-1/2 -translate-x-1/2 flex flex-col items-center space-y-2 z-20",
@@ -62,10 +48,15 @@ const getOpponentPosition = (playerId: string, total: number): OpponentPos => {
     };
   }
 
-  return {
-    className: "absolute top-20 left-1/2 -translate-x-1/2 flex flex-col items-center space-y-2 z-20",
-    angle: -90
-  };
+  if (total === 2) {
+    if (index === 0) return { className: "absolute left-8 top-[48%] -translate-y-1/2 flex flex-col items-center space-y-2 z-20", angle: 180 };
+    return { className: "absolute right-8 top-[48%] -translate-y-1/2 flex flex-col items-center space-y-2 z-20", angle: 0 };
+  }
+
+  // total === 3
+  if (index === 0) return { className: "absolute left-8 top-[48%] -translate-y-1/2 flex flex-col items-center space-y-2 z-20", angle: 180 };
+  if (index === 1) return { className: "absolute top-20 left-1/2 -translate-x-1/2 flex flex-col items-center space-y-2 z-20", angle: -90 };
+  return { className: "absolute right-8 top-[48%] -translate-y-1/2 flex flex-col items-center space-y-2 z-20", angle: 0 };
 };
 
 export function GameBoard({ 
@@ -326,6 +317,82 @@ export function GameBoard({
       triggerTimersRef.current.forEach(t => clearTimeout(t));
       triggerTimersRef.current = [];
 
+      if (triggerResult.playerId === 'STANDOFF') {
+        setIsGunInCenter(true);
+        setIsSpinning(true);
+        Sounds.gunClick();
+        
+        const triggerAnimationDelay = 800;
+        const fireEffectDelay = 120;
+        
+        const spinTimer = setTimeout(() => {
+          setIsSpinning(false);
+          setIsFiring(true);
+
+          const fireDelayTimer = setTimeout(() => {
+            setShowShotEffect(true);
+            const shotEffectTimer = setTimeout(() => setShowShotEffect(false), 280);
+            triggerTimersRef.current.push(shotEffectTimer);
+
+            if (!triggerResult.alive) {
+              if (!isPresentationMode) {
+                setIsScreenShaking(true);
+                setTimeout(() => setIsScreenShaking(false), 450);
+              }
+
+              Sounds.gunFire();
+              setShowRedFlash(true);
+              setTimeout(() => setShowRedFlash(false), 600);
+
+              let isLocalDeath = false;
+              const localRes = triggerResult.results?.find(r => r.playerId === localId);
+              if (localRes && !localRes.alive) {
+                isLocalDeath = true;
+              }
+              
+              const deadCount = triggerResult.results?.filter(r => !r.alive).length || 0;
+              const targetName = deadCount > 1 ? `MULTIPLE TARGETS (${deadCount})` : 'TARGET';
+
+              setDeathMessage(isLocalDeath 
+                ? "CRITICAL ERROR // LIFE SIGNALS LOST" 
+                : `TARGET ELIMINATED // ${targetName.toUpperCase()} TERMINATED`
+              );
+              setShowDeathOverlay(true);
+
+              if (isLocalDeath) {
+                setIsCrtShuttingDown(true);
+                setShowDeathOverlay(false); // Hide overlay to let CRT animation take over
+                setTimeout(() => {
+                  setIsCrtShuttingDown(false);
+                  if (prevPhase.current !== 'game_over') {
+                    if (!isPresentationMode) setIsCrtTurningOn(true);
+                    setIsSpectatorModeVisual(true);
+                    setTimeout(() => setIsCrtTurningOn(false), 1000);
+                  }
+                }, 2500);
+              }
+            } else {
+              Sounds.gunSurvive();
+            }
+
+            const retractTimer = setTimeout(() => {
+              setIsGunInCenter(false);
+              setRotationAngle(-90);
+            }, 800);
+            triggerTimersRef.current.push(retractTimer);
+          }, fireEffectDelay);
+          triggerTimersRef.current.push(fireDelayTimer);
+
+          const resetFireTimer = setTimeout(() => {
+            setIsFiring(false);
+            setShowShotEffect(false);
+          }, 2000);
+          triggerTimersRef.current.push(resetFireTimer);
+        }, triggerAnimationDelay);
+        triggerTimersRef.current.push(spinTimer);
+        return;
+      }
+
       setDisplayedShots(triggerResult.bulletsFired || 0);
       
       // If the bullet is lethal, the round will reset. Reset the HUD counter immediately after the shot is fired.
@@ -348,7 +415,7 @@ export function GameBoard({
         if (playerId === localId) {
           targetAngle = 90;
         } else {
-          const oppPos = getOpponentPosition(playerId, opponentPlayers.length);
+          const oppPos = getOpponentPosition(playerId, opponentPlayers);
           targetAngle = oppPos.angle;
         }
       }
@@ -390,8 +457,17 @@ export function GameBoard({
             setShowRedFlash(true);
             setTimeout(() => setShowRedFlash(false), 600);
 
-            const isLocalDeath = triggerResult.playerId === localId;
-            const targetName = triggerResult.playerName || 'PLAYER';
+            let isLocalDeath = triggerResult.playerId === localId;
+            let targetName = triggerResult.playerName || 'PLAYER';
+            
+            if (triggerResult.playerId === 'STANDOFF' && triggerResult.results) {
+              const localResult = triggerResult.results.find(r => r.playerId === localId);
+              if (localResult && !localResult.alive) {
+                isLocalDeath = true;
+              }
+              const deadCount = triggerResult.results.filter(r => !r.alive).length;
+              targetName = deadCount > 1 ? `MULTIPLE TARGETS (${deadCount})` : 'TARGET';
+            }
             
             setDeathMessage(isLocalDeath 
               ? "CRITICAL ERROR // LIFE SIGNALS LOST" 
@@ -497,7 +573,7 @@ export function GameBoard({
         if (prev.find(c => c.id === playedCard.id)) return prev;
 
         const fromId = activeQuestion?.from || currentTurnId;
-        const oppPos = getOpponentPosition(fromId, opponentPlayers.length);
+        const oppPos = getOpponentPosition(fromId, opponentPlayers);
         
         let finalRotate = (Math.random() * 20 - 10);
         let offsetX = (Math.random() * 10 - 5);
@@ -686,7 +762,7 @@ export function GameBoard({
     
     if (fromId === localId) return { ...base, opacity: 1, y: 300 };
     
-    const oppPos = getOpponentPosition(fromId, opponentPlayers.length);
+    const oppPos = getOpponentPosition(fromId, opponentPlayers);
     if (oppPos.angle === 180) return { ...base, opacity: 1, x: -450, y: 0 }; // left
     if (oppPos.angle === 0) return { ...base, opacity: 1, x: 450, y: 0 }; // right
     return { ...base, opacity: 1, y: -350 }; // top
@@ -787,7 +863,7 @@ export function GameBoard({
       {opponentPlayers.map((opponent) => {
         const cardCount = opponent.cardsCount || 0;
         const isCurrentTurn = currentTurnId === opponent.id;
-        const pos = getOpponentPosition(opponent.id, opponentPlayers.length);
+        const pos = getOpponentPosition(opponent.id, opponentPlayers);
         
         return (
           <div key={opponent.id} className={pos.className}>
@@ -950,18 +1026,36 @@ export function GameBoard({
                       exit={{ scale: 0.5, opacity: 0, filter: 'blur(10px)' }}
                       transition={{ type: "spring", duration: 0.65, bounce: 0.3 }}
                       className={`absolute w-32 h-44 border rounded-none p-3 flex flex-col justify-between shadow-[0_0_30px_rgba(34,211,238,0.15)] overflow-hidden bg-card-theme ${
-                        card.difficulty === 'easy' 
-                          ? 'border-emerald-theme-border text-emerald-theme' 
-                          : card.difficulty === 'medium' 
-                            ? 'border-amber-theme-border text-amber-theme' 
-                            : 'border-red-theme-border text-red-theme'
+                        card.id === 'EASTER_EGG_STANDOFF'
+                          ? 'border-amber-400 text-amber-400 shadow-[0_0_15px_rgba(251,191,36,0.4)_inset]'
+                          : card.difficulty === 'easy' 
+                            ? 'border-emerald-theme-border text-emerald-theme' 
+                            : card.difficulty === 'medium' 
+                              ? 'border-amber-theme-border text-amber-theme' 
+                              : 'border-red-theme-border text-red-theme'
                       }`}
                       style={{ zIndex: index }}
                     >
+                      {card.id === 'EASTER_EGG_STANDOFF' && (
+                        <motion.div
+                          className="absolute top-0 bottom-0 w-[150%] bg-gradient-to-r from-transparent via-amber-200 to-transparent pointer-events-none mix-blend-overlay"
+                          initial={{ left: '-150%' }}
+                          animate={{ left: '150%' }}
+                          transition={{
+                            repeat: Infinity,
+                            duration: 2.5,
+                            ease: "linear",
+                            repeatDelay: 1
+                          }}
+                          style={{ transform: 'skewX(-20deg)', opacity: 0.7 }}
+                        />
+                      )}
+                      
                       <div className="flex justify-between items-center w-full border-b border-border-theme pb-1 text-[8px] font-mono tracking-wider opacity-60">
                         <span>#{card.id.substring(0, 4).toUpperCase()}</span>
                         <span className={
-                          card.difficulty === 'easy' ? 'text-emerald-theme font-extrabold' : card.difficulty === 'medium' ? 'text-amber-theme font-extrabold' : 'text-red-theme font-extrabold'
+                          card.id === 'EASTER_EGG_STANDOFF' ? 'text-amber-400 font-extrabold'
+                          : card.difficulty === 'easy' ? 'text-emerald-theme font-extrabold' : card.difficulty === 'medium' ? 'text-amber-theme font-extrabold' : 'text-red-theme font-extrabold'
                         }>{card.difficulty.toUpperCase()}</span>
                       </div>
                       <div className="flex-1 flex items-center justify-center py-1 overflow-y-auto pr-0.5">
@@ -985,25 +1079,75 @@ export function GameBoard({
       </div>
 
       {/* Revolver Widget */}
-      <motion.div 
-        animate={{
-          left: isGunInCenter ? "50%" : "calc(50% + 480px)",
-          top: "48%",
-          scale: isGunInCenter ? 1.5 : 1.25
-        }}
-        transition={{ duration: 1.0, type: "spring", bounce: 0.15, ease: "easeOut" }}
-        className="absolute -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none flex flex-col items-center"
-      >
-        <Revolver 
-          bulletsFired={displayedShots}
-          currentPosition={currentPositionState}
-          isSpinning={isSpinning}
-          isFiring={isFiring}
-          showShotEffect={showShotEffect}
-          alive={triggerResult ? triggerResult.alive : true}
-          rotationAngle={rotationAngle}
-        />
-      </motion.div>
+      {triggerResult?.playerId === 'STANDOFF' ? (() => {
+        const getCoord = (playerId: string) => {
+          if (playerId === localId) return { x: 50, y: 85 };
+          const oppPos = getOpponentPosition(playerId, opponentPlayers);
+          if (oppPos.angle === 180) return { x: 10, y: 48 }; // Left
+          if (oppPos.angle === -90) return { x: 50, y: 15 }; // Top
+          if (oppPos.angle === 0) return { x: 90, y: 48 }; // Right
+          return { x: 50, y: 50 };
+        };
+
+        const standoffPlayers = players.filter(p => !p.left && p.isAlive || triggerResult.results?.some(r => r.playerId === p.id));
+        
+        return standoffPlayers.map((p, i) => {
+          const nextPlayer = standoffPlayers[(i + 1) % standoffPlayers.length];
+          const coord1 = getCoord(p.id);
+          const coord2 = getCoord(nextPlayer.id);
+          
+          let midX = (coord1.x + coord2.x) / 2;
+          let midY = (coord1.y + coord2.y) / 2;
+          
+          if (standoffPlayers.length === 2) {
+            // Space the 2 guns apart along the line between the players
+            midX = coord1.x + (coord2.x - coord1.x) * 0.35;
+            midY = coord1.y + (coord2.y - coord1.y) * 0.35;
+          }
+
+          const angleDeg = Math.atan2(coord2.y - coord1.y, coord2.x - coord1.x) * (180 / Math.PI);
+
+          return (
+            <motion.div
+              key={`standoff-gun-${p.id}`}
+              className="absolute -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none flex flex-col items-center"
+              initial={{ left: "50%", top: "48%", scale: 0 }}
+              animate={{ left: `${midX}%`, top: `${midY}%`, scale: 1.25 }}
+              transition={{ duration: 1.0, type: "spring", bounce: 0.15, ease: "easeOut" }}
+            >
+              <Revolver 
+                bulletsFired={0}
+                currentPosition={0}
+                isSpinning={isSpinning}
+                isFiring={isFiring}
+                showShotEffect={showShotEffect}
+                alive={true}
+                rotationAngle={angleDeg}
+              />
+            </motion.div>
+          );
+        });
+      })() : (
+        <motion.div 
+          animate={{
+            left: isGunInCenter ? "50%" : "calc(50% + 480px)",
+            top: "48%",
+            scale: isGunInCenter ? 1.5 : 1.25
+          }}
+          transition={{ duration: 1.0, type: "spring", bounce: 0.15, ease: "easeOut" }}
+          className="absolute -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none flex flex-col items-center"
+        >
+          <Revolver 
+            bulletsFired={displayedShots}
+            currentPosition={currentPositionState}
+            isSpinning={isSpinning}
+            isFiring={isFiring}
+            showShotEffect={showShotEffect}
+            alive={triggerResult ? triggerResult.alive : true}
+            rotationAngle={rotationAngle}
+          />
+        </motion.div>
+      )}
 
       {/* Shots fired indicator - fixed position below gun default location */}
       <div
@@ -1035,7 +1179,10 @@ export function GameBoard({
               const isRevealed = !isDealing || revealedCards.has(card.id);
               const isHovered = hoveredCardIndex === index;
               const isNeighbor = hoveredCardIndex !== null && Math.abs(hoveredCardIndex - index) === 1;
-              const colors = isRevealed ? getDifficultyColor(card.difficulty) : null;
+              let colors = isRevealed ? getDifficultyColor(card.difficulty) : null;
+              if (isRevealed && card.id === 'EASTER_EGG_STANDOFF') {
+                colors = { border: '#fbbf24', glow: '#f59e0b' } as any; // Override with amber/gold
+              }
 
               // Calculate positions
               const neighborOffset = hoveredCardIndex !== null
@@ -1081,8 +1228,24 @@ export function GameBoard({
                     transformStyle: 'preserve-3d',
                     pointerEvents: 'auto',
                     borderColor: isHovered && colors ? colors.glow : colors ? colors.border : 'var(--border-cyan-theme-muted)',
+                    boxShadow: (isRevealed && card.id === 'EASTER_EGG_STANDOFF') ? '0 0 15px rgba(251, 191, 36, 0.4) inset' : 'none',
                   }}
                 >
+                  {isRevealed && card.id === 'EASTER_EGG_STANDOFF' && (
+                    <motion.div
+                      className="absolute top-0 bottom-0 w-[150%] bg-gradient-to-r from-transparent via-amber-200 to-transparent pointer-events-none mix-blend-overlay"
+                      initial={{ left: '-150%' }}
+                      animate={{ left: '150%' }}
+                      transition={{
+                        repeat: Infinity,
+                        duration: 2.5,
+                        ease: "linear",
+                        repeatDelay: 1
+                      }}
+                      style={{ transform: 'skewX(-20deg)', opacity: 0.7 }}
+                    />
+                  )}
+
                   <span className="absolute top-1 left-1.5 text-[8px] font-mono text-cyan-theme-muted select-none font-normal">+</span>
                   <span className="absolute top-1 right-1.5 text-[8px] font-mono text-cyan-theme-muted select-none font-normal">+</span>
                   <span className="absolute bottom-1 left-1.5 text-[8px] font-mono text-cyan-theme-muted select-none font-normal">+</span>

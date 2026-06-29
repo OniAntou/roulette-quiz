@@ -71,6 +71,7 @@ function GlitchText({ text, className }: { text: string; className: string }) {
 
 export function GameOver({ winnerInfo, disconnect }: GameOverProps) {
   const { winner, isLocalWinner } = winnerInfo || { winner: 'UNKNOWN', isLocalWinner: false };
+  const isAnnihilation = winner === 'No one';
   const controls = useAnimation();
 
   useEffect(() => {
@@ -99,78 +100,47 @@ export function GameOver({ winnerInfo, disconnect }: GameOverProps) {
       {/* Radial glow background */}
       <motion.div
         className="absolute inset-0 pointer-events-none z-0"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 1 }}
         style={{
           background: isLocalWinner
-            ? 'radial-gradient(ellipse 70% 50% at 50% 50%, rgba(16,185,129,0.07) 0%, transparent 70%)'
-            : 'radial-gradient(ellipse 70% 50% at 50% 50%, rgba(239,68,68,0.07) 0%, transparent 70%)',
+            ? 'radial-gradient(circle at center, rgba(16,185,129,0.08) 0%, transparent 60%)'
+            : isAnnihilation
+              ? 'radial-gradient(circle at center, rgba(239,68,68,0.2) 0%, rgba(185,28,28,0.05) 60%)'
+              : 'radial-gradient(circle at center, rgba(239,68,68,0.05) 0%, transparent 60%)',
         }}
       />
 
       <ScanlineOverlay />
 
       <motion.div
+        className="relative z-20 flex flex-col items-center gap-8 w-full max-w-lg px-6 mx-auto mt-12"
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="relative z-10 w-full max-w-2xl px-6 flex flex-col items-center justify-center space-y-10 py-12"
       >
-        {/* Status tag */}
-        <motion.div variants={itemVariants}>
-          <div className={`flex items-center gap-2 px-4 py-1.5 rounded-full border text-[10px] font-black tracking-[3px] uppercase ${
-            isLocalWinner
-              ? 'border-emerald-theme-border text-emerald-theme bg-emerald-theme-bg'
-              : 'border-red-theme-border text-red-theme bg-red-theme-bg'
-          }`}>
-            <motion.span
-              className="w-1.5 h-1.5 rounded-full"
-              style={{ backgroundColor: isLocalWinner ? 'var(--emerald-theme)' : 'var(--red-theme)' }}
-              animate={{ opacity: [1, 0.2, 1] }}
-              transition={{ duration: 1, repeat: Infinity }}
-            />
-            {isLocalWinner ? 'PROTOCOL :: SURVIVED' : 'PROTOCOL :: TERMINATED'}
-          </div>
-        </motion.div>
-
-        {/* Main icon */}
-        <motion.div
-          variants={itemVariants}
-          className="relative flex items-center justify-center"
-        >
-          {/* Outer ring glow */}
+        {/* Core emblem */}
+        <motion.div variants={itemVariants} className="relative flex items-center justify-center w-48 h-48">
+          {/* Outer rotating brackets */}
           <motion.div
             className="absolute rounded-full"
             style={{
               width: 220, height: 220,
-              border: `1px solid ${isLocalWinner ? 'var(--emerald-theme)' : 'var(--red-theme)'}`,
-              opacity: 0.15,
+              border: `2px solid ${isLocalWinner ? 'var(--emerald-theme)' : 'var(--red-theme)'}`,
+              borderTopColor: 'transparent',
+              borderBottomColor: 'transparent',
+              opacity: 0.4,
+            }}
+            animate={{ rotate: isLocalWinner ? 360 : -360 }}
+            transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+          />
+          {/* Pulse ring */}
+          <motion.div
+            className="absolute rounded-full bg-transparent"
+            style={{
+              width: 130, height: 130,
+              border: `2px solid ${isLocalWinner ? 'var(--emerald-theme)' : 'var(--red-theme)'}`,
             }}
             animate={{ scale: [1, 1.08, 1], opacity: [0.15, 0.05, 0.15] }}
             transition={{ duration: 2.5, repeat: Infinity }}
-          />
-          {/* Middle ring */}
-          <motion.div
-            className="absolute rounded-full"
-            style={{
-              width: 180, height: 180,
-              border: `1px solid ${isLocalWinner ? 'var(--emerald-theme)' : 'var(--red-theme)'}`,
-              opacity: 0.3,
-            }}
-            animate={{ rotate: isLocalWinner ? 360 : -360 }}
-            transition={{ duration: 12, repeat: Infinity, ease: 'linear' }}
-          />
-          {/* Dashed rotating ring */}
-          <motion.div
-            className="absolute rounded-full"
-            style={{
-              width: 155, height: 155,
-              border: `1px dashed ${isLocalWinner ? 'var(--cyan-theme)' : 'var(--cyan-theme)'}`,
-              opacity: 0.2,
-            }}
-            animate={{ rotate: isLocalWinner ? -360 : 360 }}
-            transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
           />
           {/* Core circle */}
           <motion.div
@@ -182,11 +152,15 @@ export function GameOver({ winnerInfo, disconnect }: GameOverProps) {
               border: `1.5px solid ${isLocalWinner ? 'var(--emerald-theme-border)' : 'var(--red-theme-border)'}`,
               boxShadow: isLocalWinner
                 ? '0 0 40px rgba(16,185,129,0.2), inset 0 0 30px rgba(16,185,129,0.05)'
-                : '0 0 40px rgba(239,68,68,0.2), inset 0 0 30px rgba(239,68,68,0.05)',
+                : isAnnihilation
+                  ? '0 0 80px rgba(239,68,68,0.5), inset 0 0 50px rgba(239,68,68,0.2)'
+                  : '0 0 40px rgba(239,68,68,0.2), inset 0 0 30px rgba(239,68,68,0.05)',
             }}
             animate={isLocalWinner
               ? { boxShadow: ['0 0 30px rgba(16,185,129,0.2)', '0 0 60px rgba(16,185,129,0.35)', '0 0 30px rgba(16,185,129,0.2)'] }
-              : { boxShadow: ['0 0 30px rgba(239,68,68,0.2)', '0 0 60px rgba(239,68,68,0.35)', '0 0 30px rgba(239,68,68,0.2)'] }
+              : isAnnihilation
+                ? { boxShadow: ['0 0 60px rgba(239,68,68,0.4)', '0 0 100px rgba(239,68,68,0.7)', '0 0 60px rgba(239,68,68,0.4)'] }
+                : { boxShadow: ['0 0 30px rgba(239,68,68,0.2)', '0 0 60px rgba(239,68,68,0.35)', '0 0 30px rgba(239,68,68,0.2)'] }
             }
             transition={{ duration: 2, repeat: Infinity }}
           >
@@ -199,10 +173,10 @@ export function GameOver({ winnerInfo, disconnect }: GameOverProps) {
               </motion.div>
             ) : (
               <motion.div
-                animate={{ rotate: [0, -3, 3, 0] }}
-                transition={{ duration: 0.3, repeat: Infinity, repeatDelay: 2 }}
+                animate={{ rotate: isAnnihilation ? [0, -10, 10, -10, 10, 0] : [0, -3, 3, 0], scale: isAnnihilation ? [1, 1.2, 1] : 1 }}
+                transition={{ duration: isAnnihilation ? 0.5 : 0.3, repeat: Infinity, repeatDelay: isAnnihilation ? 0.5 : 2 }}
               >
-                <Skull size={52} weight="fill" style={{ color: 'var(--red-theme)' }} />
+                <Skull size={isAnnihilation ? 64 : 52} weight="fill" style={{ color: 'var(--red-theme)' }} />
               </motion.div>
             )}
           </motion.div>
@@ -223,7 +197,7 @@ export function GameOver({ winnerInfo, disconnect }: GameOverProps) {
         </motion.div>
 
         {/* Main headline */}
-        <motion.div variants={itemVariants} className="flex flex-col items-center gap-3">
+        <motion.div variants={itemVariants} className="flex flex-col items-center gap-3 w-full">
           {isLocalWinner ? (
             <motion.h1
               className="text-7xl md:text-8xl font-black tracking-[10px] uppercase"
@@ -241,15 +215,15 @@ export function GameOver({ winnerInfo, disconnect }: GameOverProps) {
             </motion.h1>
           ) : (
             <GlitchText
-              text="DEFEAT"
-              className="text-7xl md:text-8xl font-black tracking-[10px] uppercase block"
+              text={isAnnihilation ? "ANNIHILATION" : "DEFEAT"}
+              className={`${isAnnihilation ? 'text-5xl md:text-6xl text-center' : 'text-7xl md:text-8xl'} font-black tracking-[10px] uppercase block w-full whitespace-nowrap overflow-visible leading-tight`}
               // @ts-ignore
               style={{ color: 'var(--red-theme)' }}
             />
           )}
 
           {/* Winner name plate */}
-          <div className={`relative px-8 py-3 border rounded-xl backdrop-blur-sm overflow-hidden ${
+          <div className={`relative px-8 py-3 border rounded-xl backdrop-blur-sm overflow-hidden text-center w-full max-w-sm ${
             isLocalWinner
               ? 'border-emerald-theme-border bg-emerald-theme-bg'
               : 'border-border-theme bg-panel-solid/60'
@@ -262,7 +236,7 @@ export function GameOver({ winnerInfo, disconnect }: GameOverProps) {
               }}
             />
             <p className="text-sm font-black tracking-[3px] uppercase" style={{ color: isLocalWinner ? 'var(--emerald-theme)' : 'var(--text-theme-muted)' }}>
-              {isLocalWinner ? '// WINNER //' : '// ELIMINATED //'}
+              {isLocalWinner ? '// WINNER //' : isAnnihilation ? '// MUTUAL DESTRUCTION //' : '// ELIMINATED //'}
             </p>
             <p className="text-2xl font-black tracking-widest uppercase mt-1" style={{ color: 'var(--text-theme)' }}>
               {winner}

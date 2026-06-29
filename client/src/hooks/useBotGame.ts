@@ -10,6 +10,7 @@ export interface BotState {
   hand: CardData[];
   isAlive: boolean;
   cardsCount: number;
+  easterEggChance?: number;
 }
 
 interface BotGameCallbacks {
@@ -42,6 +43,32 @@ function generateBotQuestion(): CardData {
   };
 }
 
+function generateBotHand(chance: number): CardData[] {
+  const hand: CardData[] = [];
+  let hasEasterEgg = false;
+  for (let i = 0; i < 4; i++) {
+    if (!hasEasterEgg && Math.random() < chance) {
+      hand.push({
+        id: 'EASTER_EGG_STANDOFF',
+        topic: 'MEXICAN STANDOFF',
+        difficulty: 'hard',
+        question: 'Mỗi thằng 1 viên nhé',
+        answers: {
+          A: 'PULL TRIGGER',
+          B: 'PULL TRIGGER',
+          C: 'PULL TRIGGER',
+          D: 'PULL TRIGGER'
+        },
+        correct: 'A'
+      });
+      hasEasterEgg = true;
+    } else {
+      hand.push(generateBotQuestion());
+    }
+  }
+  return hand;
+}
+
 function createBotGun() {
   const chambers = Array(6).fill(false);
   chambers[Math.floor(Math.random() * 6)] = true;
@@ -67,6 +94,17 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
   const playersRef = useRef<Player[]>([]);
   const callbacksRef = useRef(callbacks);
   const botModeRef = useRef(botMode);
+  const localEasterEggChanceRef = useRef<number>(0.05);
+  const allTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+
+  const scheduleTimeout = useCallback((cb: () => void, ms?: number) => {
+    const t = setTimeout(() => {
+      allTimersRef.current.delete(t);
+      cb();
+    }, ms);
+    allTimersRef.current.add(t);
+    return t;
+  }, []);
 
   // Sync refs
   useEffect(() => { botGunRef.current = botGun; }, [botGun]);
@@ -75,6 +113,8 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
   useEffect(() => { botModeRef.current = botMode; }, [botMode]);
 
   const clearAllTimers = useCallback(() => {
+    allTimersRef.current.forEach(t => clearTimeout(t));
+    allTimersRef.current.clear();
     if (botTimerRef.current) {
       clearTimeout(botTimerRef.current);
       botTimerRef.current = null;
@@ -87,7 +127,7 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
 
   const showHUDAlert = useCallback((text: string, color: string, duration: number) => {
     setBotHudMessage({ text, color });
-    setTimeout(() => setBotHudMessage(null), duration);
+    scheduleTimeout(() => setBotHudMessage(null), duration);
   }, []);
 
   // Fixed order: local-player → bot-0 → bot-1 → bot-2 → (loop)
@@ -113,20 +153,26 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
     if (!botModeRef.current) return false;
     const cb = callbacksRef.current;
     const aliveBots = botsRef.current.filter(b => b.isAlive);
-    const playerAlive = playersRef.current.find(p => p.id === 'local-player')?.isAlive;
-    if (aliveBots.length === 0 || (!playerAlive && aliveBots.length <= 1)) {
-      const winnerName = aliveBots.length > 0 ? aliveBots[0].name : playerName;
-      cb.setWinnerInfo({ winner: winnerName, isLocalWinner: aliveBots.length === 0 });
-      cb.setPhase('game_over');
-      
-      if (aliveBots.length === 0) {
-        Sounds.victory();
-        setTimeout(() => {
-          if (botModeRef.current) cb.setScreen('gameover');
-        }, 3000);
-      } else {
+    const isPlayerAlive = playersRef.current.find(p => p.id === 'local-player')?.isAlive;
+      if (aliveBots.length === 0 || (!isPlayerAlive && aliveBots.length <= 1)) {
+        let winnerName = 'No one';
+        if (isPlayerAlive) {
+          winnerName = playerName;
+        } else if (aliveBots.length === 1) {
+          winnerName = aliveBots[0].name;
+        }
+
+        cb.setWinnerInfo({ winner: winnerName, isLocalWinner: !!isPlayerAlive });
+        cb.setPhase('game_over');
+        
+        if (isPlayerAlive) {
+          Sounds.victory();
+          scheduleTimeout(() => {
+            if (botModeRef.current) cb.setScreen('gameover');
+          }, 3000);
+        } else {
         // Player died, go to gameover screen immediately after black screen ends
-        setTimeout(() => {
+        scheduleTimeout(() => {
           if (botModeRef.current) cb.setScreen('gameover');
         }, 1000);
       }
@@ -138,11 +184,12 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
   const scheduleNextTurnRef = useRef<(nextTurnId: string, delay?: number) => void>(() => {});
   const processAnswerRef = useRef<(targetId: string, answer: string, correctAnswer: string) => void>(() => {});
   const executeTriggerRef = useRef<(targetId: string) => void>(() => {});
+  const executeStandoffRef = useRef<(card: CardData, playedById: string) => void>(() => {});
   const botPlayCardRef = useRef<(botId: string) => void>(() => {});
 
   useEffect(() => {
     const scheduleNextTurnFn = (nextTurnId: string, delay = 1000) => {
-      setTimeout(() => {
+      scheduleTimeout(() => {
         if (!botModeRef.current) return;
         setIsSpectating(false);
         if (checkBotGameOver()) return;
@@ -175,13 +222,21 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
           cb.setRound(prev => prev + 1);
           // KHÔNG reset đạn khi chỉ hết bài, súng chỉ reset khi có người chết.
           setBots(prev => {
-            const updated = prev.map(b => b.isAlive ? { ...b, hand: [generateBotQuestion(), generateBotQuestion(), generateBotQuestion(), generateBotQuestion()], cardsCount: 4 } : b);
+            const updated = prev.map(b => {
+              if (b.isAlive) {
+                const newChance = (b.easterEggChance ?? 0.04) + 0.01;
+                return { ...b, hand: generateBotHand(newChance), cardsCount: 4, easterEggChance: newChance };
+              }
+              return b;
+            });
             botsRef.current = updated;
             return updated;
           });
           cb.setPlayers(prev => prev.map(p => p.isAlive ? { ...p, cardsCount: 4 } : p));
           if (isPlayerAlive) {
-            const newHand = [generateBotQuestion(), generateBotQuestion(), generateBotQuestion(), generateBotQuestion()];
+            const newChance = (localEasterEggChanceRef.current ?? 0.04) + 0.01;
+            localEasterEggChanceRef.current = newChance;
+            const newHand = generateBotHand(newChance);
             handCardsRef.current = newHand;
             cb.setHandCards(newHand);
           }
@@ -191,7 +246,7 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
         }
 
         if (actualNext !== 'local-player') {
-          setTimeout(() => {
+          scheduleTimeout(() => {
             if (!botModeRef.current) return;
             botPlayCardRef.current(actualNext);
           }, 1500);
@@ -214,7 +269,7 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
       cb.setQuestionResult({ correct: isCorrect, correctAnswer });
       cb.setPhase('result');
 
-      setTimeout(() => {
+      scheduleTimeout(() => {
         if (!botModeRef.current) return;
         cb.setActiveQuestion(null);
         cb.setQuestionResult(null);
@@ -245,7 +300,7 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
       gun.currentPosition = (gun.currentPosition + 1) % 6;
       const bulletCount = 6 - bulletsFiredCountRef.current;
 
-      setTimeout(() => {
+      scheduleTimeout(() => {
         if (!botModeRef.current) return;
         cb.setPlayers(prev => prev.map(p => {
           if (p.id === targetId) {
@@ -266,8 +321,7 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
           shotsFired: targetShots,
         });
         cb.setPhase('trigger');
-
-        setTimeout(() => {
+                scheduleTimeout(() => {
           if (!botModeRef.current) return;
           cb.setTriggerResult(null);
 
@@ -308,6 +362,83 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
       }, 1200);
     };
 
+    const executeStandoffFn = (card: CardData, playedById: string) => {
+      if (!botModeRef.current) return;
+      clearAllTimers();
+      
+      const cb = callbacksRef.current;
+      
+      scheduleTimeout(() => {
+        if (!botModeRef.current) return;
+        
+        const results: any[] = [];
+        let someoneDied = false;
+        
+        if (playersRef.current.find(p => p.id === 'local-player')?.isAlive) {
+          const alive = Math.random() > 1/6;
+          results.push({ playerId: 'local-player', alive });
+          if (!alive) someoneDied = true;
+        }
+        
+        botsRef.current.filter(b => b.isAlive).forEach(b => {
+          const alive = Math.random() > 1/6;
+          results.push({ playerId: b.id, alive });
+          if (!alive) someoneDied = true;
+        });
+
+        cb.setPlayers(prev => prev.map(p => {
+          if (p.isAlive) {
+            return { ...p, shotsFired: (p.shotsFired || 0) + 1 };
+          }
+          return p;
+        }));
+
+        cb.setTriggerResult({
+          alive: !someoneDied,
+          playerId: 'STANDOFF',
+          playerName: 'STANDOFF',
+          bulletCount: 0,
+          currentPosition: 0,
+          bulletsFired: 0,
+          shotsFired: 1,
+          results
+        });
+        cb.setPhase('trigger');
+        const delay = someoneDied ? 5000 : 2500;
+        scheduleTimeout(() => {
+          if (!botModeRef.current) return;
+          cb.setTriggerResult(null);
+          
+          results.forEach(r => {
+            if (!r.alive) {
+              if (r.playerId === 'local-player') {
+                cb.setPlayers(prev => prev.map(p => p.id === 'local-player' ? { ...p, isAlive: false } : p));
+                cb.setHandCards([]);
+                playersRef.current = playersRef.current.map(p => p.id === 'local-player' ? { ...p, isAlive: false } : p);
+              } else {
+                setBots(prev => {
+                  const updated = prev.map(b => b.id === r.playerId ? { ...b, isAlive: false } : b);
+                  botsRef.current = updated;
+                  return updated;
+                });
+                cb.setPlayers(prev => prev.map(p => p.id === r.playerId ? { ...p, isAlive: false } : p));
+                playersRef.current = playersRef.current.map(p => p.id === r.playerId ? { ...p, isAlive: false } : p);
+              }
+            }
+          });
+          
+          if (checkBotGameOver()) return;
+          
+          if (someoneDied) {
+            // NOTE: In Standoff, players use their own guns, so the central gun and round are NOT reset.
+          }
+          const nextId = getNextAliveTarget(playedById);
+          scheduleNextTurnRef.current(nextId, 500);
+          
+        }, delay);
+      }, 1500);
+    };
+
     const botPlayCardFn = (botId: string) => {
       if (!botModeRef.current) return;
       clearAllTimers();
@@ -338,13 +469,18 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
 
       cb.setPlayedCard(card);
 
+      if (card.id === 'EASTER_EGG_STANDOFF') {
+        executeStandoffRef.current(card, botId);
+        return;
+      }
+
       const targetId = getNextAliveTarget(botId);
       const isTargetBot = targetId !== 'local-player';
       const targetName = isTargetBot
         ? botsRef.current.find(b => b.id === targetId)?.name || 'BOT'
         : playerName;
 
-      setTimeout(() => {
+      scheduleTimeout(() => {
         if (!botModeRef.current) return;
         cb.setActiveQuestion({
           card: { ...card, difficulty: card.difficulty as 'easy' | 'medium' | 'hard', answers: card.answers, correct: card.correct },
@@ -354,7 +490,7 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
         cb.setPhase('answering');
 
         if (!isTargetBot) {
-          const answerTimer = setTimeout(() => {
+          const answerTimer = scheduleTimeout(() => {
             if (!botModeRef.current) return;
             if (gamePhaseRef.current === 'answering') {
               processAnswerRef.current('local-player', '', card.correct || 'A');
@@ -364,7 +500,7 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
         } else {
           setIsSpectating(true);
           const botAnswerDelay = 2500 + Math.random() * 1500;
-          const answerTimer = setTimeout(() => {
+          const answerTimer = scheduleTimeout(() => {
             if (!botModeRef.current) return;
             const isCorrect = Math.random() < 0.5;
             const answered = isCorrect ? (card.correct || 'A') : 'X';
@@ -372,7 +508,7 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
           }, botAnswerDelay);
           botTimerRef.current = answerTimer;
 
-          const safetyTimeout = setTimeout(() => {
+          const safetyTimeout = scheduleTimeout(() => {
             if (!botModeRef.current) return;
             if (gamePhaseRef.current === 'answering') {
               processAnswerRef.current(targetId, 'X', card.correct || 'A');
@@ -386,6 +522,7 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
     scheduleNextTurnRef.current = scheduleNextTurnFn;
     processAnswerRef.current = processAnswerFn;
     executeTriggerRef.current = executeTriggerFn;
+    executeStandoffRef.current = executeStandoffFn;
     botPlayCardRef.current = botPlayCardFn;
   }, [checkBotGameOver, clearAllTimers, showHUDAlert, playerName, getNextAliveTarget]);
 
@@ -402,6 +539,11 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
       p.id === 'local-player' ? { ...p, cardsCount: Math.max(0, (p.cardsCount || 0) - 1) } : p
     ));
     callbacks.setPlayedCard(card);
+
+    if (card.id === 'EASTER_EGG_STANDOFF') {
+      executeStandoffRef.current(card, 'local-player');
+      return;
+    }
 
     const targetId = getNextAliveTarget('local-player');
     const targetName = targetId === 'local-player'
@@ -420,21 +562,21 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
 
     if (isTargetBot) {
       const botAnswerDelay = 2500 + Math.random() * 1500;
-      const answerTimer = setTimeout(() => {
+      const answerTimer = scheduleTimeout(() => {
         const isCorrect = Math.random() < 0.5;
         const answered = isCorrect ? (card.correct || 'A') : 'X';
         processAnswerRef.current(targetId, answered, card.correct || 'A');
       }, botAnswerDelay);
       botTimerRef.current = answerTimer;
 
-      const safetyTimeout = setTimeout(() => {
+      const safetyTimeout = scheduleTimeout(() => {
         if (gamePhaseRef.current === 'answering') {
           processAnswerRef.current(targetId, 'X', card.correct || 'A');
         }
       }, 8000);
       safetyTimerRef.current = safetyTimeout;
     } else {
-      const answerTimer = setTimeout(() => {
+      const answerTimer = scheduleTimeout(() => {
         if (gamePhaseRef.current === 'answering') {
           processAnswerRef.current('local-player', '', card.correct || 'A');
         }
@@ -478,28 +620,24 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
     setBotGun(createBotGun());
     callbacks.setPhase('waiting');
 
-    setTimeout(() => {
+    scheduleTimeout(() => {
       const newBots: BotState[] = [];
       for (let i = 0; i < count; i++) {
-        const hand: CardData[] = [];
-        for (let j = 0; j < 4; j++) {
-          hand.push(generateBotQuestion());
-        }
+        const chance = 0.05;
         newBots.push({
           id: `bot-${i}`,
           name: BOT_NAMES[i % BOT_NAMES.length],
-          hand,
+          hand: generateBotHand(chance),
           isAlive: true,
           cardsCount: 4,
+          easterEggChance: chance,
         });
       }
       setBots(newBots);
       botsRef.current = newBots;
 
-      const localHand: CardData[] = [];
-      for (let j = 0; j < 4; j++) {
-        localHand.push(generateBotQuestion());
-      }
+      localEasterEggChanceRef.current = 0.05;
+      const localHand: CardData[] = generateBotHand(0.05);
       handCardsRef.current = localHand;
       callbacks.setHandCards(localHand);
       callbacks.setPhase('choosing');

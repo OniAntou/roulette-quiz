@@ -15,6 +15,7 @@ export interface Player {
   isAlive: boolean;
   left?: boolean;
   shotsFired: number;
+  easterEggChance?: number;
 }
 
 export interface Room {

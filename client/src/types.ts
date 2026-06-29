@@ -5,6 +5,7 @@ export interface Player {
   cardsCount?: number;
   isAlive?: boolean;
   shotsFired?: number;
+  left?: boolean;
 }
 
 export interface Question {
@@ -44,6 +45,7 @@ export interface TriggerResult {
   currentPosition?: number;
   bulletsFired?: number;
   shotsFired?: number;
+  results?: { playerId: string; alive: boolean }[];
 }
 
 export interface WinnerInfo {

@@ -248,6 +248,38 @@ export default function App() {
       }, 5000);
     });
 
+    socketClient.on('game:standoffResult', (data: { results: { playerId: string; alive: boolean }[] }) => {
+      setPhase('trigger'); // Reuse trigger phase for visual logic
+      const someoneDied = data.results.some(r => !r.alive);
+      setTriggerResult({
+        alive: !someoneDied,
+        playerId: 'STANDOFF', // Special flag
+        playerName: 'STANDOFF',
+        bulletCount: 0,
+        currentPosition: 0,
+        bulletsFired: 0,
+        shotsFired: 0,
+        results: data.results // Pass the array of results
+      });
+
+      setPlayers(prev => prev.map(p => {
+        const result = data.results.find(r => r.playerId === p.id);
+        if (result) {
+          return {
+            ...p,
+            isAlive: result.alive ? p.isAlive : false,
+            shotsFired: (p.shotsFired || 0) + 1,
+          };
+        }
+        return p;
+      }));
+
+      const delay = someoneDied ? 5000 : 2500;
+      setTimeout(() => {
+        setTriggerResult(null);
+      }, delay);
+    });
+
     socketClient.on('game:newRound', (data: { round: number }) => {
       Sounds.newRound();
       setRound(data.round);
