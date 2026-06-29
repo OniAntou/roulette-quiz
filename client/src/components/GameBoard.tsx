@@ -916,7 +916,7 @@ export function GameBoard({
                   <>
                     <div className="shatter-overlay z-20" />
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
-                      <div className="w-[140%] text-xs font-black text-red-600 border-y-2 border-red-600 py-1 text-center tracking-tighter opacity-95 bg-black/60 backdrop-blur-sm shadow-[0_0_15px_rgba(220,38,38,0.8)]" style={{ transform: 'rotate(-25deg)' }}>
+                      <div className="w-[220%] text-[24px] font-black text-red-600 border-y-4 border-red-600 py-1.5 text-center tracking-tighter opacity-95 bg-black/70 backdrop-blur-sm shadow-[0_0_20px_rgba(220,38,38,0.9)] whitespace-nowrap" style={{ transform: 'rotate(-25deg)' }}>
                         ELIMINATED
                       </div>
                     </div>
@@ -1342,7 +1342,7 @@ export function GameBoard({
               <>
                 <div className="shatter-overlay z-20" />
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
-                  <div className="w-[150%] text-[10px] font-black text-red-600 border-y-2 border-red-600 py-0.5 text-center tracking-tighter opacity-95 bg-black/60 backdrop-blur-sm shadow-[0_0_15px_rgba(220,38,38,0.8)]" style={{ transform: 'rotate(-25deg)' }}>
+                  <div className="w-[250%] text-[20px] font-black text-red-600 border-y-[3px] border-red-600 py-1 text-center tracking-tighter opacity-95 bg-black/70 backdrop-blur-sm shadow-[0_0_20px_rgba(220,38,38,0.9)] whitespace-nowrap" style={{ transform: 'rotate(-25deg)' }}>
                     ELIMINATED
                   </div>
                 </div>
