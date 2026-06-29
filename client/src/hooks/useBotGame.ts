@@ -352,7 +352,9 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
             scheduleNextTurnRef.current(targetId, 500);
           } else {
             bulletsFiredCountRef.current = 0;
-            setBotGun(createBotGun());
+            const newGun = createBotGun();
+            setBotGun(newGun);
+            botGunRef.current = newGun;
             
             // Reset round và BGM khi có người chết
             cb.setRound(prev => prev + 1);
@@ -626,7 +628,9 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
     callbacks.setScreen('game');
     callbacks.setRound(1);
     bulletsFiredCountRef.current = 0;
-    setBotGun(createBotGun());
+    const newGun = createBotGun();
+    setBotGun(newGun);
+    botGunRef.current = newGun;
     callbacks.setPhase('waiting');
 
     scheduleTimeout(() => {

@@ -87,6 +87,11 @@ export function GameBoard({
   const [rotationAngle, setRotationAngle] = useState<number>(-90);
   const [isGunInCenter, setIsGunInCenter] = useState<boolean>(false);
   
+  const playersRef = useRef(players);
+  useEffect(() => {
+    playersRef.current = players;
+  }, [players]);
+
   // Tính tổng số phát đã bắn trong round
   const currentShotsFired = players.reduce((sum, p) => sum + (p.shotsFired || 0), 0);
 
@@ -351,7 +356,14 @@ export function GameBoard({
               }
               
               const deadCount = triggerResult.results?.filter(r => !r.alive).length || 0;
-              const targetName = deadCount > 1 ? `MULTIPLE TARGETS (${deadCount})` : 'TARGET';
+              let targetName = 'TARGET';
+              if (deadCount === 1) {
+                const deadPlayerId = triggerResult.results?.find(r => !r.alive)?.playerId;
+                const deadPlayer = playersRef.current.find(p => p.id === deadPlayerId);
+                if (deadPlayer) targetName = deadPlayer.name;
+              } else if (deadCount > 1) {
+                targetName = `MULTIPLE TARGETS (${deadCount})`;
+              }
 
               setDeathMessage(isLocalDeath 
                 ? "CRITICAL ERROR // LIFE SIGNALS LOST" 
@@ -363,12 +375,17 @@ export function GameBoard({
                 setIsCrtShuttingDown(true);
                 setShowDeathOverlay(false); // Hide overlay to let CRT animation take over
                 setTimeout(() => {
-                  setIsCrtShuttingDown(false);
-                  if (prevPhase.current !== 'game_over') {
-                    if (!isPresentationMode) setIsCrtTurningOn(true);
-                    setIsSpectatorModeVisual(true);
-                    setTimeout(() => setIsCrtTurningOn(false), 1000);
+                  const opponentsAlive = playersRef.current.filter(p => p.id !== localId && p.isAlive).length;
+                  if (opponentsAlive <= 1) {
+                    return; // Game over, do not wake up CRT
                   }
+                  
+                  setIsCrtShuttingDown(false);
+                  setIsCrtTurningOn(true);
+                  setIsSpectatorModeVisual(true);
+                  setTimeout(() => {
+                    setIsCrtTurningOn(false);
+                  }, 400);
                 }, 2500);
               }
             } else {
@@ -393,15 +410,7 @@ export function GameBoard({
         return;
       }
 
-      setDisplayedShots(triggerResult.bulletsFired || 0);
-      
-      // If the bullet is lethal, the round will reset. Reset the HUD counter immediately after the shot is fired.
-      if (!triggerResult.alive) {
-        const t = setTimeout(() => {
-          setDisplayedShots(0);
-        }, 1400); // 1200ms spin + 150ms fire delay + 50ms buffer
-        triggerTimersRef.current.push(t);
-      }
+
 
       setCurrentPositionState(triggerResult.currentPosition ?? 0);
       setIsGunInCenter(true);
@@ -431,6 +440,12 @@ export function GameBoard({
           setShowShotEffect(true);
           const shotEffectTimer = setTimeout(() => setShowShotEffect(false), 280);
           triggerTimersRef.current.push(shotEffectTimer);
+          
+          if (!triggerResult.alive) {
+            setDisplayedShots(0);
+          } else {
+            setDisplayedShots(triggerResult.bulletsFired || 0);
+          }
 
           // Screen Shake & Red flash effect
           if (!isPresentationMode) {
@@ -458,15 +473,10 @@ export function GameBoard({
             setTimeout(() => setShowRedFlash(false), 600);
 
             let isLocalDeath = triggerResult.playerId === localId;
-            let targetName = triggerResult.playerName || 'PLAYER';
-            
-            if (triggerResult.playerId === 'STANDOFF' && triggerResult.results) {
-              const localResult = triggerResult.results.find(r => r.playerId === localId);
-              if (localResult && !localResult.alive) {
-                isLocalDeath = true;
-              }
-              const deadCount = triggerResult.results.filter(r => !r.alive).length;
-              targetName = deadCount > 1 ? `MULTIPLE TARGETS (${deadCount})` : 'TARGET';
+            let targetName = triggerResult.playerName;
+            if (!targetName) {
+              const targetPlayer = playersRef.current.find(p => p.id === triggerResult.playerId);
+              targetName = targetPlayer ? targetPlayer.name : 'TARGET';
             }
             
             setDeathMessage(isLocalDeath 
@@ -483,18 +493,19 @@ export function GameBoard({
 
               // Đợi 2.5 giây trong bóng đen
               setTimeout(() => {
-                setIsCrtShuttingDown(false);
-                
-                // Tránh bật CRT nếu game đã kết thúc (1v1 chết)
-                if (prevPhase.current !== 'game_over') {
-                  if (!isPresentationMode) setIsCrtTurningOn(true);
-                  setIsSpectatorModeVisual(true);
-                  
-                  // Xoá class hiệu ứng bật tivi sau khi hoàn thành
-                  setTimeout(() => {
-                    setIsCrtTurningOn(false);
-                  }, 1000);
+                const opponentsAlive = playersRef.current.filter(p => p.id !== localId && p.isAlive).length;
+                if (opponentsAlive <= 1) {
+                  return; // Game over, do not wake up CRT
                 }
+
+                setIsCrtShuttingDown(false);
+                setIsCrtTurningOn(true);
+                setIsSpectatorModeVisual(true); // Bật mode theo dõi
+                
+                // Tắt nhiễu hạt bật màn hình sau 0.4s
+                setTimeout(() => {
+                  setIsCrtTurningOn(false);
+                }, 400);
               }, 2500); // Kéo dài thời gian đen xì
             } else {
               // Nếu người khác chết thì báo lỗi đỏ 3 giây rồi tắt
@@ -1545,7 +1556,7 @@ export function GameBoard({
               >
                 <span className="block font-mono text-[8px] text-red-theme/60 tracking-widest mb-1">// CRITICAL_SYSTEM_ALERT</span>
                 <h2 className="font-mono text-xs font-black text-red-theme tracking-wider uppercase animate-pulse drop-shadow-[0_0_10px_rgba(239,68,68,0.5)]">
-                  <TypewriterText text={deathMessage} speed={40} />
+                  {deathMessage}
                 </h2>
                 <div className="mt-4 flex justify-center items-center gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-red-theme animate-ping" />

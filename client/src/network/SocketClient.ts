@@ -96,6 +96,7 @@ class SocketClient {
     this.socket.on('game:playerLeftAfterDeath', (data: any) => this.emit('game:playerLeftAfterDeath', data));
     this.socket.on('game:cardsUpdate', (data: any) => this.emit('game:cardsUpdate', data));
     this.socket.on('game:turn', (data: any) => this.emit('game:turn', data));
+    this.socket.on('game:standoffResult', (data: any) => this.emit('game:standoffResult', data));
 
     this.socket.on('error', (data: any) => this.emit('error', data));
   }
