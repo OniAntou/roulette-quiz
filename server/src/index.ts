@@ -108,12 +108,12 @@ io.on('connection', (socket) => {
     next();
   });
 
-  socket.on('room:create', (data: { playerName: string }) => {
-    const { playerName } = data;
-    const room = roomManager.createRoom(socket.id, playerName);
+  socket.on('room:create', (data: { playerName: string, isPublic?: boolean }) => {
+    const { playerName, isPublic = true } = data;
+    const room = roomManager.createRoom(socket.id, playerName, isPublic);
     socket.join(room.id);
     socket.emit('room:created', { roomId: room.id, players: room.players, playerId: socket.id });
-    console.log(`Room created: ${room.id}`);
+    console.log(`Room created: ${room.id} (Public: ${isPublic})`);
   });
 
   socket.on('room:list', () => {

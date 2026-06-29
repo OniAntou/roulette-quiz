@@ -46,7 +46,7 @@ export class RoomManager {
     }
   }
 
-  createRoom(socketId: string, playerName: string): Room {
+  createRoom(socketId: string, playerName: string, isPublic: boolean = true): Room {
     const sanitized = this.validatePlayerName(playerName);
     let roomId: string;
     let attempts = 0;
@@ -66,6 +66,7 @@ export class RoomManager {
       }],
       state: 'waiting',
       createdAt: Date.now(),
+      isPublic,
     };
 
     this.rooms.set(roomId, room);
@@ -181,7 +182,7 @@ export class RoomManager {
   getAvailableRooms(): { id: string; players: number; max: number }[] {
     const available: { id: string; players: number; max: number }[] = [];
     for (const room of this.rooms.values()) {
-      if (room.state === 'waiting' && room.players.length < 4) {
+      if (room.state === 'waiting' && room.players.length < 4 && room.isPublic !== false) {
         available.push({
           id: room.id,
           players: room.players.length,

@@ -134,10 +134,10 @@ class SocketClient {
     }
   }
 
-  createRoom(playerName: string): void {
+  createRoom(playerName: string, isPublic: boolean = true): void {
     if (!this.socket) return;
     this.playerName = playerName;
-    this.socket.emit('room:create', { playerName });
+    this.socket.emit('room:create', { playerName, isPublic });
   }
 
   getRooms(): void {

@@ -23,6 +23,7 @@ export function Lobby({ roomId, players, localId, error, disconnect }: LobbyProp
   const [isBrowseOpen, setIsBrowseOpen] = useState<boolean>(false);
   const [availableRooms, setAvailableRooms] = useState<{id: string, players: number, max: number}[]>([]);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [isPublicMode, setIsPublicMode] = useState<boolean>(true);
 
   const handleCopyCode = async () => {
     if (!roomId) return;
@@ -110,7 +111,7 @@ export function Lobby({ roomId, players, localId, error, disconnect }: LobbyProp
 
   const handleCreate = () => {
     Sounds.buttonClick();
-    socketClient.createRoom(socketClient.playerName || 'GUEST');
+    socketClient.createRoom(socketClient.playerName || 'GUEST', isPublicMode);
   };
 
   const handlePaste = (e: React.ClipboardEvent) => {
@@ -182,17 +183,31 @@ export function Lobby({ roomId, players, localId, error, disconnect }: LobbyProp
         <div className="flex flex-col space-y-4 max-w-sm w-full">
           {!roomId ? (
             <>
-              <button 
-                onClick={handleCreate}
-                className="group w-full py-6 bg-panel-solid/80 backdrop-blur-md border border-border-theme hover:border-red-theme-border hover:bg-surface-2 rounded-2xl text-base font-extrabold text-text-theme-secondary tracking-widest uppercase flex items-center justify-between px-8 transition-all duration-300 overflow-hidden"
-              >
-                <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-red-theme scale-y-0 group-hover:scale-y-100 transition-transform duration-300 origin-center"></div>
-                <span className="flex items-center gap-3 transition-transform duration-300 group-hover:translate-x-2">
-                  <Plus size={24} className="text-text-theme-muted group-hover:text-red-theme transition-colors" /> 
-                  CREATE PROTOCOL
-                </span>
-                <span className="group-hover:translate-x-1.5 transition-transform duration-300">↗</span>
-              </button>
+              <div className="flex flex-col space-y-3 w-full">
+                <button 
+                  onClick={handleCreate}
+                  className="group w-full py-6 bg-panel-solid/80 backdrop-blur-md border border-border-theme hover:border-red-theme-border hover:bg-surface-2 rounded-2xl text-base font-extrabold text-text-theme-secondary tracking-widest uppercase flex items-center justify-between px-8 transition-all duration-300 overflow-hidden"
+                >
+                  <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-red-theme scale-y-0 group-hover:scale-y-100 transition-transform duration-300 origin-center"></div>
+                  <span className="flex items-center gap-3 transition-transform duration-300 group-hover:translate-x-2">
+                    <Plus size={24} className="text-text-theme-muted group-hover:text-red-theme transition-colors" /> 
+                    CREATE PROTOCOL
+                  </span>
+                  <span className="group-hover:translate-x-1.5 transition-transform duration-300">↗</span>
+                </button>
+                
+                <div 
+                  onClick={() => { Sounds.buttonHover(); setIsPublicMode(!isPublicMode); }}
+                  className="flex items-center justify-end gap-3 cursor-pointer select-none px-2 group"
+                >
+                  <span className={`text-[9px] font-extrabold tracking-widest uppercase transition-colors ${isPublicMode ? 'text-emerald-theme' : 'text-text-theme-muted group-hover:text-red-theme'}`}>
+                    {isPublicMode ? 'PUBLIC (LISTED)' : 'PRIVATE (HIDDEN)'}
+                  </span>
+                  <div className={`w-8 h-4 rounded-full border flex items-center p-0.5 transition-all duration-300 ${isPublicMode ? 'bg-emerald-theme/20 border-emerald-theme/50' : 'bg-surface-2 border-border-theme'}`}>
+                    <div className={`w-2.5 h-2.5 rounded-full transition-transform duration-300 ${isPublicMode ? 'bg-emerald-theme translate-x-4' : 'bg-text-theme-muted translate-x-0'}`} />
+                  </div>
+                </div>
+              </div>
               <button 
                 onClick={openModal}
                 className="group w-full py-6 bg-panel-solid/80 backdrop-blur-md border border-border-theme hover:border-red-theme-border hover:bg-surface-2 rounded-2xl text-base font-extrabold text-text-theme-secondary tracking-widest uppercase flex items-center justify-between px-8 transition-all duration-300 overflow-hidden"

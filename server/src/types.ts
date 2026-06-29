@@ -22,6 +22,7 @@ export interface Room {
   players: Player[];
   state: 'waiting' | 'playing';
   createdAt: number;
+  isPublic?: boolean;
 }
 
 export interface Gun {
