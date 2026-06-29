@@ -916,7 +916,7 @@ export function GameBoard({
                   <>
                     <div className="shatter-overlay z-20" />
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
-                      <div className="text-[9px] font-black text-red-600 border border-red-600 px-1 py-0.5 tracking-tighter opacity-90 bg-black/40 backdrop-blur-sm shadow-[0_0_8px_rgba(220,38,38,0.6)]" style={{ transform: 'rotate(-20deg)' }}>
+                      <div className="w-[140%] text-xs font-black text-red-600 border-y-2 border-red-600 py-1 text-center tracking-tighter opacity-95 bg-black/60 backdrop-blur-sm shadow-[0_0_15px_rgba(220,38,38,0.8)]" style={{ transform: 'rotate(-25deg)' }}>
                         ELIMINATED
                       </div>
                     </div>
@@ -1342,7 +1342,7 @@ export function GameBoard({
               <>
                 <div className="shatter-overlay z-20" />
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
-                  <div className="text-[7px] font-black text-red-600 border border-red-600 px-0.5 py-[1px] tracking-tighter opacity-90 bg-black/40 backdrop-blur-sm shadow-[0_0_8px_rgba(220,38,38,0.6)]" style={{ transform: 'rotate(-20deg)' }}>
+                  <div className="w-[150%] text-[10px] font-black text-red-600 border-y-2 border-red-600 py-0.5 text-center tracking-tighter opacity-95 bg-black/60 backdrop-blur-sm shadow-[0_0_15px_rgba(220,38,38,0.8)]" style={{ transform: 'rotate(-25deg)' }}>
                     ELIMINATED
                   </div>
                 </div>
