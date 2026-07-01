@@ -4,6 +4,8 @@ import { Server } from 'socket.io';
 import { RoomManager } from './RoomManager';
 import { GameManager } from './GameManager';
 import cors from 'cors';
+import helmet from 'helmet';
+import { LRUCache } from 'lru-cache';
 import dgram from 'dgram';
 import path from 'path';
 
@@ -29,26 +31,29 @@ const io = new Server(server, {
 const roomManager = new RoomManager();
 const gameManager = new GameManager(roomManager, io);
 
-const rateLimits = new Map<string, { count: number; resetTime: number }>();
 const RATE_LIMIT_WINDOW = 1000;
 const RATE_LIMIT_MAX = 10;
 
+// Use LRUCache instead of Map to prevent memory leaks from DDoS
+const rateLimits = new LRUCache<string, number>({
+  max: 5000,
+  ttl: RATE_LIMIT_WINDOW,
+});
+
 function checkRateLimit(socketId: string): boolean {
-  const now = Date.now();
-  const limit = rateLimits.get(socketId);
-  if (!limit || now > limit.resetTime) {
-    rateLimits.set(socketId, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
-    return true;
-  }
-  if (limit.count >= RATE_LIMIT_MAX) {
+  const currentCount = rateLimits.get(socketId) || 0;
+  if (currentCount >= RATE_LIMIT_MAX) {
     return false;
   }
-  limit.count++;
+  rateLimits.set(socketId, currentCount + 1);
   return true;
 }
 
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
+app.use(helmet({
+  contentSecurityPolicy: false,
+}));
 app.use(cors());
 const clientDistPath = path.join(__dirname, '..', '..', 'client', 'dist');
 app.use(express.static(clientDistPath));
@@ -76,15 +81,6 @@ app.get('*', (_req, res) => {
 setInterval(() => {
   roomManager.cleanupStaleRooms();
 }, 60000);
-
-setInterval(() => {
-  const now = Date.now();
-  for (const [socketId, limit] of rateLimits.entries()) {
-    if (now > limit.resetTime) {
-      rateLimits.delete(socketId);
-    }
-  }
-}, 30000);
 
 // Clean up old discovered servers (not seen in 30 seconds)
 setInterval(() => {

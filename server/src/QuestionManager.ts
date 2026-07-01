@@ -27,19 +27,22 @@ export class QuestionManager {
   async getCards(count: number, excludeIds: string[] = []): Promise<Question[]> {
     if (!this.db) await this.init();
 
+    // Prevent SQLite max variable limit (usually 999)
+    const safeExclude = excludeIds.slice(-900);
+
     const selected: Question[] = [];
     const difficulties = ['easy', 'easy', 'medium', 'medium', 'hard'];
 
     for (let i = 0; i < count; i++) {
       const targetDifficulty = difficulties[i % difficulties.length];
-      const placeholders = excludeIds.map(() => '?').join(',');
+      const placeholders = safeExclude.map(() => '?').join(',');
       
       let query = `SELECT * FROM questions WHERE difficulty = ?`;
       const params: any[] = [targetDifficulty];
 
-      if (excludeIds.length > 0) {
+      if (safeExclude.length > 0) {
         query += ` AND id NOT IN (${placeholders})`;
-        params.push(...excludeIds);
+        params.push(...safeExclude);
       }
 
       query += ` ORDER BY RANDOM() LIMIT 1`;
@@ -50,9 +53,9 @@ export class QuestionManager {
       if (!row) {
         let fallbackQuery = `SELECT * FROM questions`;
         const fallbackParams: any[] = [];
-        if (excludeIds.length > 0) {
+        if (safeExclude.length > 0) {
           fallbackQuery += ` WHERE id NOT IN (${placeholders})`;
-          fallbackParams.push(...excludeIds);
+          fallbackParams.push(...safeExclude);
         }
         fallbackQuery += ` ORDER BY RANDOM() LIMIT 1`;
         row = await this.db!.get(fallbackQuery, ...fallbackParams);
