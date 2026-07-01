@@ -38,7 +38,7 @@ export function Revolver({ bulletsFired, currentPosition, isSpinning, isFiring, 
       <motion.div 
         animate={{ rotate: rotationAngle }}
         transition={{ duration: 0.4, ease: "easeInOut" }}
-        className="w-[400px] h-[275px] relative flex items-center justify-center pointer-events-none select-none"
+        className="w-[240px] h-[165px] sm:w-[320px] sm:h-[220px] md:w-[400px] md:h-[275px] relative flex items-center justify-center pointer-events-none select-none"
         style={{
           transformOrigin: 'center center',
           filter: 'drop-shadow(0px 8px 24px var(--cyan-theme-light))',

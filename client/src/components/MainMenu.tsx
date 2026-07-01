@@ -30,10 +30,10 @@ interface MainMenuProps {
 }
 
 const cornerLabels = [
-  { text: 'SYS.LOC // 47.11.02', pos: 'top-6 left-6' },
-  { text: 'VER.PRT // 2.0.26', pos: 'top-6 right-6' },
-  { text: 'LAT.DEG // 90.00.00', pos: 'bottom-6 left-6' },
-  { text: 'HAZ.STA // ACTIVE', pos: 'bottom-6 right-6' },
+  { text: 'SYS.LOC // 47.11.02', pos: 'top-6 left-6', hideOnMobile: true },
+  { text: 'VER.PRT // 2.0.26', pos: 'top-6 right-6', hideOnMobile: true },
+  { text: 'LAT.DEG // 90.00.00', pos: 'bottom-6 left-6', hideOnMobile: true },
+  { text: 'HAZ.STA // ACTIVE', pos: 'bottom-6 right-6', hideOnMobile: true },
 ];
 
 const buttonDefs = [
@@ -306,12 +306,12 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
             className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-[#050505] cursor-pointer select-none font-mono"
           >
             {/* Minimalist container: spacious, clean */}
-            <div className="flex flex-col items-center space-y-20 max-w-3xl w-full px-8">
+            <div className="flex flex-col items-center space-y-12 md:space-y-20 max-w-3xl w-full px-6 md:px-8">
               
               {/* Header text with elegant tracking and font weight */}
-              <div className="flex flex-col items-center space-y-6">
-                <span className="text-[13px] text-zinc-500 tracking-[0.6em] uppercase">SYSTEM INITIALIZATION</span>
-                <h2 className="text-7xl sm:text-8xl md:text-9xl font-thin text-zinc-200 tracking-[0.25em] uppercase translate-x-[0.125em]">
+              <div className="flex flex-col items-center space-y-4 md:space-y-6">
+                <span className="text-[11px] md:text-[13px] text-zinc-500 tracking-[0.4em] md:tracking-[0.6em] uppercase">SYSTEM INITIALIZATION</span>
+                <h2 className="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-thin text-zinc-200 tracking-[0.15em] md:tracking-[0.25em] uppercase translate-x-[0.125em]">
                   ROULETTE
                 </h2>
               </div>
@@ -378,7 +378,7 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
         </svg>
 
         {/* Technical Blueprint Scope/Crosshair Graphic */}
-        <div className="absolute right-[5%] bottom-[10%] w-[380px] h-[380px] opacity-[0.12] text-cyan-theme pointer-events-none select-none">
+        <div className="hidden lg:block absolute right-[5%] bottom-[10%] w-[280px] lg:w-[380px] h-[280px] lg:h-[380px] opacity-[0.12] text-cyan-theme pointer-events-none select-none">
           <motion.svg 
             animate={{ rotate: 360 }}
             transition={{ duration: 45, repeat: Infinity, ease: "linear" }}
@@ -398,18 +398,18 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
         </div>
 
         {/* Multiple scan beams */}
-        <div className="absolute top-[20%] left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-cyan-theme to-transparent opacity-30 scan-beam pointer-events-none" />
-        <div className="absolute top-[55%] left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-cyan-theme-muted to-transparent opacity-20 scan-beam-slow pointer-events-none" />
-        <div className="absolute top-[80%] left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-emerald-theme to-transparent opacity-15 scan-beam pointer-events-none" style={{ animationDelay: '3s' }} />
+        <div className="hidden md:block absolute top-[20%] left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-cyan-theme to-transparent opacity-30 scan-beam pointer-events-none" />
+        <div className="hidden md:block absolute top-[55%] left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-cyan-theme-muted to-transparent opacity-20 scan-beam-slow pointer-events-none" />
+        <div className="hidden md:block absolute top-[80%] left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-emerald-theme to-transparent opacity-15 scan-beam pointer-events-none" style={{ animationDelay: '3s' }} />
 
         {/* Vertical scan line */}
-        <div className="absolute top-0 left-[30%] w-[1px] h-full bg-gradient-to-b from-transparent via-cyan-theme to-transparent opacity-15 scan-vertical pointer-events-none" />
+        <div className="hidden md:block absolute top-0 left-[30%] w-[1px] h-full bg-gradient-to-b from-transparent via-cyan-theme to-transparent opacity-15 scan-vertical pointer-events-none" />
 
-        {/* Floating particles */}
+        {/* Floating particles - reduced on mobile for performance */}
         {PARTICLES.map(p => (
           <div
             key={p.id}
-            className="absolute rounded-full bg-cyan-theme"
+            className="absolute rounded-full bg-cyan-theme hidden sm:block"
             style={{
               left: p.left,
               bottom: '-10px',
@@ -423,11 +423,13 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
 
         {/* Corner labels with typewriter effect */}
         {cornerLabels.map((label, i) => (
-          <TypewriterLabel key={label.pos} text={label.text} pos={label.pos} delay={800 + i * 200} />
+          <div key={label.pos} className={label.hideOnMobile ? 'hidden md:block' : ''}>
+            <TypewriterLabel text={label.text} pos={label.pos} delay={800 + i * 200} />
+          </div>
         ))}
       </div>
 
-      <div className="w-full h-screen px-8 md:px-16 lg:px-24 grid grid-cols-1 md:grid-cols-2 gap-16 md:gap-24 items-center z-10">
+      <div className="w-full h-screen px-5 sm:px-8 md:px-16 lg:px-24 grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16 lg:gap-24 items-center z-10 overflow-y-auto md:overflow-hidden">
         {/* Title block */}
         <div className="flex flex-col space-y-6">
           <motion.div
@@ -440,7 +442,7 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
           </motion.div>
 
           <div className="select-none flex flex-col items-start">
-            <h1 className="text-7xl sm:text-8xl lg:text-9xl font-mono font-black tracking-[0.05em] leading-[0.9] text-text-theme">
+            <h1 className="text-5xl sm:text-7xl lg:text-9xl font-mono font-black tracking-[0.05em] leading-[0.9] text-text-theme">
               {titleChars.map((char, i) => (
                 <span
                   key={i}
@@ -460,7 +462,7 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.9, duration: 0.5, ease: 'easeOut' }}
-              className="block text-7xl sm:text-8xl lg:text-9xl font-mono font-normal tracking-[0.05em] leading-[0.9] text-text-theme-muted mt-1"
+              className="block text-5xl sm:text-7xl lg:text-9xl font-mono font-normal tracking-[0.05em] leading-[0.9] text-text-theme-muted mt-1"
             >
               PROTOCOL
             </motion.span>
@@ -470,7 +472,7 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 1.1, duration: 0.4 }}
-            className="text-text-theme-muted font-mono text-sm leading-relaxed max-w-[45ch] uppercase tracking-wider"
+            className="text-text-theme-muted font-mono text-xs sm:text-sm leading-relaxed max-w-[45ch] uppercase tracking-wider"
           >
             High-stakes trivia multiplayer system. Answer correctly or pull the trigger. Survive to decrypt the next level.
           </motion.p>
@@ -484,11 +486,11 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
           className="flex flex-col space-y-8"
         >
           {/* Username input with focus glow */}
-          <div className={`border border-border-theme rounded-xl p-8 flex flex-col space-y-4 bg-input-theme animate-pulse-glow transition-all duration-300 ${shakingBox === 0 ? 'box-shake' : ''}`}>
+          <div className={`border border-border-theme rounded-xl p-5 sm:p-8 flex flex-col space-y-3 sm:space-y-4 bg-input-theme animate-pulse-glow transition-all duration-300 ${shakingBox === 0 ? 'box-shake' : ''}`}>
             <label className="font-mono text-[9px] text-text-theme-muted tracking-widest">
               // USER_IDENTIFICATION_KEY
             </label>
-            <div className="relative flex items-center w-full font-mono font-bold text-4xl sm:text-5xl uppercase tracking-wider">
+            <div className="relative flex items-center w-full font-mono font-bold text-3xl sm:text-4xl md:text-5xl uppercase tracking-wider">
               {/* Native input layer, text is visible, native caret is hidden */}
               <input
                 type="text"
@@ -530,7 +532,7 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
                   }}
                   onClick={() => handleButtonClick(btn.onClick)}
                   disabled={status === 'connecting'}
-                  className={`btn-shimmer flex items-center justify-between px-8 py-5 bg-input-theme border border-border-theme rounded-lg font-mono text-sm font-bold text-text-theme-muted tracking-widest uppercase cursor-pointer transition-all duration-200 ${btn.borderHover} ${btn.bgHover} ${btn.textHover} ${shakingBox === i + 1 ? 'box-shake' : ''}`}
+                  className={`btn-shimmer flex items-center justify-between px-5 sm:px-8 py-4 sm:py-5 bg-input-theme border border-border-theme rounded-lg font-mono text-xs sm:text-sm font-bold text-text-theme-muted tracking-widest uppercase cursor-pointer transition-all duration-200 ${btn.borderHover} ${btn.bgHover} ${btn.textHover} ${shakingBox === i + 1 ? 'box-shake' : ''}`}
                 >
                   <span className="flex items-center gap-3">
                     <Icon size={18} className="text-text-theme-muted" />
@@ -581,7 +583,7 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
                 animate={{ scale: 1, opacity: 1, filter: 'blur(0px)' }}
                 exit={{ scale: 0.95, opacity: 0, filter: 'blur(4px)' }}
                 transition={{ duration: 0.3, ease: 'easeOut' }}
-                className="bg-panel-solid border border-border-theme rounded-lg p-8 max-w-2xl w-full flex flex-col relative"
+                className="bg-panel-solid border border-border-theme rounded-lg p-5 sm:p-8 max-w-2xl w-full flex flex-col relative max-h-[90vh] overflow-y-auto"
               >
                 <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-border-theme-strong to-transparent"></div>
                 <h3 className="font-mono text-[9px] text-text-theme-muted tracking-widest uppercase mb-5 flex items-center gap-2">
@@ -683,7 +685,7 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
                 animate={{ scale: 1, opacity: 1, filter: 'blur(0px)' }}
                 exit={{ scale: 0.95, opacity: 0, filter: 'blur(4px)' }}
                 transition={{ duration: 0.3, ease: 'easeOut' }}
-                className="bg-panel-solid border border-border-theme rounded-lg p-8 max-w-md w-full flex flex-col items-center relative"
+                className="bg-panel-solid border border-border-theme rounded-lg p-5 sm:p-8 max-w-md w-full flex flex-col items-center relative max-h-[90vh] overflow-y-auto"
               >
                 <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-emerald-theme-border to-transparent"></div>
                 <h3 className="font-mono text-[9px] text-text-theme-muted tracking-widest uppercase mb-6 flex items-center gap-2">

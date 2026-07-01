@@ -144,7 +144,7 @@ export function Lobby({ roomId, players, localId, error, disconnect }: LobbyProp
   return (
     <>
       <div className="fixed top-5 right-5 z-50"><ThemeToggle /></div>
-      <div className="w-full max-w-6xl px-6 md:px-12 grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-20 items-start z-10 relative py-8">
+      <div className="w-full max-w-6xl px-4 sm:px-6 md:px-12 grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-12 md:gap-20 items-start z-10 relative py-6 sm:py-8">
       <div className="flex flex-col space-y-8">
         <div className="flex flex-col space-y-2">
           <span className="text-[10px] text-text-theme-muted font-extrabold tracking-widest uppercase">LOBBY // ROOM_WAITING_STATE</span>
@@ -153,13 +153,13 @@ export function Lobby({ roomId, players, localId, error, disconnect }: LobbyProp
           </h2>
         </div>
 
-        <div className="relative border border-border-theme rounded-2xl p-10 bg-panel-solid/80 backdrop-blur-md flex flex-col justify-center items-center overflow-hidden max-w-sm w-full shadow-lg">
+        <div className="relative border border-border-theme rounded-2xl p-6 sm:p-10 bg-panel-solid/80 backdrop-blur-md flex flex-col justify-center items-center overflow-hidden max-w-sm w-full shadow-lg">
           <div className="absolute top-2 left-2 w-3 h-3 border-t-2 border-l-2 border-red-theme-border"></div>
           <div className="absolute top-2 right-2 w-3 h-3 border-t-2 border-r-2 border-red-theme-border"></div>
           <div className="absolute bottom-2 left-2 w-3 h-3 border-b-2 border-l-2 border-red-theme-border"></div>
           <div className="absolute bottom-2 right-2 w-3 h-3 border-b-2 border-r-2 border-red-theme-border"></div>
           <span className="text-[9px] text-text-theme-muted font-extrabold tracking-widest uppercase mb-4">ROOM_ACCESS_CODE</span>
-          <span className="text-7xl font-black tracking-[10px] text-text-theme select-text">
+          <span className="text-5xl sm:text-6xl md:text-7xl font-black tracking-[6px] sm:tracking-[10px] text-text-theme select-text">
             {roomId || '------'}
           </span>
           {roomId && (
@@ -186,7 +186,7 @@ export function Lobby({ roomId, players, localId, error, disconnect }: LobbyProp
               <div className="flex flex-col space-y-3 w-full">
                 <button 
                   onClick={handleCreate}
-                  className="group w-full py-6 bg-panel-solid/80 backdrop-blur-md border border-border-theme hover:border-red-theme-border hover:bg-surface-2 rounded-2xl text-base font-extrabold text-text-theme-secondary tracking-widest uppercase flex items-center justify-between px-8 transition-all duration-300 overflow-hidden"
+                  className="group w-full py-5 sm:py-6 bg-panel-solid/80 backdrop-blur-md border border-border-theme hover:border-red-theme-border hover:bg-surface-2 rounded-2xl text-sm sm:text-base font-extrabold text-text-theme-secondary tracking-widest uppercase flex items-center justify-between px-5 sm:px-8 transition-all duration-300 overflow-hidden"
                 >
                   <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-red-theme scale-y-0 group-hover:scale-y-100 transition-transform duration-300 origin-center"></div>
                   <span className="flex items-center gap-3 transition-transform duration-300 group-hover:translate-x-2">
@@ -210,7 +210,7 @@ export function Lobby({ roomId, players, localId, error, disconnect }: LobbyProp
               </div>
               <button 
                 onClick={openModal}
-                className="group w-full py-6 bg-panel-solid/80 backdrop-blur-md border border-border-theme hover:border-red-theme-border hover:bg-surface-2 rounded-2xl text-base font-extrabold text-text-theme-secondary tracking-widest uppercase flex items-center justify-between px-8 transition-all duration-300 overflow-hidden"
+                className="group w-full py-5 sm:py-6 bg-panel-solid/80 backdrop-blur-md border border-border-theme hover:border-red-theme-border hover:bg-surface-2 rounded-2xl text-sm sm:text-base font-extrabold text-text-theme-secondary tracking-widest uppercase flex items-center justify-between px-5 sm:px-8 transition-all duration-300 overflow-hidden"
               >
                 <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-red-theme scale-y-0 group-hover:scale-y-100 transition-transform duration-300 origin-center"></div>
                 <span className="flex items-center gap-3 transition-transform duration-300 group-hover:translate-x-2">
@@ -221,7 +221,7 @@ export function Lobby({ roomId, players, localId, error, disconnect }: LobbyProp
               </button>
               <button 
                 onClick={openBrowse}
-                className="group w-full py-6 bg-panel-solid/80 backdrop-blur-md border border-border-theme hover:border-emerald-theme-border hover:bg-surface-2 rounded-2xl text-base font-extrabold text-text-theme-secondary tracking-widest uppercase flex items-center justify-between px-8 transition-all duration-300 overflow-hidden"
+                className="group w-full py-5 sm:py-6 bg-panel-solid/80 backdrop-blur-md border border-border-theme hover:border-emerald-theme-border hover:bg-surface-2 rounded-2xl text-sm sm:text-base font-extrabold text-text-theme-secondary tracking-widest uppercase flex items-center justify-between px-5 sm:px-8 transition-all duration-300 overflow-hidden"
               >
                 <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-emerald-theme scale-y-0 group-hover:scale-y-100 transition-transform duration-300 origin-center"></div>
                 <span className="flex items-center gap-3 transition-transform duration-300 group-hover:translate-x-2">
@@ -234,7 +234,7 @@ export function Lobby({ roomId, players, localId, error, disconnect }: LobbyProp
           ) : (
             <button 
               onClick={toggleReady}
-              className={`w-full py-6 rounded-2xl text-base font-extrabold tracking-widest uppercase flex items-center justify-center transition-all duration-300 border cursor-pointer ${
+              className={`w-full py-5 sm:py-6 rounded-2xl text-sm sm:text-base font-extrabold tracking-widest uppercase flex items-center justify-center transition-all duration-300 border cursor-pointer ${
                 isReady 
                   ? 'bg-emerald-theme-bg border-emerald-theme-border text-emerald-theme hover:bg-emerald-theme-bg-hover' 
                   : 'bg-red-theme-bg border-red-theme-border text-red-theme hover:bg-red-theme-bg-hover'
@@ -262,17 +262,17 @@ export function Lobby({ roomId, players, localId, error, disconnect }: LobbyProp
           ) : (
             players.map((player) => (
               <div key={player.id}
-                className="w-full bg-panel-solid/80 backdrop-blur-sm border border-border-theme rounded-2xl px-6 py-5 flex items-center justify-between shadow-sm hover:border-border-theme-strong transition-colors"
+                className="w-full bg-panel-solid/80 backdrop-blur-sm border border-border-theme rounded-2xl px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between shadow-sm hover:border-border-theme-strong transition-colors"
               >
                 <div className="flex items-center gap-3">
-                  <div className={`w-12 h-12 rounded-lg flex items-center justify-center font-black text-base ${
+                  <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center font-black text-sm sm:text-base ${
                     player.id === localId 
                       ? 'bg-emerald-theme-bg text-emerald-theme border border-emerald-theme-border' 
                       : 'bg-red-theme-bg text-red-theme border border-red-theme-border'
                   }`}>
                     {player.name.substring(0, 2).toUpperCase()}
                   </div>
-                  <span className="text-base font-extrabold text-text-theme tracking-wide uppercase">
+                  <span className="text-sm sm:text-base font-extrabold text-text-theme tracking-wide uppercase">
                     {player.name} {player.id === localId && <span className="text-[11px] text-text-theme-muted font-normal italic">(YOU)</span>}
                   </span>
                 </div>
@@ -319,13 +319,13 @@ export function Lobby({ roomId, players, localId, error, disconnect }: LobbyProp
                 <span className="w-1.5 h-1.5 rounded-full bg-red-theme animate-pulse"></span>
                 DECRYPT_ACCESS_CODE //
               </h3>
-              <div className="flex space-x-2.5 mb-6" onPaste={handlePaste}>
+              <div className="flex space-x-2 sm:space-x-2.5 mb-6" onPaste={handlePaste}>
                 {[0, 1, 2, 3, 4, 5].map((index) => {
                   const char = modalCode[index] || '';
                   const isActive = index === modalCode.length;
                   return (
                     <div key={index} 
-                      className={`w-14 h-14 bg-surface-2 rounded-xl border flex items-center justify-center text-2xl font-black text-red-theme transition-all duration-300 shadow-inner ${
+                      className={`w-11 h-11 sm:w-14 sm:h-14 bg-surface-2 rounded-xl border flex items-center justify-center text-xl sm:text-2xl font-black text-red-theme transition-all duration-300 shadow-inner ${
                         isActive ? 'border-red-theme scale-105' : 'border-border-theme'
                       }`}
                     >
@@ -337,14 +337,14 @@ export function Lobby({ roomId, players, localId, error, disconnect }: LobbyProp
               <span className="text-xs text-text-theme-dim font-semibold tracking-wide mb-6">
                 // Type 6 characters. Press ENTER to connect.
               </span>
-              <div className="flex gap-4 w-full">
+              <div className="flex gap-3 sm:gap-4 w-full">
                 <button onClick={closeModal}
-                  className="flex-1 py-4 bg-surface-2 border border-border-theme hover:border-red-theme-border text-xs font-extrabold text-text-theme-muted tracking-wider uppercase rounded-xl hover:text-text-theme hover:bg-red-theme-bg transition-all duration-300 cursor-pointer"
+                  className="flex-1 py-3 sm:py-4 bg-surface-2 border border-border-theme hover:border-red-theme-border text-[10px] sm:text-xs font-extrabold text-text-theme-muted tracking-wider uppercase rounded-xl hover:text-text-theme hover:bg-red-theme-bg transition-all duration-300 cursor-pointer"
                 >
                   CANCEL // ESC
                 </button>
                 <button onClick={handleJoinSubmit}
-                  className="flex-1 py-4 bg-red-theme-bg border border-red-theme-border hover:border-red-theme text-xs font-extrabold text-red-theme tracking-wider uppercase rounded-xl hover:bg-red-theme-bg-hover transition-all duration-300 cursor-pointer"
+                  className="flex-1 py-3 sm:py-4 bg-red-theme-bg border border-red-theme-border hover:border-red-theme text-[10px] sm:text-xs font-extrabold text-red-theme tracking-wider uppercase rounded-xl hover:bg-red-theme-bg-hover transition-all duration-300 cursor-pointer"
                 >
                   CONFIRM // ENTER
                 </button>

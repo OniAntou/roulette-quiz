@@ -18,11 +18,11 @@ Players use question cards to attack opponents. A wrong answer or timeout means 
 
 ## Key Features & Visual Effects
 
-- 🔫 **Realistic Revolver Animation:** 3D side-view cylinder rotation animation on trigger pull and spins.
-- ⚡ **Minimalist Cyberpunk UI:** Removed cluttered headers, focusing entire layout on clean grid lines and blueprint grids.
-- 🏷️ **Dynamic Turn & Action Indicators:** Live status badges (`DECRYPTING...`, `SUCCESS!`, `FAILED!`, `PULL TRIGGER!`) render seamlessly right above the active player's profile container.
-- 💥 **Tactical Death Effects:** Screen shake, red emergency flashes, static TV screen glitch, and a collapsing CRT shutdown animation when the local player is terminated.
-- 🔊 **Web Audio Synthesis:** Custom mechanical UI beeps, revolver clicks, survive clicks, timer ticks, and warning signals synthesized directly using the Web Audio API.
+- **Realistic Revolver Animation:** 3D side-view cylinder rotation animation on trigger pull and spins.
+- **Minimalist Cyberpunk UI:** Removed cluttered headers, focusing entire layout on clean grid lines and blueprint grids.
+- **Dynamic Turn & Action Indicators:** Live status badges (`DECRYPTING...`, `SUCCESS!`, `FAILED!`, `PULL TRIGGER!`) render seamlessly right above the active player's profile container.
+- **Tactical Death Effects:** Screen shake, red emergency flashes, static TV screen glitch, and a collapsing CRT shutdown animation when the local player is terminated.
+- **Web Audio Synthesis:** Custom mechanical UI beeps, revolver clicks, survive clicks, timer ticks, and warning signals synthesized directly using the Web Audio API.
 
 ## Quick Start
 
@@ -85,7 +85,7 @@ The game supports two modes of play:
 
 ## Game Rules / Luật chơi
 
-### 🇬🇧 English Version
+### English Version
 
 #### Setup
 - **Players:** 2+ players (currently optimized for 1v1).
@@ -103,9 +103,9 @@ The game supports two modes of play:
    - **Dead (Bullet Fired):** The player is eliminated. If only one player remains, they are declared the winner. If multiple players are still alive, the gun is reloaded (bullet reset to a new random position), and a new round begins.
 
 #### Card Difficulties & Timers
-- 🟢 **Easy (Green):** 10 seconds to answer.
-- 🟡 **Medium (Yellow):** 7 seconds to answer.
-- 🔴 **Hard (Red):** 5 seconds to answer.
+- **Easy (Green):** 10 seconds to answer.
+- **Medium (Yellow):** 7 seconds to answer.
+- **Hard (Red):** 5 seconds to answer.
 
 #### Bullet Probability Progression
 - 1st trigger pull: **1/6** chance of death (16.6%)
@@ -117,7 +117,7 @@ The game supports two modes of play:
 
 ---
 
-### 🇻🇳 Tiếng Việt
+### Tiếng Việt
 
 #### Thiết lập ban đầu
 - **Người chơi:** 2 người trở lên (hiện tại tối ưu tốt nhất cho chế độ đấu đôi 1v1).
@@ -135,9 +135,9 @@ The game supports two modes of play:
    - **Tử vong (Trúng đạn):** Người chơi bị loại. Nếu chỉ còn 1 người chơi sống sót, trò chơi kết thúc và người đó thắng cuộc. Nếu vẫn còn nhiều hơn 1 người chơi sống sót, súng sẽ được nạp lại đạn (viên đạn được đặt ngẫu nhiên lại) và vòng đấu mới bắt đầu.
 
 #### Độ khó của thẻ bài & Thời gian trả lời
-- 🟢 **Dễ (Xanh lá):** Có 10 giây để đưa ra đáp án.
-- 🟡 **Trung bình (Vàng):** Có 7 giây để đưa ra đáp án.
-- 🔴 **Khó (Đỏ):** Chỉ có 5 giây để đưa ra đáp án.
+- **Dễ (Xanh lá):** Có 10 giây để đưa ra đáp án.
+- **Trung bình (Vàng):** Có 7 giây để đưa ra đáp án.
+- **Khó (Đỏ):** Chỉ có 5 giây để đưa ra đáp án.
 
 #### Tiến trình tăng tỉ lệ nổ súng
 - Bóp cò lần 1: tỉ lệ chết là **1/6** (16.6%)
@@ -176,8 +176,8 @@ roulette-quiz/
 
 ## Known Issues
 
-- 🔊 **Audio:** Synthesized sound effects (Web Audio API) are integrated natively in the client code, resolving the missing physical audio files issue.
-- 💬 **Input:** Player name input is sanitized against XSS to prevent injection attacks.
+- **Audio:** Synthesized sound effects (Web Audio API) are integrated natively in the client code, resolving the missing physical audio files issue.
+- **Input:** Player name input is sanitized against XSS to prevent injection attacks.
 
 ## Future Roadmap
 

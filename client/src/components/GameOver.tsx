@@ -112,18 +112,18 @@ export function GameOver({ winnerInfo, disconnect }: GameOverProps) {
       <ScanlineOverlay />
 
       <motion.div
-        className="relative z-20 flex flex-col items-center gap-8 w-full max-w-lg px-6 mx-auto mt-12"
+        className="relative z-20 flex flex-col items-center gap-6 sm:gap-8 w-full max-w-lg px-4 sm:px-6 mx-auto mt-8 sm:mt-12"
         variants={containerVariants}
         initial="hidden"
         animate="visible"
       >
         {/* Core emblem */}
-        <motion.div variants={itemVariants} className="relative flex items-center justify-center w-48 h-48">
+        <motion.div variants={itemVariants} className="relative flex items-center justify-center w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48">
           {/* Outer rotating brackets */}
           <motion.div
             className="absolute rounded-full"
             style={{
-              width: 220, height: 220,
+              width: '110%', height: '110%',
               border: `2px solid ${isLocalWinner ? 'var(--emerald-theme)' : 'var(--red-theme)'}`,
               borderTopColor: 'transparent',
               borderBottomColor: 'transparent',
@@ -136,7 +136,7 @@ export function GameOver({ winnerInfo, disconnect }: GameOverProps) {
           <motion.div
             className="absolute rounded-full bg-transparent"
             style={{
-              width: 130, height: 130,
+              width: '70%', height: '70%',
               border: `2px solid ${isLocalWinner ? 'var(--emerald-theme)' : 'var(--red-theme)'}`,
             }}
             animate={{ scale: [1, 1.08, 1], opacity: [0.15, 0.05, 0.15] }}
@@ -144,7 +144,7 @@ export function GameOver({ winnerInfo, disconnect }: GameOverProps) {
           />
           {/* Core circle */}
           <motion.div
-            className="relative w-32 h-32 rounded-full flex items-center justify-center"
+            className="relative w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full flex items-center justify-center"
             style={{
               background: isLocalWinner
                 ? 'radial-gradient(circle, rgba(16,185,129,0.15) 0%, rgba(16,185,129,0.04) 100%)'
@@ -200,7 +200,7 @@ export function GameOver({ winnerInfo, disconnect }: GameOverProps) {
         <motion.div variants={itemVariants} className="flex flex-col items-center gap-3 w-full">
           {isLocalWinner ? (
             <motion.h1
-              className="text-7xl md:text-8xl font-black tracking-[10px] uppercase"
+              className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-[6px] sm:tracking-[10px] uppercase"
               style={{ color: 'var(--emerald-theme)' }}
               animate={{
                 textShadow: [
@@ -216,14 +216,14 @@ export function GameOver({ winnerInfo, disconnect }: GameOverProps) {
           ) : (
             <GlitchText
               text={isAnnihilation ? "ANNIHILATION" : "DEFEAT"}
-              className={`${isAnnihilation ? 'text-5xl md:text-6xl text-center' : 'text-7xl md:text-8xl'} font-black tracking-[10px] uppercase block w-full whitespace-nowrap overflow-visible leading-tight`}
+              className={`${isAnnihilation ? 'text-3xl sm:text-4xl md:text-5xl md:text-6xl text-center' : 'text-5xl sm:text-6xl md:text-7xl lg:text-8xl'} font-black tracking-[6px] sm:tracking-[10px] uppercase block w-full whitespace-nowrap overflow-visible leading-tight`}
               // @ts-ignore
               style={{ color: 'var(--red-theme)' }}
             />
           )}
 
           {/* Winner name plate */}
-          <div className={`relative px-8 py-3 border rounded-xl backdrop-blur-sm overflow-hidden text-center w-full max-w-sm ${
+          <div className={`relative px-5 sm:px-8 py-2 sm:py-3 border rounded-xl backdrop-blur-sm overflow-hidden text-center w-full max-w-sm ${
             isLocalWinner
               ? 'border-emerald-theme-border bg-emerald-theme-bg'
               : 'border-border-theme bg-panel-solid/60'
@@ -238,7 +238,7 @@ export function GameOver({ winnerInfo, disconnect }: GameOverProps) {
             <p className="text-sm font-black tracking-[3px] uppercase" style={{ color: isLocalWinner ? 'var(--emerald-theme)' : 'var(--text-theme-muted)' }}>
               {isLocalWinner ? '// WINNER //' : isAnnihilation ? '// MUTUAL DESTRUCTION //' : '// ELIMINATED //'}
             </p>
-            <p className="text-2xl font-black tracking-widest uppercase mt-1" style={{ color: 'var(--text-theme)' }}>
+            <p className="text-lg sm:text-xl md:text-2xl font-black tracking-widest uppercase mt-1" style={{ color: 'var(--text-theme)' }}>
               {winner}
             </p>
             {isLocalWinner && (
@@ -259,7 +259,7 @@ export function GameOver({ winnerInfo, disconnect }: GameOverProps) {
         {/* Stats bar */}
         <motion.div
           variants={itemVariants}
-          className="w-full grid grid-cols-3 gap-3"
+          className="w-full grid grid-cols-3 gap-2 sm:gap-3"
         >
           {[
             { label: 'STATUS', value: isLocalWinner ? 'ALIVE' : 'DECEASED' },
@@ -267,7 +267,7 @@ export function GameOver({ winnerInfo, disconnect }: GameOverProps) {
             { label: 'PROTOCOL', value: isLocalWinner ? 'PASS' : 'FAIL' },
           ].map((stat) => (
             <div key={stat.label}
-              className="flex flex-col items-center gap-1 border border-border-theme rounded-xl py-3 px-2 bg-panel-solid/40 backdrop-blur-sm"
+              className="flex flex-col items-center gap-1 border border-border-theme rounded-xl py-2 sm:py-3 px-1 sm:px-2 bg-panel-solid/40 backdrop-blur-sm"
             >
               <span className="text-[9px] font-black tracking-[2px] uppercase" style={{ color: 'var(--text-theme-muted)' }}>{stat.label}</span>
               <span className={`text-xs font-black tracking-wider uppercase ${
@@ -283,7 +283,7 @@ export function GameOver({ winnerInfo, disconnect }: GameOverProps) {
         <motion.div variants={itemVariants} className="w-full">
           <motion.button
             onClick={disconnect}
-            className="group relative w-full py-5 rounded-2xl overflow-hidden cursor-pointer font-black text-sm tracking-[4px] uppercase transition-all duration-300"
+            className="group relative w-full py-4 sm:py-5 rounded-2xl overflow-hidden cursor-pointer font-black text-xs sm:text-sm tracking-[3px] sm:tracking-[4px] uppercase transition-all duration-300"
             style={{
               background: 'var(--bg-panel-solid)',
               border: '1px solid var(--border-theme)',
