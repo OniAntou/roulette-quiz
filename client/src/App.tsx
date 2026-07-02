@@ -163,7 +163,9 @@ export default function App() {
 
     socketClient.on('game:deal', (data: { cards: CardData[] }) => {
       setHandCards(data.cards);
-      setPhase('choosing');
+      // Don't set phase here — wait for game:turn to set correct currentTurnId
+      // Setting phase='choosing' here creates a race condition where cards are
+      // clickable before currentTurnId is updated
     });
 
     socketClient.on('game:turn', (data: { playerId: string }) => {

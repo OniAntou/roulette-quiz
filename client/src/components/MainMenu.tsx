@@ -304,24 +304,8 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
   const [titleChars, setTitleChars] = useState(() => 'ROULETTE'.split('').map(() => SCRAMBLE_CHARS[0]));
   const [titleSettled, setTitleSettled] = useState(() => Array(8).fill(false));
   const scrambleTimers = useRef<ReturnType<typeof setInterval>[]>([]);
-  const [shakingBox, setShakingBox] = useState<number | null>(null);
   const [buttonRipples, setButtonRipples] = useState<{ id: number; x: number; y: number }[]>([]);
   const rippleId = React.useRef(0);
-
-  // Random box shake effect
-  useEffect(() => {
-    const triggerShake = () => {
-      const boxIndex = Math.floor(Math.random() * 4); // 0=input, 1-3=buttons
-      setShakingBox(boxIndex);
-      setTimeout(() => setShakingBox(null), 400);
-    };
-
-    const interval = setInterval(() => {
-      if (Math.random() > 0.5) triggerShake();
-    }, 2500 + Math.random() * 3500);
-
-    return () => clearInterval(interval);
-  }, []);
 
   useEffect(() => {
     const target = 'ROULETTE';
@@ -548,7 +532,7 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
       </AnimatePresence>
 
       {/* Tactical Blueprint Ambient Background */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none -z-10 bg-surface blood-glitch-active">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none -z-10 bg-surface">
         {/* Layer revealed by cloud tear — theme-aware */}
         <div className="absolute inset-0 bg-gradient-to-br via-transparent to-transparent" style={{ background: `linear-gradient(to bottom right, var(--tear-gradient-1), transparent 50%, var(--tear-gradient-2))` }} />
         <div className="absolute inset-0 bg-[linear-gradient(var(--grid-line)_1px,transparent_1px),linear-gradient(90deg,var(--grid-line)_1px,transparent_1px)] bg-[size:32px_32px] opacity-40" />
@@ -705,7 +689,7 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
                       : isTertiary
                         ? 'border-emerald-theme/40 shadow-[3px_3px_0px_var(--color-emerald-theme)] hover:shadow-[0px_0px_0px_var(--color-emerald-theme)] hover:translate-y-[3px] hover:bg-emerald-theme/5 hover:text-emerald-theme'
                         : 'border-border shadow-[3px_3px_0px_var(--color-border)] hover:shadow-[0px_0px_0px_var(--color-border)] hover:translate-y-[3px] hover:bg-surface-hover hover:text-text-main'
-                  } ${shakingBox === i + 1 ? 'box-shake' : ''}`}
+                  }`} 
                 >
                   <span className="flex items-center gap-3">
                     <Icon 
@@ -978,7 +962,7 @@ function TypewriterLabel({ text, pos, delay }: { text: string; pos: string; dela
       style={{ opacity: showDot ? 1 : 0, transition: 'opacity 0.3s' }}
     >
       {showDot && (
-        <span className="inline-block w-1 h-1 rounded-full bg-cyan-theme mr-1.5 align-middle animate-dot-blink" />
+        <span className="inline-block w-1 h-1 rounded-full bg-cyan-theme mr-1.5 align-middle animate-pulse" />
       )}
       {displayed}
       {showDot && displayed.length < text.length && (

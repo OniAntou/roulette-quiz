@@ -5,6 +5,7 @@ import { ArrowLeft, Plus, Users, Shield, CheckCircle, WarningCircle, Copy } from
 import { Player } from '../types';
 import { Sounds } from '../audio/Sounds';
 import { ThemeToggle } from './ThemeToggle';
+import { ChatBox } from './ChatBox';
 
 interface LobbyProps {
   roomId: string;
@@ -428,6 +429,7 @@ export function Lobby({ roomId, players, localId, error, disconnect }: LobbyProp
         )}
       </AnimatePresence>
       </div>
+      <ChatBox roomId={roomId} localId={localId} />
     </>
   );
 }

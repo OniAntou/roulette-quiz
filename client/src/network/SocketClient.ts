@@ -98,6 +98,8 @@ class SocketClient {
     this.socket.on('game:turn', (data: any) => this.emit('game:turn', data));
     this.socket.on('game:standoffResult', (data: any) => this.emit('game:standoffResult', data));
 
+    this.socket.on('chat:message', (data: any) => this.emit('chat:message', data));
+
     this.socket.on('error', (data: any) => this.emit('error', data));
   }
 
@@ -168,6 +170,10 @@ class SocketClient {
 
   leaveAfterDeath(roomId: string): void {
     this.send('game:leaveAfterDeath', { roomId });
+  }
+
+  sendChat(roomId: string, message: string): void {
+    this.send('chat:send', { roomId, message });
   }
 
   disconnect(): void {

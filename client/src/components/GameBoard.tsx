@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { socketClient } from '../network/SocketClient';
 import { Revolver } from './Revolver';
 import { ThemeToggle } from './ThemeToggle';
+import { ChatBox } from './ChatBox';
 import { Check, X, ShieldWarning, ArrowLeft, SpeakerSimpleX, SpeakerHigh } from '@phosphor-icons/react';
 import { GamePhase, Player, CardData, ActiveQuestion, QuestionResult, TriggerResult } from '../types';
 import { Sounds } from '../audio/Sounds';
@@ -43,20 +44,20 @@ const getOpponentPosition = (playerId: string, opponentPlayers: Player[]): Oppon
   
   if (total === 1) {
     return {
-      className: "absolute top-20 left-1/2 -translate-x-1/2 flex flex-col items-center space-y-2 z-20",
+      className: "absolute top-16 left-1/2 -translate-x-1/2 flex flex-col items-center space-y-1 z-20",
       angle: -90
     };
   }
 
   if (total === 2) {
-    if (index === 0) return { className: "absolute left-8 top-[48%] -translate-y-1/2 flex flex-col items-center space-y-2 z-20", angle: 180 };
-    return { className: "absolute right-8 top-[48%] -translate-y-1/2 flex flex-col items-center space-y-2 z-20", angle: 0 };
+    if (index === 0) return { className: "absolute left-4 sm:left-8 top-[48%] -translate-y-1/2 flex flex-col items-center space-y-1 z-20", angle: 180 };
+    return { className: "absolute right-4 sm:right-8 top-[48%] -translate-y-1/2 flex flex-col items-center space-y-1 z-20", angle: 0 };
   }
 
   // total === 3
-  if (index === 0) return { className: "absolute left-8 top-[48%] -translate-y-1/2 flex flex-col items-center space-y-2 z-20", angle: 180 };
-  if (index === 1) return { className: "absolute top-20 left-1/2 -translate-x-1/2 flex flex-col items-center space-y-2 z-20", angle: -90 };
-  return { className: "absolute right-8 top-[48%] -translate-y-1/2 flex flex-col items-center space-y-2 z-20", angle: 0 };
+  if (index === 0) return { className: "absolute left-4 sm:left-8 top-[48%] -translate-y-1/2 flex flex-col items-center space-y-1 z-20", angle: 180 };
+  if (index === 1) return { className: "absolute top-16 left-1/2 -translate-x-1/2 flex flex-col items-center space-y-1 z-20", angle: -90 };
+  return { className: "absolute right-4 sm:right-8 top-[48%] -translate-y-1/2 flex flex-col items-center space-y-1 z-20", angle: 0 };
 };
 
 export function GameBoard({ 
@@ -795,7 +796,7 @@ export function GameBoard({
         y: 0,
       }}
       transition={{ duration: 0.4 }}
-      className={`w-full h-full flex flex-col items-center justify-between py-3 sm:py-6 px-3 sm:px-6 md:px-12 z-10 select-none relative ${isCrtShuttingDown && !isPresentationMode ? 'animate-crt-shutdown' : ''} ${isCrtTurningOn && !isPresentationMode ? 'animate-crt-turn-on' : ''} ${isPresentationMode ? 'presentation-mode' : ''}`}
+      className={`w-full h-full flex flex-col items-center justify-between py-2 sm:py-4 px-3 sm:px-6 md:px-12 z-10 select-none relative ${isCrtShuttingDown && !isPresentationMode ? 'animate-crt-shutdown' : ''} ${isCrtTurningOn && !isPresentationMode ? 'animate-crt-turn-on' : ''} ${isPresentationMode ? 'presentation-mode' : ''}`}
     >
       {/* Top action bar: Leave & Theme */}
       <div className="absolute top-3 sm:top-6 left-3 sm:left-6 z-[120] flex items-center gap-2 sm:gap-4">
@@ -904,7 +905,7 @@ export function GameBoard({
 
               <div className={`w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-none bg-surface-2 border flex items-center justify-center font-mono font-black text-sm md:text-base relative z-10 transition-all duration-300 ${
                 !opponent.isAlive 
-                  ? 'border-red-theme-border text-red-theme/30 opacity-90 grayscale contrast-125 animate-shake-hard' 
+                  ? 'border-red-theme-border text-red-theme/30 opacity-90 grayscale contrast-125 animate-pulse' 
                   : isCurrentTurn 
                     ? 'border-red-theme text-text-theme' 
                     : 'border-cyan-theme-muted text-text-theme-muted'
@@ -916,7 +917,6 @@ export function GameBoard({
 
                 {!opponent.isAlive ? (
                   <>
-                    <div className="shatter-overlay z-20" />
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
                       <div className="w-[220%] text-[14px] sm:text-[18px] md:text-[24px] font-black text-red-600 border-y-4 border-red-600 py-1.5 text-center tracking-tighter opacity-95 bg-black/70 backdrop-blur-sm shadow-none whitespace-nowrap" style={{ transform: 'rotate(-25deg)' }}>
                         ELIMINATED
@@ -978,18 +978,18 @@ export function GameBoard({
       })}
 
       {opponentPlayers.length === 0 && (
-        <div className="absolute top-16 sm:top-24 left-1/2 -translate-x-1/2 flex flex-col items-center space-y-3 sm:space-y-4 p-4 sm:p-8 border border-dashed border-cyan-theme-muted rounded-full bg-surface-2/40 backdrop-blur-md z-20">
-          <div className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-full border border-cyan-theme/30 bg-surface-3 flex items-center justify-center shadow-none overflow-hidden">
+        <div className="absolute top-12 sm:top-16 left-1/2 -translate-x-1/2 flex flex-col items-center space-y-2 sm:space-y-3 p-3 sm:p-6 border border-dashed border-cyan-theme-muted rounded-full bg-surface-2/40 backdrop-blur-md z-20">
+          <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-full border border-cyan-theme/30 bg-surface-3 flex items-center justify-center shadow-none overflow-hidden">
             <div className="absolute inset-0 radar-sweep opacity-50"></div>
-            <div className="w-2 h-2 rounded-full bg-cyan-theme animate-ping absolute"></div>
-            <div className="w-2 h-2 rounded-full bg-cyan-theme absolute"></div>
+            <div className="w-1.5 h-1.5 rounded-full bg-cyan-theme animate-ping absolute"></div>
+            <div className="w-1.5 h-1.5 rounded-full bg-cyan-theme absolute"></div>
           </div>
-          <TypewriterText text="WAITING FOR OPPONENTS" speed={50} className="text-[10px] font-extrabold text-cyan-theme tracking-widest uppercase font-mono drop-shadow-none" />
+          <TypewriterText text="WAITING FOR OPPONENTS" speed={50} className="text-[9px] font-extrabold text-cyan-theme tracking-widest uppercase font-mono drop-shadow-none" />
         </div>
       )}
 
       {/* 2. Center Table */}
-      <div className="absolute top-[48%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] sm:w-[80vw] md:w-[720px] h-[200px] sm:h-[260px] md:h-[340px] rounded-none bg-surface-3/80 border border-cyan-theme-muted flex items-center justify-center gap-8 md:gap-16 px-4 sm:px-8 md:px-12 z-10 overflow-visible">
+      <div className="absolute top-[48%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] sm:w-[80vw] md:w-[720px] h-[160px] sm:h-[200px] md:h-[260px] rounded-none bg-surface-3/80 border border-cyan-theme-muted flex items-center justify-center gap-8 md:gap-16 px-4 sm:px-8 md:px-12 z-10 overflow-visible">
 
         {/* Discard Pile / Played Card */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20">
@@ -1170,8 +1170,8 @@ export function GameBoard({
       </div>
 
       {/* 3. Bottom Area: Hand Cards */}
-      <div className="absolute bottom-2 sm:bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center space-y-1 sm:space-y-2 z-20 w-full max-w-2xl px-2">
-        <div className="flex justify-center items-center h-28 sm:h-36 md:h-44 relative w-full" style={{ perspective: '1200px' }}>
+      <div className="absolute bottom-1 sm:bottom-2 left-1/2 -translate-x-1/2 flex flex-col items-center space-y-0.5 sm:space-y-1 z-20 w-full max-w-2xl px-2">
+        <div className="flex justify-center items-center h-24 sm:h-32 md:h-36 relative w-full" style={{ perspective: '1200px' }}>
           <AnimatePresence>
             {handCards.map((card, index) => {
               const total = handCards.length;
@@ -1221,7 +1221,7 @@ export function GameBoard({
                   }}
                   onMouseLeave={handleCardMouseLeave}
                   onClick={() => handleCardClick(card)}
-                  className={`absolute w-40 h-56 sm:w-48 sm:h-72 md:w-64 md:h-96 border rounded-none p-3 sm:p-4 md:p-6 flex flex-col justify-between select-none overflow-hidden bg-card-theme ${
+                  className={`absolute w-32 h-44 sm:w-40 sm:h-56 md:w-48 md:h-64 border rounded-none p-2 sm:p-3 md:p-4 flex flex-col justify-between select-none overflow-hidden bg-card-theme ${
                     !isPlayable ? 'cursor-default' : 'cursor-pointer group'
                   } pointer-events-auto`}
                   style={{
@@ -1330,7 +1330,7 @@ export function GameBoard({
           </AnimatePresence>
           <div className={`w-10 h-10 sm:w-11 sm:h-11 md:w-12 md:h-12 rounded-none bg-surface-3 border flex items-center justify-center font-mono font-black text-sm md:text-base relative transition-all duration-300 ${
             !localPlayer.isAlive 
-              ? 'border-red-theme-border opacity-90 text-red-theme/30 grayscale contrast-125 animate-shake-hard' 
+              ? 'border-red-theme-border opacity-90 text-red-theme/30 grayscale contrast-125 animate-pulse' 
               : 'border-cyan-theme-light text-text-theme'
           }`}>
  
@@ -1338,7 +1338,6 @@ export function GameBoard({
 
             {!localPlayer.isAlive ? (
               <>
-                <div className="shatter-overlay z-20" />
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
                   <div className="w-[250%] text-[14px] sm:text-[16px] md:text-[20px] font-black text-red-600 border-y-[3px] border-red-600 py-1 text-center tracking-tighter opacity-95 bg-black/70 backdrop-blur-sm shadow-none whitespace-nowrap" style={{ transform: 'rotate(-25deg)' }}>
                     ELIMINATED
@@ -1542,6 +1541,7 @@ export function GameBoard({
         style={{ pointerEvents: 'all' }}
       />
     )}
+    <ChatBox roomId={roomId} localId={localId} />
     </>
   );
 }

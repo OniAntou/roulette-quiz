@@ -189,6 +189,29 @@ io.on('connection', (socket) => {
     socket.emit('room:left');
   });
 
+  // Chat: send message to room
+  socket.on('chat:send', (data: { roomId: string; message: string }) => {
+    const { roomId, message } = data;
+    if (!message || typeof message !== 'string') return;
+    
+    // Sanitize: strip HTML, max 200 chars
+    const clean = message.replace(/<[^>]*>/g, '').trim().slice(0, 200);
+    if (!clean) return;
+    
+    const room = roomManager.getRoom(roomId);
+    if (!room) return;
+    
+    const player = room.players.find(p => p.id === socket.id);
+    if (!player) return;
+    
+    io.to(roomId).emit('chat:message', {
+      senderId: socket.id,
+      sender: player.name,
+      message: clean,
+      timestamp: Date.now(),
+    });
+  });
+
   socket.on('disconnect', () => {
     console.log(`Player disconnected: ${socket.id}`);
     roomManager.handleDisconnect(socket.id);
