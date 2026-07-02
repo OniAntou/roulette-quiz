@@ -6,3 +6,4 @@ dist/
 .env.local
 client/dist/
 server/public/
+server/data/questions.db

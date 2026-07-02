@@ -588,6 +588,14 @@ export const Sounds = {
     crackGain.connect(distortion);
     crackOsc.start(t);
     crackOsc.stop(t + 0.1);
+
+    // Cleanup: disconnect nodes after all sounds finish (0.8s is longest)
+    setTimeout(() => {
+      try {
+        distortion.disconnect();
+        compressor.disconnect();
+      } catch (e) {}
+    }, 1000);
   },
 
   gunSurvive() {

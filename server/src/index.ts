@@ -21,8 +21,13 @@ const ALLOWED_ORIGINS = [
 const io = new Server(server, {
   cors: {
     origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-      // Allow all in development/LAN for ease of use
-      callback(null, true);
+      // Allow no origin (Postman, mobile apps, server-to-server)
+      if (!origin) { callback(null, true); return; }
+      // Allow localhost/127.0.0.1 (dev) + any LAN IP (192.168.x.x, 10.x.x.x)
+      const isDev = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+      const isLan = /^https?:\/\/(192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+)(:\d+)?$/.test(origin);
+      const isExplicit = ALLOWED_ORIGINS.includes(origin);
+      callback(null, isDev || isLan || isExplicit);
     },
     methods: ['GET', 'POST'],
   },
