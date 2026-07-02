@@ -37,13 +37,13 @@ const cornerLabels = [
 ];
 
 const buttonDefs = [
-  { label: 'INITIALIZE ONLINE', icon: Globe, onClick: 'online' as const, glowColor: 'var(--cyan-theme-light)', borderHover: 'hover:border-cyan-theme', bgHover: 'hover:bg-cyan-theme-muted', textHover: 'hover:text-cyan-theme' },
-  { label: 'LOCAL PROTOCOL // LAN', icon: WifiHigh, onClick: 'lan' as const, glowColor: 'var(--cyan-theme-light)', borderHover: 'hover:border-border-theme-hover', bgHover: 'hover:bg-surface-2', textHover: 'hover:text-text-theme' },
-  { label: 'BOT PROTOCOL // VS CPU', icon: Robot, onClick: 'bot' as const, glowColor: 'var(--emerald-theme-bg)', borderHover: 'hover:border-emerald-theme-border', bgHover: 'hover:bg-emerald-theme-bg', textHover: 'hover:text-emerald-theme', isGreen: true },
+  { label: 'INITIALIZE ONLINE', icon: Globe, onClick: 'online' as const, tier: 'primary' as const },
+  { label: 'LOCAL PROTOCOL // LAN', icon: WifiHigh, onClick: 'lan' as const, tier: 'secondary' as const },
+  { label: 'BOT PROTOCOL // VS CPU', icon: Robot, onClick: 'bot' as const, tier: 'tertiary' as const },
 ];
 
 // Floating particles config
-const PARTICLES = Array.from({ length: 20 }, (_, i) => ({
+const PARTICLES = Array.from({ length: 15 }, (_, i) => ({
   id: i,
   left: `${Math.random() * 100}%`,
   size: 1 + Math.random() * 2,
@@ -59,7 +59,17 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
   const [loadingProgress, setLoadingProgress] = useState<number>(0);
   const [loadingText, setLoadingText] = useState<string>('SYS.BOOT: DECRYPTING ENGINE...');
   const [name, setName] = useState<string>('');
-  const [isFocused, setIsFocused] = useState<boolean>(false);
+
+  // Track theme for canvas
+  useEffect(() => {
+    const updateTheme = () => {
+      themeRef.current = document.documentElement.getAttribute('data-theme') || 'dark';
+    };
+    updateTheme();
+    const observer = new MutationObserver(updateTheme);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    return () => observer.disconnect();
+  }, []);
 
   // Fake Loading Progress Effect
   useEffect(() => {
@@ -97,6 +107,8 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
   const [selectedBotCount, setSelectedBotCount] = useState<number>(1);
   const [manualIp, setManualIp] = useState<string>('');
   const [isSearchingLan, setIsSearchingLan] = useState<boolean>(false);
+  const [trail, setTrail] = useState<{ x: number, y: number, id: number }[]>([]);
+  const trailId = React.useRef(0);
   const [isMuted, setIsMuted] = useState<boolean>(() => {
     return localStorage.getItem('roulette-quiz-muted') === 'true';
   });
@@ -109,6 +121,162 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
   // Initialize mute state on mount
   useEffect(() => {
     Sounds.initMuted();
+  }, []);
+
+  // Mouse cloud-tear effect (canvas)
+  const canvasRef = React.useRef<HTMLCanvasElement>(null);
+  const stampsRef = React.useRef<{ x: number; y: number; born: number; rmax: number; seed: number }[]>([]);
+  const lastMouseRef = React.useRef<{ x: number; y: number } | null>(null);
+  const animFrameRef = React.useRef<number>(0);
+  const themeRef = React.useRef<string>('dark');
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Clear any stale stamps from previous instance
+    stampsRef.current = [];
+    lastMouseRef.current = null;
+
+    const R_START = 3;
+    const R_END = 110;
+    const R_VARY = 0.45;
+    const LIFETIME = 1000;
+    const STAMP_STEP = 12;
+    const MAX_STAMPS = 70;
+
+    // Smoother easing
+    const easeOutExpo = (t: number) => t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
+    const easeInOutQuad = (t: number) => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+
+    let w = 0, h = 0;
+    let mountedAt = performance.now();
+    const resize = () => {
+      const rect = canvas.parentElement!.getBoundingClientRect();
+      w = rect.width;
+      h = rect.height;
+      canvas.width = w * devicePixelRatio;
+      canvas.height = h * devicePixelRatio;
+      canvas.style.width = w + 'px';
+      canvas.style.height = h + 'px';
+      ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+    };
+    resize();
+    window.addEventListener('resize', resize);
+
+    const addStamp = (x: number, y: number) => {
+      if (stampsRef.current.length >= MAX_STAMPS) stampsRef.current.shift();
+      stampsRef.current.push({
+        x, y,
+        born: performance.now(),
+        rmax: R_END * (1 - R_VARY + Math.random() * R_VARY),
+        seed: Math.random() * Math.PI * 2,
+      });
+    };
+
+    const stampAlong = (x: number, y: number) => {
+      const last = lastMouseRef.current;
+      if (!last) { addStamp(x, y); }
+      else {
+        const dx = x - last.x, dy = y - last.y;
+        const dist = Math.hypot(dx, dy);
+        const steps = Math.max(1, Math.ceil(dist / STAMP_STEP));
+        for (let i = 1; i <= steps; i++) {
+          addStamp(last.x + (dx * i) / steps, last.y + (dy * i) / steps);
+        }
+      }
+      lastMouseRef.current = { x, y };
+    };
+
+    // Organic shape with multi-octave noise
+    const carve = (x: number, y: number, r: number, alpha: number, seed: number) => {
+      // Soft radial gradient with 5 stops for smooth edge
+      const g = ctx.createRadialGradient(x, y, r * 0.1, x, y, r);
+      g.addColorStop(0, `rgba(255,255,255,${alpha})`);
+      g.addColorStop(0.25, `rgba(255,255,255,${0.95 * alpha})`);
+      g.addColorStop(0.5, `rgba(255,255,255,${0.6 * alpha})`);
+      g.addColorStop(0.75, `rgba(255,255,255,${0.2 * alpha})`);
+      g.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = g;
+
+      // Organic wobble with 2 noise octaves
+      ctx.beginPath();
+      const segs = 32;
+      for (let i = 0; i <= segs; i++) {
+        const a = (i / segs) * Math.PI * 2;
+        const n1 = Math.sin(a * 3 + seed) * 0.12;
+        const n2 = Math.sin(a * 7 + seed * 2.1) * 0.06;
+        const n3 = Math.sin(a * 13 + seed * 0.7) * 0.03;
+        const wob = 0.8 + n1 + n2 + n3;
+        const rr = r * wob;
+        const px = x + Math.cos(a) * rr;
+        const py = y + Math.sin(a) * rr;
+        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      ctx.fill();
+    };
+
+    let running = false;
+    const loop = () => {
+      const now = performance.now();
+      ctx.clearRect(0, 0, w, h);
+
+      // Only draw overlay when there are active stamps
+      if (stampsRef.current.length > 0) {
+        // Dark overlay (theme-aware)
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.fillStyle = themeRef.current === 'light' ? 'rgba(245,245,245,0.88)' : 'rgba(10,10,10,0.88)';
+        ctx.fillRect(0, 0, w, h);
+
+        // Carve holes
+        ctx.globalCompositeOperation = 'destination-out';
+        for (let i = stampsRef.current.length - 1; i >= 0; i--) {
+          const s = stampsRef.current[i];
+          const t = (now - s.born) / LIFETIME;
+          if (t >= 1) { stampsRef.current.splice(i, 1); continue; }
+          const ease = easeOutExpo(t);
+          const r = R_START + (s.rmax - R_START) * ease;
+          // Smooth fade: hold longer, then fade quickly at end
+          const alpha = t < 0.3 ? 1 : 1 - easeInOutQuad((t - 0.3) / 0.7);
+          carve(s.x, s.y, r, Math.max(0, alpha), s.seed);
+        }
+      }
+
+      if (stampsRef.current.length) {
+        animFrameRef.current = requestAnimationFrame(loop);
+      } else {
+        running = false;
+      }
+    };
+
+    const start = () => {
+      if (!running) { running = true; animFrameRef.current = requestAnimationFrame(loop); }
+    };
+
+    const onMouseMove = (e: MouseEvent) => {
+      // Ignore events for 100ms after mount to prevent stale stamps
+      if (performance.now() - mountedAt < 100) return;
+      const rect = canvas.getBoundingClientRect();
+      stampAlong(e.clientX - rect.left, e.clientY - rect.top);
+      start();
+    };
+
+    const onMouseLeave = () => { lastMouseRef.current = null; };
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseleave', onMouseLeave);
+
+    return () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseleave', onMouseLeave);
+      window.removeEventListener('resize', resize);
+      cancelAnimationFrame(animFrameRef.current);
+      stampsRef.current = [];
+      lastMouseRef.current = null;
+    };
   }, []);
 
   // Start Menu BGM
@@ -137,6 +305,8 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
   const [titleSettled, setTitleSettled] = useState(() => Array(8).fill(false));
   const scrambleTimers = useRef<ReturnType<typeof setInterval>[]>([]);
   const [shakingBox, setShakingBox] = useState<number | null>(null);
+  const [buttonRipples, setButtonRipples] = useState<{ id: number; x: number; y: number }[]>([]);
+  const rippleId = React.useRef(0);
 
   // Random box shake effect
   useEffect(() => {
@@ -264,7 +434,13 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
     startBot(selectedBotCount, finalName);
   };
 
-  const handleButtonClick = (onClickType: string) => {
+  const handleButtonClick = (onClickType: string, e: React.MouseEvent<HTMLButtonElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const id = rippleId.current++;
+    setButtonRipples(prev => [...prev, { id, x, y }]);
+    setTimeout(() => setButtonRipples(prev => prev.filter(r => r.id !== id)), 600);
     if (onClickType === 'lan') handleLanClick();
     else if (onClickType === 'bot') setShowBotModal(true);
     else handleSubmit(onClickType);
@@ -303,36 +479,50 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
               setHasInteracted(true);
               Sounds.startMenuBGM();
             }}
-            className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-[#050505] cursor-pointer select-none font-mono"
+            className="fixed inset-0 z-[100] flex flex-col items-center justify-center cursor-pointer select-none font-mono"
+            style={{ backgroundColor: 'var(--bg-body)', color: 'var(--color-text-main)' }}
           >
             {/* Minimalist container: spacious, clean */}
             <div className="flex flex-col items-center space-y-12 md:space-y-20 max-w-3xl w-full px-6 md:px-8">
               
               {/* Header text with elegant tracking and font weight */}
               <div className="flex flex-col items-center space-y-4 md:space-y-6">
-                <span className="text-[11px] md:text-[13px] text-zinc-500 tracking-[0.4em] md:tracking-[0.6em] uppercase">SYSTEM INITIALIZATION</span>
-                <h2 className="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-thin text-zinc-200 tracking-[0.15em] md:tracking-[0.25em] uppercase translate-x-[0.125em]">
-                  ROULETTE
-                </h2>
+                <span className="text-[11px] md:text-[13px] tracking-[0.4em] md:tracking-[0.6em] uppercase" style={{ color: 'var(--color-text-muted)' }}>SYSTEM INITIALIZATION</span>
+                <div className="relative px-8 py-4">
+                  {/* Corner brackets */}
+                  <div className="absolute top-0 left-0 w-4 h-4 border-t border-l" style={{ borderColor: 'var(--color-border)' }}></div>
+                  <div className="absolute top-0 right-0 w-4 h-4 border-t border-r" style={{ borderColor: 'var(--color-border)' }}></div>
+                  <div className="absolute bottom-0 left-0 w-4 h-4 border-b border-l" style={{ borderColor: 'var(--color-border)' }}></div>
+                  <div className="absolute bottom-0 right-0 w-4 h-4 border-b border-r" style={{ borderColor: 'var(--color-border)' }}></div>
+                  <h2 className="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-thin tracking-[0.15em] md:tracking-[0.25em] uppercase translate-x-[0.125em]" style={{ color: 'var(--color-text-main)' }}>
+                    ROULETTE
+                  </h2>
+                </div>
               </div>
 
               {/* Extremely clean, thin progress line */}
               <div className="w-full flex flex-col space-y-8 items-center">
-                <div className="w-full h-[2px] bg-zinc-900 relative">
+                <div className="w-full h-[1px] relative" style={{ backgroundColor: 'var(--color-border-subtle)' }}>
                   <motion.div 
-                    className="absolute top-0 left-0 h-full bg-zinc-300"
-                    style={{ width: `${loadingProgress}%` }}
+                    className="absolute top-0 left-0 h-full"
+                    style={{ backgroundColor: 'var(--color-text-muted)', width: `${loadingProgress}%` }}
                     transition={{ ease: "easeOut" }}
                   />
                 </div>
                 
                 {/* Numeric progress indicator */}
-                <div className="flex justify-between w-full text-[14px] text-zinc-500 tracking-widest uppercase">
+                <div className="flex justify-between w-full text-[14px] tracking-widest uppercase" style={{ color: 'var(--color-text-muted)' }}>
                   <span>{loadingText}</span>
-                  <span className="font-bold text-zinc-300 tabular-nums">
+                  <span className="font-bold tabular-nums" style={{ color: 'var(--color-text-main)' }}>
                     {String(loadingProgress).padStart(3, '0')}%
                   </span>
                 </div>
+              </div>
+
+              {/* Decorative lines */}
+              <div className="w-full flex justify-center gap-8 mt-2">
+                <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent to-transparent opacity-30" style={{ '--tw-gradient-to': 'var(--color-border)' } as React.CSSProperties}></div>
+                <div className="h-[1px] flex-1 bg-gradient-to-l from-transparent to-transparent opacity-30" style={{ '--tw-gradient-to': 'var(--color-border)' } as React.CSSProperties}></div>
               </div>
 
               {/* Bottom interactive action */}
@@ -345,7 +535,8 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
                       opacity: { repeat: Infinity, duration: 2, ease: "easeInOut" },
                       y: { duration: 0.5 } 
                     }}
-                    className="text-[16px] text-zinc-300 tracking-[0.5em] uppercase font-medium translate-x-[0.25em]"
+                    className="text-[16px] tracking-[0.5em] uppercase font-medium translate-x-[0.25em]"
+                    style={{ color: 'var(--color-text-main)' }}
                   >
                     [ CLICK TO START ]
                   </motion.span>
@@ -358,24 +549,19 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
 
       {/* Tactical Blueprint Ambient Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none -z-10 bg-surface blood-glitch-active">
+        {/* Layer revealed by cloud tear — theme-aware */}
+        <div className="absolute inset-0 bg-gradient-to-br via-transparent to-transparent" style={{ background: `linear-gradient(to bottom right, var(--tear-gradient-1), transparent 50%, var(--tear-gradient-2))` }} />
+        <div className="absolute inset-0 bg-[linear-gradient(var(--grid-line)_1px,transparent_1px),linear-gradient(90deg,var(--grid-line)_1px,transparent_1px)] bg-[size:32px_32px] opacity-40" />
+        
+        {/* Cloud tear canvas */}
+        <canvas ref={canvasRef} className="absolute inset-0 z-10 pointer-events-none" />
+        
         {/* Breathing grid */}
-        <div className="absolute inset-0 bg-[linear-gradient(var(--grid-line)_1px,transparent_1px),linear-gradient(90deg,var(--grid-line)_1px,transparent_1px)] bg-[size:32px_32px] grid-breathe" />
+        <div className="absolute inset-0 bg-[linear-gradient(var(--grid-line)_1px,transparent_1px),linear-gradient(90deg,var(--grid-line)_1px,transparent_1px)] bg-[size:32px_32px] grid-breathe opacity-20" />
         <div className="absolute inset-0 bg-gradient-to-t from-bg-body via-transparent to-bg-body opacity-40" />
         
         {/* Static */}
         <div className="absolute inset-0 static-glitch opacity-15" />
-
-        {/* SVG technical lines */}
-        <svg className="absolute inset-0 w-full h-full opacity-[0.035]" xmlns="http://www.w3.org/2000/svg">
-          <line x1="5%" y1="0" x2="5%" y2="100%" stroke="currentColor" strokeWidth="1" strokeDasharray="5,5" className="text-text-theme" />
-          <line x1="95%" y1="0" x2="95%" y2="100%" stroke="currentColor" strokeWidth="1" strokeDasharray="5,5" className="text-text-theme" />
-          <line x1="0" y1="12%" x2="100%" y2="12%" stroke="currentColor" strokeWidth="1" className="text-text-theme" />
-          <line x1="0" y1="88%" x2="100%" y2="88%" stroke="currentColor" strokeWidth="1" className="text-text-theme" />
-          <circle cx="5%" cy="12%" r="8" fill="none" stroke="currentColor" strokeWidth="1" className="text-text-theme" />
-          <circle cx="95%" cy="12%" r="8" fill="none" stroke="currentColor" strokeWidth="1" className="text-text-theme" />
-          <circle cx="5%" cy="88%" r="8" fill="none" stroke="currentColor" strokeWidth="1" className="text-text-theme" />
-          <circle cx="95%" cy="88%" r="8" fill="none" stroke="currentColor" strokeWidth="1" className="text-text-theme" />
-        </svg>
 
         {/* Technical Blueprint Scope/Crosshair Graphic */}
         <div className="hidden lg:block absolute right-[5%] bottom-[10%] w-[280px] lg:w-[380px] h-[280px] lg:h-[380px] opacity-[0.12] text-cyan-theme pointer-events-none select-none">
@@ -396,14 +582,6 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
             <text x="105" y="175" fill="currentColor" fontSize="6" fontFamily="monospace" opacity="0.8">RNG // MAX</text>
           </motion.svg>
         </div>
-
-        {/* Multiple scan beams */}
-        <div className="hidden md:block absolute top-[20%] left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-cyan-theme to-transparent opacity-30 scan-beam pointer-events-none" />
-        <div className="hidden md:block absolute top-[55%] left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-cyan-theme-muted to-transparent opacity-20 scan-beam-slow pointer-events-none" />
-        <div className="hidden md:block absolute top-[80%] left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-emerald-theme to-transparent opacity-15 scan-beam pointer-events-none" style={{ animationDelay: '3s' }} />
-
-        {/* Vertical scan line */}
-        <div className="hidden md:block absolute top-0 left-[30%] w-[1px] h-full bg-gradient-to-b from-transparent via-cyan-theme to-transparent opacity-15 scan-vertical pointer-events-none" />
 
         {/* Floating particles - reduced on mobile for performance */}
         {PARTICLES.map(p => (
@@ -427,6 +605,8 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
             <TypewriterLabel text={label.text} pos={label.pos} delay={800 + i * 200} />
           </div>
         ))}
+
+        {/* Cloud tear overlay — dark mask with hole at cursor */}
       </div>
 
       <div className="w-full h-screen px-5 sm:px-8 md:px-16 lg:px-24 grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16 lg:gap-24 items-center z-10 overflow-y-auto md:overflow-hidden">
@@ -436,7 +616,7 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: 'easeOut' }}
-            className="inline-flex max-w-max px-2 py-0.5 border border-border-theme rounded-sm font-mono text-[9px] text-text-theme-muted tracking-widest uppercase"
+            className="inline-flex max-w-max px-3 py-1 border border-border-theme rounded-sm font-mono text-[10px] text-text-theme-muted tracking-widest uppercase"
           >
             EST. CONNECTION // SECURE
           </motion.div>
@@ -472,7 +652,7 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 1.1, duration: 0.4 }}
-            className="text-text-theme-muted font-mono text-xs sm:text-sm leading-relaxed max-w-[45ch] uppercase tracking-wider"
+            className="text-text-theme-muted font-mono text-sm sm:text-base leading-relaxed max-w-[45ch] uppercase tracking-wider mt-4"
           >
             High-stakes trivia multiplayer system. Answer correctly or pull the trigger. Survive to decrypt the next level.
           </motion.p>
@@ -485,60 +665,79 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
           transition={{ duration: 0.6, ease: 'easeOut', delay: 0.3 }}
           className="flex flex-col space-y-8"
         >
-          {/* Username input with focus glow */}
-          <div className={`border border-border-theme rounded-xl p-5 sm:p-8 flex flex-col space-y-3 sm:space-y-4 bg-input-theme animate-pulse-glow transition-all duration-300 ${shakingBox === 0 ? 'box-shake' : ''}`}>
-            <label className="font-mono text-[9px] text-text-theme-muted tracking-widest">
+          {/* Username input */}
+          <div className="border border-border rounded-md p-4 sm:p-6 flex flex-col space-y-2 bg-surface transition-all duration-300">
+            <label className="font-mono text-[10px] text-text-muted tracking-widest">
               // USER_IDENTIFICATION_KEY
             </label>
-            <div className="relative flex items-center w-full font-mono font-bold text-3xl sm:text-4xl md:text-5xl uppercase tracking-wider">
-              {/* Native input layer, text is visible, native caret is hidden */}
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value.substring(0, 12).toUpperCase())}
-                onFocus={() => setIsFocused(true)}
-                onBlur={() => setIsFocused(false)}
-                disabled={status === 'connecting'}
-                className="bg-transparent text-text-theme focus:outline-none w-full caret-transparent placeholder-transparent"
-                placeholder="INPUT_NAME"
-              />
-
-              {/* Text overlay showing actual text in transparent so it is physically present for layout */}
-              <span className="pointer-events-none absolute left-0 text-transparent flex items-center whitespace-pre">
-                {name || <span className="text-text-theme-dim pointer-events-none">{isFocused ? "" : "INPUT_NAME"}</span>}
-                {isFocused && (
-                  <span className="w-2.5 h-6 sm:h-8 bg-text-theme/40 terminal-cursor ml-0.5" />
-                )}
-              </span>
-            </div>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value.substring(0, 12).toUpperCase())}
+              disabled={status === 'connecting'}
+              placeholder="INPUT_NAME"
+              className="bg-transparent text-text-main font-mono font-bold text-2xl sm:text-3xl md:text-4xl uppercase tracking-wider focus:outline-none focus:border-brand placeholder:text-text-muted/30 w-full transition-colors"
+            />
           </div>
 
-          {/* Action buttons with glow + shimmer + staggered entrance */}
-          <div className="flex flex-col space-y-4">
+          {/* Action buttons */}
+          <div className="flex flex-col space-y-3">
             {buttonDefs.map((btn, i) => {
               const Icon = btn.icon;
+              const isPrimary = btn.tier === 'primary';
+              const isTertiary = btn.tier === 'tertiary';
+
               return (
                 <motion.button
                   key={i}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.5 + i * 0.12, duration: 0.35 }}
-                  whileHover={{ x: 6, boxShadow: `0 0 20px 4px ${btn.glowColor}` }}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5 + i * 0.15, duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
                   whileTap={{ scale: 0.98 }}
                   onMouseEnter={() => {
-                    try {
-                      Sounds.buttonHover();
-                    } catch (e) {}
+                    try { Sounds.buttonHover(); } catch (e) {}
                   }}
-                  onClick={() => handleButtonClick(btn.onClick)}
+                  onClick={(e) => handleButtonClick(btn.onClick, e)}
                   disabled={status === 'connecting'}
-                  className={`btn-shimmer flex items-center justify-between px-5 sm:px-8 py-4 sm:py-5 bg-input-theme border border-border-theme rounded-lg font-mono text-xs sm:text-sm font-bold text-text-theme-muted tracking-widest uppercase cursor-pointer transition-all duration-200 ${btn.borderHover} ${btn.bgHover} ${btn.textHover} ${shakingBox === i + 1 ? 'box-shake' : ''}`}
+                  className={`group relative flex items-center justify-between px-5 sm:px-8 py-5 bg-surface border rounded-md font-mono text-xs sm:text-sm font-bold tracking-widest uppercase cursor-pointer transition-all duration-200 ease-out overflow-hidden ${
+                    isPrimary
+                      ? 'border-brand/40 shadow-[3px_3px_0px_var(--color-brand)] hover:shadow-[0px_0px_0px_var(--color-brand)] hover:translate-y-[3px] hover:bg-brand/5 hover:text-brand'
+                      : isTertiary
+                        ? 'border-emerald-theme/40 shadow-[3px_3px_0px_var(--color-emerald-theme)] hover:shadow-[0px_0px_0px_var(--color-emerald-theme)] hover:translate-y-[3px] hover:bg-emerald-theme/5 hover:text-emerald-theme'
+                        : 'border-border shadow-[3px_3px_0px_var(--color-border)] hover:shadow-[0px_0px_0px_var(--color-border)] hover:translate-y-[3px] hover:bg-surface-hover hover:text-text-main'
+                  } ${shakingBox === i + 1 ? 'box-shake' : ''}`}
                 >
                   <span className="flex items-center gap-3">
-                    <Icon size={18} className="text-text-theme-muted" />
+                    <Icon 
+                      size={18} 
+                      weight={isPrimary ? 'fill' : 'bold'} 
+                      className={isPrimary ? 'text-brand' : ''}
+                    />
                     {btn.label}
                   </span>
-                  <ArrowRight size={18} className="text-text-theme-dim" />
+                  <ArrowRight size={18} className="text-text-muted group-hover:text-current transition-colors" />
+                  
+                  {/* Ripple effects */}
+                  <AnimatePresence>
+                    {buttonRipples.map(ripple => (
+                      <motion.span
+                        key={ripple.id}
+                        initial={{ scale: 0, opacity: 0.5 }}
+                        animate={{ scale: 4, opacity: 0 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.6, ease: 'easeOut' }}
+                        className="absolute rounded-full pointer-events-none bg-current/20"
+                        style={{
+                          left: ripple.x,
+                          top: ripple.y,
+                          width: 20,
+                          height: 20,
+                          marginLeft: -10,
+                          marginTop: -10,
+                        }}
+                      />
+                    ))}
+                  </AnimatePresence>
                 </motion.button>
               );
             })}
@@ -775,7 +974,7 @@ function TypewriterLabel({ text, pos, delay }: { text: string; pos: string; dela
 
   return (
     <div
-      className={`absolute ${pos} font-mono text-[8px] text-text-theme-dim tracking-widest`}
+      className={`absolute ${pos} font-mono text-[9px] text-text-theme-dim tracking-widest`}
       style={{ opacity: showDot ? 1 : 0, transition: 'opacity 0.3s' }}
     >
       {showDot && (

@@ -111,7 +111,7 @@ export function GameBoard({
   const [isCrtTurningOn, setIsCrtTurningOn] = useState<boolean>(false);
   const [isSpectatorModeVisual, setIsSpectatorModeVisual] = useState<boolean>(false);
   const [deathMessage, setDeathMessage] = useState<string>('');
-  const [isPresentationMode, setIsPresentationMode] = useState<boolean>(false);
+  const isPresentationMode = false; // Disabled by master
   const [isMuted, setIsMuted] = useState<boolean>(() => {
     return localStorage.getItem('roulette-quiz-muted') === 'true';
   });
@@ -707,7 +707,7 @@ export function GameBoard({
             initial={{ opacity: 0, scale: 0.8, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className="absolute -top-10 left-1/2 -translate-x-1/2 px-3 py-1 border border-amber-theme-border bg-surface text-amber-theme font-mono text-[10px] font-black tracking-wider uppercase rounded shadow-[0_0_10px_rgba(245,158,11,0.15)] whitespace-nowrap z-30 animate-pulse flex items-center gap-1.5"
+            className="absolute -top-10 left-1/2 -translate-x-1/2 px-3 py-1 border border-amber-theme-border bg-surface text-amber-theme font-mono text-[10px] font-black tracking-wider uppercase rounded shadow-none whitespace-nowrap z-30  flex items-center gap-1.5"
           >
             <span className="w-2 h-2 rounded-full bg-amber-theme" />
             ĐANG TRẢ LỜI...
@@ -726,7 +726,7 @@ export function GameBoard({
               initial={{ opacity: 0, scale: 0.8, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="absolute -top-10 left-1/2 -translate-x-1/2 px-3 py-1 border border-emerald-theme-border bg-surface text-emerald-theme font-mono text-[10px] font-black tracking-wider uppercase rounded shadow-[0_0_10px_rgba(16,185,129,0.15)] whitespace-nowrap z-30 flex items-center gap-1.5"
+              className="absolute -top-10 left-1/2 -translate-x-1/2 px-3 py-1 border border-emerald-theme-border bg-surface text-emerald-theme font-mono text-[10px] font-black tracking-wider uppercase rounded shadow-none whitespace-nowrap z-30 flex items-center gap-1.5"
             >
               <span className="w-2 h-2 rounded-full bg-emerald-theme animate-ping" />
               ĐÚNG!
@@ -738,7 +738,7 @@ export function GameBoard({
               initial={{ opacity: 0, scale: 0.8, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="absolute -top-10 left-1/2 -translate-x-1/2 px-3 py-1 border border-red-theme-border bg-surface text-red-theme font-mono text-[10px] font-black tracking-wider uppercase rounded shadow-[0_0_10px_rgba(239,68,68,0.15)] whitespace-nowrap z-30 flex items-center gap-1.5"
+              className="absolute -top-10 left-1/2 -translate-x-1/2 px-3 py-1 border border-red-theme-border bg-surface text-red-theme font-mono text-[10px] font-black tracking-wider uppercase rounded shadow-none whitespace-nowrap z-30 flex items-center gap-1.5"
             >
               <span className="w-2 h-2 rounded-full bg-red-theme animate-ping" />
               SAI!
@@ -756,7 +756,7 @@ export function GameBoard({
             initial={{ opacity: 0, scale: 0.8, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className="absolute -top-10 left-1/2 -translate-x-1/2 px-3 py-1 border border-red-theme-border bg-surface text-red-theme font-mono text-[10px] font-black tracking-wider uppercase rounded shadow-[0_0_15px_rgba(239,68,68,0.25)] whitespace-nowrap z-30 animate-pulse flex items-center gap-1.5"
+            className="absolute -top-10 left-1/2 -translate-x-1/2 px-3 py-1 border border-red-theme-border bg-surface text-red-theme font-mono text-[10px] font-black tracking-wider uppercase rounded shadow-none whitespace-nowrap z-30  flex items-center gap-1.5"
           >
             <span className="w-2 h-2 rounded-full bg-red-theme animate-ping" />
             PULL TRIGGER!
@@ -801,17 +801,17 @@ export function GameBoard({
       <div className="absolute top-3 sm:top-6 left-3 sm:left-6 z-[120] flex items-center gap-2 sm:gap-4">
         <button 
           onClick={onLeaveAfterDeath}
-          className="px-3 sm:px-4 py-1.5 sm:py-2 bg-red-theme/10 hover:bg-red-theme/20 border border-red-theme/50 text-red-theme font-mono text-[10px] sm:text-xs font-bold tracking-[0.1em] transition-colors shadow-[0_0_15px_rgba(239,68,68,0.15)]"
+          className="px-3 sm:px-4 py-1.5 sm:py-2 bg-red-theme/10 hover:bg-red-theme/20 border border-red-theme/50 text-red-theme font-mono text-[10px] sm:text-xs font-bold tracking-[0.1em] transition-colors shadow-none"
           title="Bỏ cuộc / Rời phòng"
         >
           [ RỜI TRẬN ]
         </button>
-        <div className="border border-cyan-theme/30 p-1.5 shadow-[0_0_15px_rgba(34,211,238,0.1)] bg-bg-surface/50 rounded-sm">
+        <div className="border border-cyan-theme/30 p-1.5 shadow-none bg-bg-surface/50 rounded-sm">
           <ThemeToggle />
         </div>
         <button
           onClick={() => setIsMuted(!isMuted)}
-          className="w-10 h-10 flex items-center justify-center border border-cyan-theme/30 shadow-[0_0_15px_rgba(34,211,238,0.1)] bg-bg-surface/50 rounded-sm transition-colors hover:bg-cyan-theme/10"
+          className="w-10 h-10 flex items-center justify-center border border-cyan-theme/30 shadow-none bg-bg-surface/50 rounded-sm transition-colors hover:bg-cyan-theme/10"
           title={isMuted ? 'Bật âm thanh' : 'Tắt âm thanh'}
         >
           {isMuted ? (
@@ -820,16 +820,7 @@ export function GameBoard({
             <SpeakerHigh size={18} weight="bold" className="text-cyan-theme/70" />
           )}
         </button>
-        <button
-          onClick={() => setIsPresentationMode(!isPresentationMode)}
-          className={`hidden sm:block px-3 py-2 border font-mono text-xs font-bold tracking-widest uppercase transition-colors ${
-            isPresentationMode 
-              ? 'border-amber-theme text-amber-theme bg-amber-theme-bg shadow-[0_0_15px_rgba(245,158,11,0.2)]' 
-              : 'border-cyan-theme/30 text-cyan-theme/70 bg-surface/50 hover:text-cyan-theme'
-          }`}
-        >
-          {isPresentationMode ? 'PRESENTATION: ON' : 'PRESENTATION: OFF'}
-        </button>
+        
       </div>
 
       {/* Spectator Mode Visual Overlay */}
@@ -856,11 +847,11 @@ export function GameBoard({
           />
 
           {/* Glitch border */}
-          <div className="absolute inset-0 border-[1px] border-[#ffb703]/20 shadow-[inset_0_0_50px_rgba(255,183,3,0.1)]"></div>
+          <div className="absolute inset-0 border-[1px] border-[#ffb703]/20 shadow-none"></div>
 
           {/* SPECTATOR MODE LABEL - Moved to top right */}
-          <div className="absolute top-4 right-4 px-3 py-1.5 border border-[#ffb703]/40 bg-black/80 backdrop-blur-md shadow-[0_0_15px_rgba(255,183,3,0.15)] flex items-center gap-3">
-            <div className="w-2 h-2 rounded-full bg-[#ffb703] animate-pulse shadow-[0_0_8px_#ffb703]"></div>
+          <div className="absolute top-4 right-4 px-3 py-1.5 border border-[#ffb703]/40 bg-black/80 backdrop-blur-md shadow-none flex items-center gap-3">
+            <div className="w-2 h-2 rounded-full bg-[#ffb703]  shadow-none"></div>
             <p className="text-[#ffb703] font-mono font-bold tracking-[0.15em] text-[11px] opacity-90">
               REC // SPECTATOR LINK
             </p>
@@ -927,14 +918,14 @@ export function GameBoard({
                   <>
                     <div className="shatter-overlay z-20" />
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
-                      <div className="w-[220%] text-[14px] sm:text-[18px] md:text-[24px] font-black text-red-600 border-y-4 border-red-600 py-1.5 text-center tracking-tighter opacity-95 bg-black/70 backdrop-blur-sm shadow-[0_0_20px_rgba(220,38,38,0.9)] whitespace-nowrap" style={{ transform: 'rotate(-25deg)' }}>
+                      <div className="w-[220%] text-[14px] sm:text-[18px] md:text-[24px] font-black text-red-600 border-y-4 border-red-600 py-1.5 text-center tracking-tighter opacity-95 bg-black/70 backdrop-blur-sm shadow-none whitespace-nowrap" style={{ transform: 'rotate(-25deg)' }}>
                         ELIMINATED
                       </div>
                     </div>
                   </>
                 ) : (
                   <span className={`absolute -top-1 -right-1 w-2 h-2 rotate-45 border border-bg-body z-20 ${
-                    isCurrentTurn ? 'bg-red-theme animate-pulse' : 'bg-emerald-theme'
+                    isCurrentTurn ? 'bg-red-theme ' : 'bg-emerald-theme'
                   }`} />
                 )}
               </div>
@@ -988,12 +979,12 @@ export function GameBoard({
 
       {opponentPlayers.length === 0 && (
         <div className="absolute top-16 sm:top-24 left-1/2 -translate-x-1/2 flex flex-col items-center space-y-3 sm:space-y-4 p-4 sm:p-8 border border-dashed border-cyan-theme-muted rounded-full bg-surface-2/40 backdrop-blur-md z-20">
-          <div className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-full border border-cyan-theme/30 bg-surface-3 flex items-center justify-center shadow-[0_0_20px_rgba(34,211,238,0.15)] overflow-hidden">
+          <div className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-full border border-cyan-theme/30 bg-surface-3 flex items-center justify-center shadow-none overflow-hidden">
             <div className="absolute inset-0 radar-sweep opacity-50"></div>
             <div className="w-2 h-2 rounded-full bg-cyan-theme animate-ping absolute"></div>
             <div className="w-2 h-2 rounded-full bg-cyan-theme absolute"></div>
           </div>
-          <TypewriterText text="WAITING FOR OPPONENTS" speed={50} className="text-[10px] font-extrabold text-cyan-theme tracking-widest uppercase font-mono drop-shadow-[0_0_5px_rgba(34,211,238,0.5)]" />
+          <TypewriterText text="WAITING FOR OPPONENTS" speed={50} className="text-[10px] font-extrabold text-cyan-theme tracking-widest uppercase font-mono drop-shadow-none" />
         </div>
       )}
 
@@ -1023,10 +1014,7 @@ export function GameBoard({
         {/* Discard Pile / Played Card */}
         <div className="flex flex-col items-center space-y-2 z-20">
           <div className="w-32 h-44 bg-card-theme/50 border border-cyan-theme-muted border-dashed rounded-none flex items-center justify-center relative">
-            <span className="absolute top-1 left-1.5 text-[8px] font-mono text-cyan-theme-muted select-none font-normal">+</span>
-            <span className="absolute top-1 right-1.5 text-[8px] font-mono text-cyan-theme-muted select-none font-normal">+</span>
-            <span className="absolute bottom-1 left-1.5 text-[8px] font-mono text-cyan-theme-muted select-none font-normal">+</span>
-            <span className="absolute bottom-1 right-1.5 text-[8px] font-mono text-cyan-theme-muted select-none font-normal">+</span>
+            {/* Minimal Wrapper */}
 
             <AnimatePresence>
               {cardPile.length > 0 ? (
@@ -1039,9 +1027,9 @@ export function GameBoard({
                       animate={{ x: pileItem.offsetX, y: pileItem.offsetY, scale: 1, opacity: 1, rotate: pileItem.rotate, filter: 'blur(0px)' }}
                       exit={{ scale: 0.5, opacity: 0, filter: 'blur(10px)' }}
                       transition={{ type: "spring", duration: 0.65, bounce: 0.3 }}
-                      className={`absolute w-32 h-44 border rounded-none p-3 flex flex-col justify-between shadow-[0_0_30px_rgba(34,211,238,0.15)] overflow-hidden bg-card-theme ${
+                      className={`absolute w-32 h-44 border rounded-none p-3 flex flex-col justify-between shadow-none overflow-hidden bg-card-theme ${
                         card.id === 'EASTER_EGG_STANDOFF'
-                          ? 'border-amber-400 text-amber-400 shadow-[0_0_15px_rgba(251,191,36,0.4)_inset]'
+                          ? 'border-amber-400 text-amber-400 shadow-none'
                           : card.difficulty === 'easy' 
                             ? 'border-emerald-theme-border text-emerald-theme' 
                             : card.difficulty === 'medium' 
@@ -1065,16 +1053,16 @@ export function GameBoard({
                         />
                       )}
                       
-                      <div className="flex justify-between items-center w-full border-b border-border-theme pb-1 text-[8px] font-mono tracking-wider opacity-60">
-                        <span>#{card.id.substring(0, 4).toUpperCase()}</span>
-                        <span className={
-                          card.id === 'EASTER_EGG_STANDOFF' ? 'text-amber-400 font-extrabold'
-                          : card.difficulty === 'easy' ? 'text-emerald-theme font-extrabold' : card.difficulty === 'medium' ? 'text-amber-theme font-extrabold' : 'text-red-theme font-extrabold'
-                        }>{card.difficulty.toUpperCase()}</span>
+                      <div className="flex justify-between items-start w-full opacity-50">
+                        <span className="text-[8px] font-mono tracking-widest">#{card.id.substring(0, 4).toUpperCase()}</span>
+                        <span className={`w-1.5 h-1.5 rounded-none ${
+                          card.id === 'EASTER_EGG_STANDOFF' ? 'bg-amber-400'
+                          : card.difficulty === 'easy' ? 'bg-emerald-theme' : card.difficulty === 'medium' ? 'bg-amber-theme' : 'bg-red-theme'
+                        }`}></span>
                       </div>
-                      <div className="flex-1 flex items-center justify-center py-1 overflow-y-auto pr-0.5">
-                        <p className="text-xs font-extrabold leading-normal text-left tracking-wide uppercase font-mono">
-                          {card.question.substring(0, 36) + (card.question.length > 36 ? '...' : '')}
+                      <div className="flex-1 flex items-start justify-start py-2 overflow-hidden">
+                        <p className="text-xs font-black leading-tight text-left uppercase font-mono text-text-theme">
+                          {card.question.substring(0, 45) + (card.question.length > 45 ? '...' : '')}
                         </p>
                       </div>
                     </motion.div>
@@ -1260,24 +1248,21 @@ export function GameBoard({
                     />
                   )}
 
-                  <span className="absolute top-1 left-1.5 text-[8px] font-mono text-cyan-theme-muted select-none font-normal">+</span>
-                  <span className="absolute top-1 right-1.5 text-[8px] font-mono text-cyan-theme-muted select-none font-normal">+</span>
-                  <span className="absolute bottom-1 left-1.5 text-[8px] font-mono text-cyan-theme-muted select-none font-normal">+</span>
-                  <span className="absolute bottom-1 right-1.5 text-[8px] font-mono text-cyan-theme-muted select-none font-normal">+</span>
+                  {/* Minimal Card Border */}
 
                   {isRevealed ? (
                     <>
-                      <div className="flex justify-between items-center w-full border-b border-border-theme pb-1.5 text-[9px] font-mono tracking-wider opacity-60">
-                        <span>#{card.id.substring(0, 4).toUpperCase()}</span>
-                        <span className={`font-extrabold ${
-                          card.difficulty === 'easy' ? 'text-emerald-theme' : card.difficulty === 'medium' ? 'text-amber-theme' : 'text-red-theme'
-                        }`}>{card.difficulty.toUpperCase()}</span>
+                      <div className="flex justify-between items-start w-full opacity-50">
+                        <span className="text-[10px] font-mono tracking-widest">#{card.id.substring(0, 4).toUpperCase()}</span>
+                        <span className={`w-2 h-2 rounded-none ${
+                          card.difficulty === 'easy' ? 'bg-emerald-theme' : card.difficulty === 'medium' ? 'bg-amber-theme' : 'bg-red-theme'
+                        }`}></span>
                       </div>
-                      <div className="flex-1 flex items-center justify-center py-2 overflow-hidden pr-0.5">
-                        <p className={`text-[10px] sm:text-xs md:text-sm font-bold leading-normal text-left tracking-wide font-mono uppercase transition-colors duration-300 break-words w-full line-clamp-6 ${
+                      <div className="flex-1 flex items-start justify-start py-4 overflow-hidden">
+                        <p className={`text-sm md:text-base font-black leading-tight text-left uppercase font-mono transition-colors duration-300 line-clamp-5 ${
                           isHovered ? 'text-text-theme' : 'text-text-theme-secondary'
                         }`}>
-                          {card.question.substring(0, isHovered ? 100 : 80) + (card.question.length > (isHovered ? 100 : 80) ? '...' : '')}
+                          {card.question}
                         </p>
                       </div>
                       {/* Hover: difficulty icon overlay */}
@@ -1294,11 +1279,13 @@ export function GameBoard({
                       )}
                     </>
                   ) : (
-                    <div className="absolute inset-1 rounded-none border border-cyan-theme-muted bg-surface-3 flex items-center justify-center overflow-hidden">
-                      <div className="absolute inset-0 opacity-10">
-                        <div className="absolute inset-1 border border-dashed border-cyan-theme-light rounded-none"></div>
+                    <div className="absolute inset-0 flex flex-col justify-between p-2">
+                      <div className="w-full h-1 bg-border-subtle mb-auto"></div>
+                      <div className="w-full h-full my-2 opacity-30" style={{ background: 'repeating-linear-gradient(45deg, var(--color-border-subtle), var(--color-border-subtle) 2px, transparent 2px, transparent 6px)' }}></div>
+                      <div className="w-full flex justify-between font-mono text-[7px] text-text-theme-muted opacity-50 font-bold uppercase tracking-widest">
+                        <span>RESTRICTED</span>
+                        <span>// SECURE</span>
                       </div>
-                      <div className="w-3 h-3 rounded-none rotate-45 border border-cyan-theme-muted bg-surface-3"></div>
                     </div>
                   )}
                 </motion.div>
@@ -1353,7 +1340,7 @@ export function GameBoard({
               <>
                 <div className="shatter-overlay z-20" />
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
-                  <div className="w-[250%] text-[14px] sm:text-[16px] md:text-[20px] font-black text-red-600 border-y-[3px] border-red-600 py-1 text-center tracking-tighter opacity-95 bg-black/70 backdrop-blur-sm shadow-[0_0_20px_rgba(220,38,38,0.9)] whitespace-nowrap" style={{ transform: 'rotate(-25deg)' }}>
+                  <div className="w-[250%] text-[14px] sm:text-[16px] md:text-[20px] font-black text-red-600 border-y-[3px] border-red-600 py-1 text-center tracking-tighter opacity-95 bg-black/70 backdrop-blur-sm shadow-none whitespace-nowrap" style={{ transform: 'rotate(-25deg)' }}>
                     ELIMINATED
                   </div>
                 </div>
@@ -1404,7 +1391,7 @@ export function GameBoard({
             className="fixed inset-0 flex items-center justify-center pointer-events-none z-40"
           >
             <div className="bg-panel-solid/95 border border-border-theme px-5 sm:px-8 py-3 sm:py-5 rounded-xl shadow-2xl flex items-center gap-3">
-              <ShieldWarning size={20} className="text-red-theme animate-pulse" />
+              <ShieldWarning size={20} className="text-red-theme " />
               <span className={`text-xs sm:text-md font-extrabold tracking-widest uppercase ${hudMessage?.color || botHudMessage?.color || 'text-text-theme'}`}>
                 {hudMessage?.text || botHudMessage?.text}
               </span>
@@ -1426,7 +1413,7 @@ export function GameBoard({
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.98, y: 15, opacity: 0 }}
               transition={{ type: "spring", stiffness: 350, damping: 30 }}
-              className={`bg-surface-3 border-2 ${isPresentationMode ? 'border-cyan-theme shadow-[0_0_40px_rgba(34,211,238,0.25)]' : 'border-cyan-theme-light'} rounded-none p-5 sm:p-8 md:p-10 max-w-4xl w-full flex flex-col relative overflow-hidden`}
+              className={`bg-surface-3 border-2 ${isPresentationMode ? 'border-cyan-theme shadow-none' : 'border-cyan-theme-light'} rounded-none p-5 sm:p-8 md:p-10 max-w-4xl w-full flex flex-col relative overflow-hidden`}
             >
               <span className="absolute top-2 left-2 text-[10px] font-mono text-cyan-theme-muted select-none font-normal">+</span>
               <span className="absolute top-2 right-2 text-[10px] font-mono text-cyan-theme-muted select-none font-normal">+</span>
@@ -1435,11 +1422,11 @@ export function GameBoard({
 
               <div className="flex justify-between items-center mb-6">
                 <span className="text-[10px] text-cyan-theme-light font-bold tracking-widest uppercase flex items-center gap-2 font-mono">
-                  <span className="w-1.5 h-1.5 rotate-45 bg-red-theme animate-pulse"></span>
+                  <span className="w-1.5 h-1.5 rotate-45 bg-red-theme "></span>
                   {isBotSpectating ? 'SPECTATING // ĐANG TRẢ LỜI' : 'ĐANG TRẢ LỜI'} // {activeQuestion.card.topic.toUpperCase()}
                 </span>
                 <span className={`text-lg font-mono font-bold tracking-widest ${
-                  timeLeft <= 3 ? 'text-red-theme animate-pulse font-black' : 'text-text-theme-muted'
+                  timeLeft <= 3 ? 'text-red-theme  font-black' : 'text-text-theme-muted'
                 }`}>
                   0{timeLeft}S
                 </span>
