@@ -1,6 +1,7 @@
 let audioCtx: AudioContext | null = null;
 let masterGain: GainNode | null = null;
 let isAudioMuted = false;
+let currentVolume = 1;
 let gunFireBuffer: AudioBuffer | null = null;
 let gunClickBuffer: AudioBuffer | null = null;
 let cardPlayBuffer: AudioBuffer | null = null;
@@ -20,6 +21,7 @@ function getCtx(): AudioContext {
   if (!audioCtx) {
     audioCtx = new AudioContext();
     masterGain = audioCtx.createGain();
+    masterGain.gain.value = isAudioMuted ? 0 : currentVolume;
     masterGain.connect(audioCtx.destination);
 
     // Preload custom gunshot MP3
@@ -675,13 +677,25 @@ export const Sounds = {
   setMuted(muted: boolean) {
     isAudioMuted = muted;
     if (masterGain) {
-      masterGain.gain.value = muted ? 0 : 1;
+      masterGain.gain.value = muted ? 0 : currentVolume;
     }
     localStorage.setItem('roulette-quiz-muted', String(muted));
   },
 
   isMuted(): boolean {
     return isAudioMuted;
+  },
+
+  setVolume(vol: number) {
+    currentVolume = Math.max(0, Math.min(1, vol));
+    if (masterGain && !isAudioMuted) {
+      masterGain.gain.value = currentVolume;
+    }
+    localStorage.setItem('roulette-quiz-volume', String(currentVolume));
+  },
+
+  getVolume(): number {
+    return currentVolume;
   },
 
   initMuted() {
@@ -692,6 +706,10 @@ export const Sounds = {
       if (masterGain) {
         masterGain.gain.value = 0;
       }
+    }
+    const savedVol = localStorage.getItem('roulette-quiz-volume');
+    if (savedVol !== null) {
+      currentVolume = parseFloat(savedVol) || 1;
     }
   },
 };

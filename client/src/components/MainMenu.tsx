@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, WifiHigh, Globe, Robot, SpeakerSimpleX, SpeakerHigh } from '@phosphor-icons/react';
+import { ArrowRight, WifiHigh, Globe, Robot } from '@phosphor-icons/react';
 import { ConnectionStatus } from '../types';
 import { Sounds } from '../audio/Sounds';
 import { ThemeToggle } from './ThemeToggle';
+import { VolumeSlider } from './VolumeSlider';
 
 const RANDOM_NAMES = [
   'PHANTOM', 'CIPHER', 'GHOST', 'ROGUE', 'SHADOW', 'NEXUS', 'VIPER', 'STORM',
@@ -109,16 +110,8 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
   const [isSearchingLan, setIsSearchingLan] = useState<boolean>(false);
   const [trail, setTrail] = useState<{ x: number, y: number, id: number }[]>([]);
   const trailId = React.useRef(0);
-  const [isMuted, setIsMuted] = useState<boolean>(() => {
-    return localStorage.getItem('roulette-quiz-muted') === 'true';
-  });
 
-  // Sync mute state with Sounds
-  useEffect(() => {
-    Sounds.setMuted(isMuted);
-  }, [isMuted]);
-
-  // Initialize mute state on mount
+  // Initialize audio on mount
   useEffect(() => {
     Sounds.initMuted();
   }, []);
@@ -433,20 +426,7 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
   return (
     <>
       <div className="fixed top-5 left-5 z-50">
-        <motion.button
-          whileHover={{ scale: 1.08 }}
-          whileTap={{ scale: 0.92 }}
-          onClick={() => setIsMuted(!isMuted)}
-          className="w-10 h-10 flex items-center justify-center rounded-lg border transition-all duration-300 cursor-pointer"
-          style={{
-            backgroundColor: 'var(--bg-input)',
-            borderColor: 'var(--border-medium)',
-            color: 'var(--text-muted)',
-          }}
-          title={isMuted ? 'Bật âm thanh' : 'Tắt âm thanh'}
-        >
-          {isMuted ? <SpeakerSimpleX size={18} weight="bold" /> : <SpeakerHigh size={18} weight="bold" />}
-        </motion.button>
+        <VolumeSlider />
       </div>
 
       <div className="fixed top-5 right-5 z-50">

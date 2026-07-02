@@ -4,7 +4,8 @@ import { socketClient } from '../network/SocketClient';
 import { Revolver } from './Revolver';
 import { ThemeToggle } from './ThemeToggle';
 import { ChatBox } from './ChatBox';
-import { Check, X, ShieldWarning, ArrowLeft, SpeakerSimpleX, SpeakerHigh } from '@phosphor-icons/react';
+import { VolumeSlider } from './VolumeSlider';
+import { Check, X, ShieldWarning, ArrowLeft } from '@phosphor-icons/react';
 import { GamePhase, Player, CardData, ActiveQuestion, QuestionResult, TriggerResult } from '../types';
 import { Sounds } from '../audio/Sounds';
 import { TypewriterText } from './TypewriterText';
@@ -93,6 +94,11 @@ export function GameBoard({
     playersRef.current = players;
   }, [players]);
 
+  // Initialize audio settings
+  useEffect(() => {
+    Sounds.initMuted();
+  }, []);
+
   // Tính tổng số phát đã bắn trong round
   const currentShotsFired = players.reduce((sum, p) => sum + (p.shotsFired || 0), 0);
 
@@ -113,9 +119,6 @@ export function GameBoard({
   const [isSpectatorModeVisual, setIsSpectatorModeVisual] = useState<boolean>(false);
   const [deathMessage, setDeathMessage] = useState<string>('');
   const isPresentationMode = false; // Disabled by master
-  const [isMuted, setIsMuted] = useState<boolean>(() => {
-    return localStorage.getItem('roulette-quiz-muted') === 'true';
-  });
   const [pendingActionText, setPendingActionText] = useState<string | null>(null);
   const opponentPlayers = players.filter(p => p.id !== localId);
   
@@ -149,11 +152,6 @@ export function GameBoard({
       triggerBgmResumeTimerRef.current = null;
     }
   };
-
-  // Sync mute state with Sounds
-  useEffect(() => {
-    Sounds.setMuted(isMuted);
-  }, [isMuted]);
 
   const prevPhase = useRef<GamePhase>(phase);
   // BGM Effect
@@ -810,17 +808,10 @@ export function GameBoard({
         <div className="border border-cyan-theme/30 p-1.5 shadow-none bg-bg-surface/50 rounded-sm">
           <ThemeToggle />
         </div>
-        <button
-          onClick={() => setIsMuted(!isMuted)}
-          className="w-10 h-10 flex items-center justify-center border border-cyan-theme/30 shadow-none bg-bg-surface/50 rounded-sm transition-colors hover:bg-cyan-theme/10"
-          title={isMuted ? 'Bật âm thanh' : 'Tắt âm thanh'}
-        >
-          {isMuted ? (
-            <SpeakerSimpleX size={18} weight="bold" className="text-cyan-theme/70" />
-          ) : (
-            <SpeakerHigh size={18} weight="bold" className="text-cyan-theme/70" />
-          )}
-        </button>
+        <VolumeSlider
+          buttonClassName="w-10 h-10 flex items-center justify-center border border-cyan-theme/30 shadow-none bg-bg-surface/50 rounded-sm transition-colors hover:bg-cyan-theme/10"
+        />
+        
         
       </div>
 
