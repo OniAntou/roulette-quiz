@@ -46,7 +46,8 @@ export function ChatBox({ roomId, localId }: ChatBoxProps) {
 
   // Auto-switch tab when roomId changes
   useEffect(() => {
-    if (!roomId && tab === 'room') setTab('global');
+    if (roomId) setTab('room');
+    else if (tab === 'room') setTab('global');
   }, [roomId]);
 
   useEffect(() => {
