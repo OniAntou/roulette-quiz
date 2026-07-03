@@ -4,12 +4,16 @@ type EventCallback = (data: any) => void;
 
 class SocketClient {
   private socket: Socket | null = null;
-  private connected: boolean = false;
+  private _connected: boolean = false;
+
+  isConnected(): boolean {
+    return this._connected;
+  }
   private callbacks: Record<string, EventCallback[]> = {};
   public playerName: string = 'GUEST';
 
   connect(url: string): Promise<Socket> {
-    if (this.socket && this.connected) {
+    if (this.socket && this._connected) {
       return Promise.resolve(this.socket);
     }
 
@@ -17,7 +21,7 @@ class SocketClient {
       this.socket.removeAllListeners();
       this.socket.disconnect();
       this.socket = null;
-      this.connected = false;
+      this._connected = false;
       this.callbacks = {};
     }
 
@@ -33,7 +37,7 @@ class SocketClient {
       let settled = false;
 
       this.socket.on('connect', () => {
-        this.connected = true;
+        this._connected = true;
         // console.log('Connected to server');
         if (!settled) {
           settled = true;
@@ -43,7 +47,7 @@ class SocketClient {
       });
 
       this.socket.on('disconnect', (reason) => {
-        this.connected = false;
+        this._connected = false;
         // console.log('Disconnected from server:', reason);
         this.emit('_disconnect', reason);
       });
@@ -134,7 +138,7 @@ class SocketClient {
   }
 
   send(event: string, data?: any): void {
-    if (this.socket && this.connected) {
+    if (this.socket && this._connected) {
       this.socket.emit(event, data);
     }
   }
@@ -187,7 +191,7 @@ class SocketClient {
       this.socket.removeAllListeners();
       this.socket.disconnect();
       this.socket = null;
-      this.connected = false;
+      this._connected = false;
     }
   }
 }

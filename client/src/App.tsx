@@ -81,27 +81,38 @@ export default function App() {
   const connectToServer = (mode: string, name: string, ip?: string) => {
     setPlayerName(name);
     setGameMode(mode);
-    setConnectionStatus('connecting');
     setErrorMsg('');
     socketClient.playerName = name;
 
-    const baseHost = window.location.hostname || 'localhost';
-    const defaultOnlineServer = import.meta.env.VITE_SERVER_URL || 
-      (window.location.port === '5173' ? `http://${baseHost}:3000` : window.location.origin);
-    const serverUrl = (mode === 'lan' && ip)
-      ? ((ip.startsWith('http://') || ip.startsWith('https://')) ? ip : `http://${ip}`)
-      : defaultOnlineServer;
+    const connectAndGo = (url: string) => {
+      setConnectionStatus('connecting');
+      socketClient.connect(url)
+        .then(() => {
+          setConnectionStatus('connected');
+          setScreen('lobby');
+        })
+        .catch((err: Error) => {
+          setConnectionStatus('disconnected');
+          setErrorMsg('SERVER LINK TIMEOUT. RETRY CONNECTION.');
+          console.error(err);
+        });
+    };
 
-    socketClient.connect(serverUrl)
-      .then(() => {
-        setConnectionStatus('connected');
+    if (mode === 'lan' && ip) {
+      const serverUrl = (ip.startsWith('http://') || ip.startsWith('https://')) ? ip : `http://${ip}`;
+      socketClient.disconnect();
+      connectAndGo(serverUrl);
+    } else if (mode === 'online') {
+      if (socketClient.isConnected()) {
+        // Already auto-connected, go straight to lobby
         setScreen('lobby');
-      })
-      .catch((err: Error) => {
-        setConnectionStatus('disconnected');
-        setErrorMsg('SERVER LINK TIMEOUT. RETRY CONNECTION.');
-        console.error(err);
-      });
+      } else {
+        const baseHost = window.location.hostname || 'localhost';
+        const defaultServer = import.meta.env.VITE_SERVER_URL || 
+          (window.location.port === '5173' ? `http://${baseHost}:3000` : window.location.origin);
+        connectAndGo(defaultServer);
+      }
+    }
   };
 
   const handleDisconnect = () => {
@@ -126,6 +137,15 @@ export default function App() {
       handleDisconnect();
     }
   };
+
+  // Auto-connect socket on mount so ChatBox works from Main Menu
+  useEffect(() => {
+    const serverUrl = import.meta.env.VITE_SERVER_URL || 
+      (window.location.port === '5173' ? `http://${window.location.hostname}:3000` : window.location.origin);
+    socketClient.connect(serverUrl)
+      .then(() => setConnectionStatus('connected'))
+      .catch(() => {});
+  }, []);
 
   // Socket event listeners - using refs for latest state, dependencies only on stable refs
   useEffect(() => {
@@ -413,7 +433,7 @@ export default function App() {
           disconnect={handleDisconnect}
         />
       )}
-      <ChatBox roomId={roomId} localId={localPlayerId} />
+      {!botMode && <ChatBox roomId={roomId} localId={localPlayerId} />}
     </main>
   );
 }
