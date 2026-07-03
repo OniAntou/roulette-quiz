@@ -32,6 +32,18 @@ export interface Gun {
   bulletsFired: number;
 }
 
+export interface PlayerGameStats {
+  correctAnswers: number;
+  wrongAnswers: number;
+  triggerSurvived: number;
+  triggerDied: number;
+}
+
+export interface GameStats {
+  players: Record<string, PlayerGameStats>;
+  totalRounds: number;
+}
+
 export interface GameState {
   id: string;
   roomId: string;
@@ -41,7 +53,7 @@ export interface GameState {
   round: number;
   gun: Gun;
   usedCards: string[];
-  stats: Record<string, unknown>;
+  stats: GameStats;
   currentCard?: Question;
   currentPlayer?: number;
   targetPlayer?: number;

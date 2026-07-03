@@ -96,6 +96,7 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
   const botModeRef = useRef(botMode);
   const localEasterEggChanceRef = useRef<number>(0.05);
   const allTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+  const botGameStatsRef = useRef<Record<string, { correctAnswers: number; wrongAnswers: number; triggerSurvived: number; triggerDied: number }>>({});
 
   const scheduleTimeout = useCallback((cb: () => void, ms?: number) => {
     const t = setTimeout(() => {
@@ -162,7 +163,18 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
           winnerName = aliveBots[0].name;
         }
 
-        cb.setWinnerInfo({ winner: winnerName, isLocalWinner: !!isPlayerAlive });
+        const allPlayerIds = ['local-player', ...botsRef.current.map(b => b.id)];
+        const playerStats = allPlayerIds.reduce((acc, id) => {
+          const s = botGameStatsRef.current[id];
+          if (s) acc[id] = s;
+          return acc;
+        }, {} as Record<string, any>);
+
+        cb.setWinnerInfo({
+          winner: winnerName,
+          isLocalWinner: !!isPlayerAlive,
+          stats: { players: playerStats, totalRounds: 0 },
+        });
         cb.setPhase('game_over');
         
         if (isPlayerAlive) {
@@ -260,9 +272,16 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
 
       const cb = callbacksRef.current;
       const isCorrect = answer === correctAnswer;
+
+      // Track stats
+      if (!botGameStatsRef.current[targetId]) {
+        botGameStatsRef.current[targetId] = { correctAnswers: 0, wrongAnswers: 0, triggerSurvived: 0, triggerDied: 0 };
+      }
       if (isCorrect) {
+        botGameStatsRef.current[targetId].correctAnswers++;
         Sounds.correct();
       } else {
+        botGameStatsRef.current[targetId].wrongAnswers++;
         Sounds.wrong();
       }
 
@@ -290,6 +309,16 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
       const gun = botGunRef.current;
       const bulletInChamber = gun.chambers[gun.currentPosition];
       const alive = !bulletInChamber;
+
+      // Track trigger stats
+      if (!botGameStatsRef.current[targetId]) {
+        botGameStatsRef.current[targetId] = { correctAnswers: 0, wrongAnswers: 0, triggerSurvived: 0, triggerDied: 0 };
+      }
+      if (alive) {
+        botGameStatsRef.current[targetId].triggerSurvived++;
+      } else {
+        botGameStatsRef.current[targetId].triggerDied++;
+      }
 
       let targetName = playerName;
       if (targetId !== 'local-player') {
@@ -628,6 +657,13 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
     callbacks.setScreen('game');
     callbacks.setRound(1);
     bulletsFiredCountRef.current = 0;
+    // Initialize stats for all players
+    const initialStats: Record<string, { correctAnswers: number; wrongAnswers: number; triggerSurvived: number; triggerDied: number }> = {};
+    const allPlayerIds = ['local-player', ...botPlayers.map(b => b.id)];
+    allPlayerIds.forEach(id => {
+      initialStats[id] = { correctAnswers: 0, wrongAnswers: 0, triggerSurvived: 0, triggerDied: 0 };
+    });
+    botGameStatsRef.current = initialStats;
     const newGun = createBotGun();
     setBotGun(newGun);
     botGunRef.current = newGun;

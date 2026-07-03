@@ -48,9 +48,22 @@ export interface TriggerResult {
   results?: { playerId: string; alive: boolean }[];
 }
 
+export interface PlayerGameStats {
+  correctAnswers: number;
+  wrongAnswers: number;
+  triggerSurvived: number;
+  triggerDied: number;
+}
+
+export interface GameStats {
+  players: Record<string, PlayerGameStats>;
+  totalRounds: number;
+}
+
 export interface WinnerInfo {
   winner: string;
   isLocalWinner: boolean;
+  stats?: GameStats;
 }
 
 export type GamePhase = 'waiting' | 'choosing' | 'questioning' | 'answering' | 'result' | 'trigger' | 'game_over';

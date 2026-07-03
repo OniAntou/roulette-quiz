@@ -118,7 +118,6 @@ export function GameBoard({
   const [isCrtTurningOn, setIsCrtTurningOn] = useState<boolean>(false);
   const [isSpectatorModeVisual, setIsSpectatorModeVisual] = useState<boolean>(false);
   const [deathMessage, setDeathMessage] = useState<string>('');
-  const isPresentationMode = false; // Disabled by master
   const [pendingActionText, setPendingActionText] = useState<string | null>(null);
   const opponentPlayers = players.filter(p => p.id !== localId);
   
@@ -155,7 +154,7 @@ export function GameBoard({
 
   const prevPhase = useRef<GamePhase>(phase);
   // BGM Effect
-  const isDead = players.find(p => p.id === localId)?.isAlive === false;
+  const isDead = players.length > 0 && players.find(p => p.id === localId)?.isAlive === false;
   // BGM chỉ nên tắt khi người chơi thực sự CHẾT, hoặc đang trong bóng đen tắt TV
   const isDeadSpectating = isSpectatorModeVisual || isDead || isCrtShuttingDown;
   
@@ -197,7 +196,7 @@ export function GameBoard({
 
   // Heartbeat Effect (căng thẳng tăng dần theo số đạn đã bắn)
   useEffect(() => {
-    if (displayedShots < 2 || isPresentationMode || phase === 'result' || isCrtShuttingDown || isDeadSpectating) return;
+    if (displayedShots < 2 || false || phase === 'result' || isCrtShuttingDown || isDeadSpectating) return;
 
     let intervalTime = 1200;
     let volume = 0.2; // Nhỏ lại
@@ -220,7 +219,7 @@ export function GameBoard({
     Sounds.heartbeat(volume);
 
     return () => clearInterval(intervalId);
-  }, [displayedShots, isPresentationMode, phase, isCrtShuttingDown, isDeadSpectating]);
+  }, [displayedShots, false, phase, isCrtShuttingDown, isDeadSpectating]);
 
   useEffect(() => {
     const prev = prevPhase.current;
@@ -277,7 +276,8 @@ export function GameBoard({
   }, [round]);
 
   useEffect(() => {
-    if (handCards.length > 0 && handCards.length !== prevHandCardsLength.current && phase === 'choosing') {
+    // Chỉ trigger deal animation khi số bài TĂNG (được chia bài mới), không phải khi đánh bài
+    if (handCards.length > 0 && handCards.length > prevHandCardsLength.current && phase === 'choosing') {
       prevHandCardsLength.current = handCards.length;
       setIsDealing(true);
       setRevealedCards(new Set());
@@ -313,7 +313,7 @@ export function GameBoard({
 
   useEffect(() => {
     if (triggerResult) {
-      const triggerKey = `${triggerResult.playerId}-${triggerResult.bulletCount}-${triggerResult.alive}`;
+      const triggerKey = `${triggerResult.playerId}-${triggerResult.bulletCount}-${triggerResult.bulletsFired}-${triggerResult.alive}`;
       if (lastProcessedTriggerRef.current === triggerKey) return;
       lastProcessedTriggerRef.current = triggerKey;
 
@@ -339,7 +339,7 @@ export function GameBoard({
             triggerTimersRef.current.push(shotEffectTimer);
 
             if (!triggerResult.alive) {
-              if (!isPresentationMode) {
+              if (!false) {
                 setIsScreenShaking(true);
                 setTimeout(() => setIsScreenShaking(false), 450);
               }
@@ -447,7 +447,7 @@ export function GameBoard({
           }
 
           // Screen Shake & Red flash effect
-          if (!isPresentationMode) {
+          if (!false) {
             setIsScreenShaking(true);
             setTimeout(() => setIsScreenShaking(false), 450);
           }
@@ -785,7 +785,7 @@ export function GameBoard({
       <div className="fixed inset-0 bg-black z-0 pointer-events-none" />
     )}
     <motion.div 
-      animate={isScreenShaking && !isPresentationMode ? (
+      animate={isScreenShaking && !false ? (
         triggerResult?.alive 
           ? { x: [0, -3, 3, -3, 3, 0], y: [0, 2, -2, 2, -2, 0] }
           : { x: [0, -12, 12, -10, 10, -6, 6, 0], y: [0, 10, -10, 8, -8, 4, -4, 0] }
@@ -794,7 +794,7 @@ export function GameBoard({
         y: 0,
       }}
       transition={{ duration: 0.4 }}
-      className={`w-full h-full flex flex-col items-center justify-between py-2 sm:py-4 px-3 sm:px-6 md:px-12 z-10 select-none relative ${isCrtShuttingDown && !isPresentationMode ? 'animate-crt-shutdown' : ''} ${isCrtTurningOn && !isPresentationMode ? 'animate-crt-turn-on' : ''} ${isPresentationMode ? 'presentation-mode' : ''}`}
+      className={`w-full h-full flex flex-col items-center justify-between py-2 sm:py-4 px-3 sm:px-6 md:px-12 z-10 select-none relative ${isCrtShuttingDown && !false ? 'animate-crt-shutdown' : ''} ${isCrtTurningOn && !false ? 'animate-crt-turn-on' : ''} ${false ? 'presentation-mode' : ''}`}
     >
       {/* Top action bar: Leave & Theme */}
       <div className="absolute top-3 sm:top-6 left-3 sm:left-6 z-[120] flex items-center gap-2 sm:gap-4">
@@ -1207,8 +1207,10 @@ export function GameBoard({
                   exit={{ opacity: 0, y: -40 }}
                   transition={{ type: "spring", stiffness: 200, damping: 20 }}
                   onMouseEnter={() => {
-                    if (isPlayable) setHoveredCardIndex(index);
-                    Sounds.cardSelect();
+                    if (isPlayable) {
+                      setHoveredCardIndex(index);
+                      Sounds.cardSelect();
+                    }
                   }}
                   onMouseLeave={handleCardMouseLeave}
                   onClick={() => handleCardClick(card)}
@@ -1396,14 +1398,14 @@ export function GameBoard({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className={`fixed inset-0 ${isPresentationMode ? 'bg-overlay-solid/98 backdrop-blur-xl' : 'bg-overlay-solid/90 backdrop-blur-sm'} flex items-center justify-center z-50 p-4`}
+            className={`fixed inset-0 ${false ? 'bg-overlay-solid/98 backdrop-blur-xl' : 'bg-overlay-solid/90 backdrop-blur-sm'} flex items-center justify-center z-50 p-4`}
           >
             <motion.div 
               initial={{ scale: 0.98, y: 15 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.98, y: 15, opacity: 0 }}
               transition={{ type: "spring", stiffness: 350, damping: 30 }}
-              className={`bg-surface-3 border-2 ${isPresentationMode ? 'border-cyan-theme shadow-none' : 'border-cyan-theme-light'} rounded-none p-5 sm:p-8 md:p-10 max-w-4xl w-full flex flex-col relative overflow-hidden`}
+              className={`bg-surface-3 border-2 ${false ? 'border-cyan-theme shadow-none' : 'border-cyan-theme-light'} rounded-none p-5 sm:p-8 md:p-10 max-w-4xl w-full flex flex-col relative overflow-hidden`}
             >
               <span className="absolute top-2 left-2 text-[10px] font-mono text-cyan-theme-muted select-none font-normal">+</span>
               <span className="absolute top-2 right-2 text-[10px] font-mono text-cyan-theme-muted select-none font-normal">+</span>
@@ -1431,7 +1433,7 @@ export function GameBoard({
                 />
               </div>
 
-              <h2 className={`${isPresentationMode ? 'text-3xl' : 'text-xl md:text-2xl'} font-bold text-text-theme text-center mb-8 leading-relaxed max-w-3xl mx-auto uppercase tracking-wider font-mono`}>
+              <h2 className={`${false ? 'text-3xl' : 'text-xl md:text-2xl'} font-bold text-text-theme text-center mb-8 leading-relaxed max-w-3xl mx-auto uppercase tracking-wider font-mono`}>
                 {activeQuestion.card.question}
               </h2>
 
@@ -1458,10 +1460,10 @@ export function GameBoard({
                       onClick={() => handleAnswerSubmit(letter)}
                       className={`w-full py-4 sm:py-5 px-4 sm:px-8 border text-sm sm:text-base font-bold tracking-widest uppercase rounded-none flex items-center gap-3 sm:gap-4 transition-all duration-200 relative overflow-hidden group ${isSpectating || isBotSpectating ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} ${buttonStyle}`}
                     >
-                      <div className={`w-8 h-8 rounded-none border border-cyan-theme-muted group-hover:border-text-theme bg-transparent flex items-center justify-center font-mono font-black ${isPresentationMode ? 'text-lg' : 'text-xs'} text-cyan-theme group-hover:text-text-theme transition-colors duration-200`}>
+                      <div className={`w-8 h-8 rounded-none border border-cyan-theme-muted group-hover:border-text-theme bg-transparent flex items-center justify-center font-mono font-black ${false ? 'text-lg' : 'text-xs'} text-cyan-theme group-hover:text-text-theme transition-colors duration-200`}>
                         {letter}
                       </div>
-                      <span className={`text-left leading-normal font-bold font-mono ${isPresentationMode ? 'text-xl' : ''}`}>{answer}</span>
+                      <span className={`text-left leading-normal font-bold font-mono ${false ? 'text-xl' : ''}`}>{answer}</span>
                     </button>
                   );
                 })}
@@ -1472,7 +1474,7 @@ export function GameBoard({
       </AnimatePresence>
 
       {/* Dynamic Atmosphere based on displayedShots */}
-      {!isPresentationMode && !isDeadSpectating && displayedShots > 0 && (
+      {!false && !isDeadSpectating && displayedShots > 0 && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ 

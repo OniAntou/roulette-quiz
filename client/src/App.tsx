@@ -308,7 +308,7 @@ export default function App() {
       setRound(data.round);
     });
 
-    socketClient.on('game:over', (data: { winner: string; winnerId?: string }) => {
+    socketClient.on('game:over', (data: { winner: string; winnerId?: string; stats?: any }) => {
       const curLocalId = localPlayerIdRef.current;
       const curPlayerName = playerNameRef.current;
       const isLocal = data.winnerId ? data.winnerId === curLocalId : data.winner === curPlayerName;
@@ -317,7 +317,8 @@ export default function App() {
       }
       setWinnerInfo({
         winner: data.winner,
-        isLocalWinner: isLocal
+        isLocalWinner: isLocal,
+        stats: data.stats,
       });
       setPhase('game_over');
 
@@ -405,6 +406,9 @@ export default function App() {
       {screen === 'gameover' && (
         <GameOver
           winnerInfo={winnerInfo}
+          localId={localPlayerId}
+          playerName={playerName}
+          players={players}
           disconnect={handleDisconnect}
         />
       )}

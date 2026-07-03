@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import { QuestionManager } from './QuestionManager';
 import { RoomManager } from './RoomManager';
 import { GameState, Gun, Question } from './types';
+import { GAME_CONSTANTS } from '../../shared/constants';
 
 export class GameManager {
   private roomManager: RoomManager;
@@ -13,6 +14,12 @@ export class GameManager {
   private readonly startDelayMs = 400;
   private readonly resultDelayMs = 3000;
   private readonly postTriggerDelayMs = 3000;
+
+  private ensurePlayerStats(game: GameState, playerId: string): void {
+    if (!game.stats.players[playerId]) {
+      game.stats.players[playerId] = { correctAnswers: 0, wrongAnswers: 0, triggerSurvived: 0, triggerDied: 0 };
+    }
+  }
 
   constructor(roomManager: RoomManager, io: Server) {
     this.roomManager = roomManager;
@@ -37,7 +44,7 @@ export class GameManager {
       round: 1,
       gun: this.createGun(),
       usedCards: [],
-      stats: {},
+      stats: { players: {}, totalRounds: 0 },
     };
 
     this.games.set(roomId, gameState);
@@ -275,6 +282,13 @@ export class GameManager {
     // Clear the answer timeout (it might be called from disconnect handler)
     this.clearAnswerTimeout(game);
 
+    // Track timeout as wrong answer for the target player
+    const targetId = game.players[game.targetPlayer!]?.id;
+    if (targetId) {
+      this.ensurePlayerStats(game, targetId);
+      (game.stats.players[targetId] as any).wrongAnswers++;
+    }
+
     const card = game.currentCard!;
 
     this.io.to(roomId).emit('game:result', {
@@ -313,6 +327,9 @@ export class GameManager {
     });
 
     if (isCorrect) {
+      this.ensurePlayerStats(game, socketId);
+      (game.stats.players[socketId] as any).correctAnswers++;
+
       // Correct answer: move to choosing phase after delay
       game.triggerTimeout = setTimeout(() => {
         game.triggerTimeout = undefined;
@@ -328,6 +345,9 @@ export class GameManager {
         });
       }, this.resultDelayMs);
     } else {
+      this.ensurePlayerStats(game, socketId);
+      (game.stats.players[socketId] as any).wrongAnswers++;
+
       // Wrong answer: pull trigger after delay
       game.triggerTimeout = setTimeout(() => {
         game.triggerTimeout = undefined;
@@ -351,6 +371,11 @@ export class GameManager {
       p.shotsFired = (p.shotsFired || 0) + 1;
       if (isDead) {
         p.isAlive = false;
+        this.ensurePlayerStats(game, p.id);
+        (game.stats.players[p.id] as any).triggerDied++;
+      } else {
+        this.ensurePlayerStats(game, p.id);
+        (game.stats.players[p.id] as any).triggerSurvived++;
       }
       results.push({ playerId: p.id, alive: !isDead });
     }
@@ -370,6 +395,7 @@ export class GameManager {
       const remainingAlive = current.players.filter(p => p.isAlive && !p.left);
       if (remainingAlive.length <= 1) {
         // Game over
+        current.stats.totalRounds = current.round;
         this.io.to(roomId).emit('game:over', {
           winner: remainingAlive.length === 1 ? remainingAlive[0].name : 'No one',
           winnerId: remainingAlive.length === 1 ? remainingAlive[0].id : '',
@@ -407,6 +433,8 @@ export class GameManager {
     if (bullet) {
       // BULLET HIT - player dies
       targetPlayer.isAlive = false;
+      this.ensurePlayerStats(game, targetPlayer.id);
+      (game.stats.players[targetPlayer.id] as any).triggerDied++;
 
       this.io.to(roomId).emit('game:trigger', {
         alive: false,
@@ -426,6 +454,7 @@ export class GameManager {
           const current = this.games.get(roomId);
           if (!current) return;
           current.phase = 'game_over';
+          current.stats.totalRounds = current.round;
           this.io.to(roomId).emit('game:over', {
             winner: alivePlayers[0]?.name || 'No one',
             winnerId: alivePlayers[0]?.id || '',
@@ -451,6 +480,9 @@ export class GameManager {
       }
     } else {
       // SURVIVED - gun clicked but no bullet
+      this.ensurePlayerStats(game, targetPlayer.id);
+      (game.stats.players[targetPlayer.id] as any).triggerSurvived++;
+
       this.io.to(roomId).emit('game:trigger', {
         alive: true,
         playerId: targetPlayer.id,
@@ -487,8 +519,7 @@ export class GameManager {
   }
 
   private getTimerDuration(difficulty: string): number {
-    const timers: Record<string, number> = { easy: 10, medium: 7, hard: 5 };
-    return timers[difficulty] || 10;
+    return GAME_CONSTANTS.TIMER[difficulty] ?? GAME_CONSTANTS.TIMER.easy;
   }
 
   handleLeaveAfterDeath(roomId: string, socketId: string): void {
@@ -543,9 +574,11 @@ export class GameManager {
           // Game over - clear everything
           this.clearAllTimeouts(game);
           game.phase = 'game_over';
+          game.stats.totalRounds = game.round;
           this.io.to(roomId).emit('game:over', {
             winner: alivePlayersBefore[0]?.name || 'No one',
             winnerId: alivePlayersBefore[0]?.id || '',
+            stats: game.stats,
             reason: 'disconnect',
           });
           this.games.delete(roomId);

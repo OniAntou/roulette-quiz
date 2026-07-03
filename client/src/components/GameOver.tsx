@@ -2,11 +2,14 @@ import React, { useEffect } from 'react';
 import type { Variants } from 'framer-motion';
 import { motion, useAnimation } from 'framer-motion';
 import { Trophy, Skull, ArrowLeft, Star } from '@phosphor-icons/react';
-import { WinnerInfo } from '../types';
+import { WinnerInfo, PlayerGameStats, Player } from '../types';
 import { ThemeToggle } from './ThemeToggle';
 
 interface GameOverProps {
   winnerInfo: WinnerInfo | null;
+  localId: string;
+  playerName: string;
+  players: Player[];
   disconnect: () => void;
 }
 
@@ -45,9 +48,9 @@ function Particle({ isWin, i }: { isWin: boolean; i: number }) {
 }
 
 // Glitch text effect for DEFEAT
-function GlitchText({ text, className }: { text: string; className: string }) {
+function GlitchText({ text, className, style }: { text: string; className: string; style?: React.CSSProperties }) {
   return (
-    <div className="relative select-none">
+    <div className="relative select-none" style={style}>
       <motion.span
         className={`${className} absolute inset-0`}
         style={{ color: 'var(--red-theme)', clipPath: 'inset(0 0 60% 0)', left: '3px', opacity: 0.7 }}
@@ -69,10 +72,51 @@ function GlitchText({ text, className }: { text: string; className: string }) {
   );
 }
 
-export function GameOver({ winnerInfo, disconnect }: GameOverProps) {
-  const { winner, isLocalWinner } = winnerInfo || { winner: 'UNKNOWN', isLocalWinner: false };
+// Stat card component
+function StatCard({ label, value, color }: { label: string; value: string; color?: string }) {
+  return (
+    <div
+      className="flex flex-col items-center gap-1 border border-border-theme rounded-xl py-2 sm:py-3 px-1 sm:px-2 bg-panel-solid/40 backdrop-blur-sm"
+    >
+      <span className="text-[9px] font-black tracking-[2px] uppercase" style={{ color: 'var(--text-theme-muted)' }}>{label}</span>
+      <span
+        className="text-xs sm:text-sm font-black tracking-wider uppercase"
+        style={{ color: color || 'var(--text-theme)' }}
+      >
+        {value}
+      </span>
+    </div>
+  );
+}
+
+export function GameOver({ winnerInfo, localId, playerName, players, disconnect }: GameOverProps) {
+  const { winner, isLocalWinner, stats } = winnerInfo || { winner: 'UNKNOWN', isLocalWinner: false, stats: undefined };
   const isAnnihilation = winner === 'No one';
   const controls = useAnimation();
+
+  // Find local player's stats
+  const myStats: PlayerGameStats | undefined = stats?.players?.[localId] || stats?.players?.[playerName];
+  const totalAnswers = myStats ? myStats.correctAnswers + myStats.wrongAnswers : 0;
+  const accuracy = totalAnswers > 0 ? Math.round((myStats!.correctAnswers / totalAnswers) * 100) : 0;
+
+  // Get all players' stats for the summary
+  const allPlayerStats = stats?.players
+    ? (players.length > 0 ? players : Object.keys(stats.players).map(id => ({ id, name: id === localId ? playerName : id })) as Player[])
+        .map(p => {
+          const s = stats!.players[p.id] || stats!.players[p.name];
+          if (!s) return null;
+          const total = s.correctAnswers + s.wrongAnswers;
+          return {
+            name: p.id === localId ? `${playerName} (Bạn)` : p.name || p.id,
+            accuracy: total > 0 ? Math.round((s.correctAnswers / total) * 100) : 0,
+            correct: s.correctAnswers,
+            wrong: s.wrongAnswers,
+            survived: s.triggerSurvived,
+            died: s.triggerDied,
+          };
+        })
+        .filter(Boolean)
+    : [];
 
   useEffect(() => {
     controls.start('visible');
@@ -217,7 +261,6 @@ export function GameOver({ winnerInfo, disconnect }: GameOverProps) {
             <GlitchText
               text={isAnnihilation ? "ANNIHILATION" : "DEFEAT"}
               className={`${isAnnihilation ? 'text-3xl sm:text-4xl md:text-5xl md:text-6xl text-center' : 'text-5xl sm:text-6xl md:text-7xl lg:text-8xl'} font-black tracking-[6px] sm:tracking-[10px] uppercase block w-full whitespace-nowrap overflow-visible leading-tight`}
-              // @ts-ignore
               style={{ color: 'var(--red-theme)' }}
             />
           )}
@@ -228,13 +271,11 @@ export function GameOver({ winnerInfo, disconnect }: GameOverProps) {
               ? 'border-emerald-theme-border bg-emerald-theme-bg'
               : 'border-border-theme bg-panel-solid/60'
           }`}>
-            <div className="absolute top-0 left-0 w-full h-[1px]"
-              style={{
-                background: isLocalWinner
-                  ? 'linear-gradient(90deg, transparent, var(--emerald-theme), transparent)'
-                  : 'linear-gradient(90deg, transparent, var(--border-theme-strong), transparent)',
-              }}
-            />
+            {isLocalWinner ? (
+              <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-emerald-theme to-transparent" />
+            ) : (
+              <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-border-theme-strong to-transparent" />
+            )}
             <p className="text-sm font-black tracking-[3px] uppercase" style={{ color: isLocalWinner ? 'var(--emerald-theme)' : 'var(--text-theme-muted)' }}>
               {isLocalWinner ? '// WINNER //' : isAnnihilation ? '// MUTUAL DESTRUCTION //' : '// ELIMINATED //'}
             </p>
@@ -256,39 +297,87 @@ export function GameOver({ winnerInfo, disconnect }: GameOverProps) {
           </div>
         </motion.div>
 
-        {/* Stats bar */}
+        {/* Stats bars */}
         <motion.div
           variants={itemVariants}
-          className="w-full grid grid-cols-3 gap-2 sm:gap-3"
+          className="w-full grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3"
         >
-          {[
-            { label: 'STATUS', value: isLocalWinner ? 'ALIVE' : 'DECEASED' },
-            { label: 'ROUND', value: 'COMPLETE' },
-            { label: 'PROTOCOL', value: isLocalWinner ? 'PASS' : 'FAIL' },
-          ].map((stat) => (
-            <div key={stat.label}
-              className="flex flex-col items-center gap-1 border border-border-theme rounded-xl py-2 sm:py-3 px-1 sm:px-2 bg-panel-solid/40 backdrop-blur-sm"
-            >
-              <span className="text-[9px] font-black tracking-[2px] uppercase" style={{ color: 'var(--text-theme-muted)' }}>{stat.label}</span>
-              <span className={`text-xs font-black tracking-wider uppercase ${
-                stat.value === 'ALIVE' || stat.value === 'PASS' ? 'text-emerald-theme' :
-                stat.value === 'DECEASED' || stat.value === 'FAIL' ? 'text-red-theme' :
-                'text-text-theme'
-              }`}>{stat.value}</span>
-            </div>
-          ))}
+          <StatCard
+            label="ROUND"
+            value={stats ? `${stats.totalRounds}` : '--'}
+            color="var(--cyan-theme)"
+          />
+          <StatCard
+            label="ACCURACY"
+            value={myStats ? `${accuracy}%` : '--'}
+            color={accuracy >= 50 ? 'var(--emerald-theme)' : 'var(--red-theme)'}
+          />
+          <StatCard
+            label="CORRECT"
+            value={myStats ? `${myStats.correctAnswers}` : '--'}
+            color="var(--emerald-theme)"
+          />
+          <StatCard
+            label="WRONG"
+            value={myStats ? `${myStats.wrongAnswers}` : '--'}
+            color="var(--red-theme)"
+          />
         </motion.div>
+
+        {/* Trigger stats */}
+        {myStats && (
+          <motion.div
+            variants={itemVariants}
+            className="w-full grid grid-cols-2 gap-2 sm:gap-3"
+          >
+            <StatCard
+              label="SURVIVED TRIGGER"
+              value={`${myStats.triggerSurvived}x`}
+              color="var(--emerald-theme)"
+            />
+            <StatCard
+              label="SHOT"
+              value={`${myStats.triggerDied}x`}
+              color="var(--red-theme)"
+            />
+          </motion.div>
+        )}
+
+        {/* All players summary */}
+        {allPlayerStats.length > 0 && (
+          <motion.div
+            variants={itemVariants}
+            className="w-full"
+          >
+            <div className="text-[9px] font-black tracking-[3px] uppercase mb-2 text-center" style={{ color: 'var(--text-theme-muted)' }}>
+              // SCOREBOARD //
+            </div>
+            <div className="space-y-1">
+              {allPlayerStats.map((p, i) => p && (
+                <div
+                  key={i}
+                  className="flex items-center justify-between px-3 py-1.5 border border-border-theme rounded-lg bg-panel-solid/20 text-[11px] font-mono"
+                >
+                  <span className="font-bold tracking-wider uppercase" style={{ color: 'var(--text-theme)' }}>
+                    {p.name}
+                  </span>
+                  <div className="flex gap-3 text-[10px]">
+                    <span style={{ color: 'var(--emerald-theme)' }}>{p.correct}✓</span>
+                    <span style={{ color: 'var(--red-theme)' }}>{p.wrong}✗</span>
+                    <span style={{ color: p.accuracy >= 50 ? 'var(--emerald-theme)' : 'var(--red-theme)' }}>{p.accuracy}%</span>
+                    <span style={{ color: 'var(--text-theme-muted)' }}>⚔{p.survived}☠{p.died}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
 
         {/* CTA Button */}
         <motion.div variants={itemVariants} className="w-full">
           <motion.button
             onClick={disconnect}
-            className="group relative w-full py-4 sm:py-5 rounded-2xl overflow-hidden cursor-pointer font-black text-xs sm:text-sm tracking-[3px] sm:tracking-[4px] uppercase transition-all duration-300"
-            style={{
-              background: 'var(--bg-panel-solid)',
-              border: '1px solid var(--border-theme)',
-              color: 'var(--text-theme-secondary)',
-            }}
+            className="group relative w-full py-4 sm:py-5 rounded-2xl overflow-hidden cursor-pointer font-black text-xs sm:text-sm tracking-[3px] sm:tracking-[4px] uppercase transition-all duration-300 bg-panel-solid border border-border-theme text-text-theme-secondary"
             whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.98 }}
           >

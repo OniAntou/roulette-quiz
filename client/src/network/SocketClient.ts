@@ -33,7 +33,7 @@ class SocketClient {
 
       this.socket.on('connect', () => {
         this.connected = true;
-        console.log('Connected to server');
+        // console.log('Connected to server');
         if (!settled) {
           settled = true;
           resolve(this.socket!);
@@ -43,12 +43,12 @@ class SocketClient {
 
       this.socket.on('disconnect', (reason) => {
         this.connected = false;
-        console.log('Disconnected from server:', reason);
+        // console.log('Disconnected from server:', reason);
         this.emit('_disconnect', reason);
       });
 
       this.socket.on('connect_error', (error: Error) => {
-        console.error('Connection error:', error.message);
+        console.error('Connection error:', error.message); // Keep error logs
         if (!settled) {
           settled = true;
           reject(error);
@@ -57,12 +57,12 @@ class SocketClient {
       });
 
       this.socket.io.on('reconnect_attempt', (attempt: number) => {
-        console.log(`Reconnection attempt ${attempt}`);
+        // console.log(`Reconnection attempt ${attempt}`);
         this.emit('_reconnect_attempt', attempt);
       });
 
       this.socket.io.on('reconnect', (attempt: number) => {
-        console.log(`Reconnected after ${attempt} attempts`);
+        // console.log(`Reconnected after ${attempt} attempts`);
         this.emit('_reconnect', attempt);
       });
 

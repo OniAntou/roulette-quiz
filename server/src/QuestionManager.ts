@@ -7,17 +7,23 @@ export class QuestionManager {
   private dbPath = path.join(__dirname, '..', 'data', 'questions.db');
   private db: Database | null = null;
   private totalQuestions: number = 0;
+  private initPromise: Promise<void> | null = null;
 
   constructor() {}
 
   async init(): Promise<void> {
-    this.db = await open({
-      filename: this.dbPath,
-      driver: sqlite3.Database
-    });
-    const result = await this.db.get('SELECT COUNT(*) as count FROM questions');
-    this.totalQuestions = result.count || 0;
-    console.log(`QuestionManager initialized with SQLite. Total questions: ${this.totalQuestions}`);
+    // Nếu đang init thì chờ luôn, tránh gọi 2 lần
+    if (this.initPromise) return this.initPromise;
+    this.initPromise = (async () => {
+      this.db = await open({
+        filename: this.dbPath,
+        driver: sqlite3.Database
+      });
+      const result = await this.db.get('SELECT COUNT(*) as count FROM questions');
+      this.totalQuestions = result.count || 0;
+      console.log(`QuestionManager initialized with SQLite. Total questions: ${this.totalQuestions}`);
+    })();
+    return this.initPromise;
   }
 
   getTotalQuestions(): number {

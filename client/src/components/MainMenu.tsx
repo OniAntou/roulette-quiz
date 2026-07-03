@@ -593,8 +593,8 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
                   className="inline-block transition-colors duration-100"
                   style={{
                     textShadow: titleSettled[i]
-                      ? '0 0 20px var(--cyan-theme-light), 0 0 40px var(--cyan-theme-muted), 0 0 60px var(--cyan-theme-muted)'
-                      : '0 0 8px var(--cyan-theme)',
+                      ? '0 0 2px var(--cyan-theme-light)'
+                      : 'none',
                     color: titleSettled[i] ? undefined : 'var(--cyan-theme)',
                   }}
                 >

@@ -103,6 +103,7 @@ io.on('connection', (socket) => {
   // Rate limiter middleware - blocks events when limit exceeded
   socket.use(([event, ...args], next) => {
     if (!checkRateLimit(socket.id)) {
+      console.warn(`Rate limit exceeded for ${socket.id}`);
       socket.emit('error', { code: 'RATE_LIMIT_EXCEEDED', message: 'Rate limit exceeded. Please slow down.' });
       return; // Don't call next() - blocks the event
     }

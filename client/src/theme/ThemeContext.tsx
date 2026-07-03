@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useLayoutEffect, ReactNode } from 'react';
 
 type Theme = 'dark' | 'light';
 
@@ -15,7 +15,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     return (saved === 'light' || saved === 'dark') ? saved : 'light';
   });
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    document.documentElement.classList.toggle('light-theme', theme === 'light');
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('roulette-theme', theme);
   }, [theme]);
