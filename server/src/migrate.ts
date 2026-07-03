@@ -4,8 +4,16 @@ import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
 
 async function migrate() {
-  const jsonPath = path.join(__dirname, '..', 'data', 'questions.json');
-  const dbPath = path.join(__dirname, '..', 'data', 'questions.db');
+  const jsonPaths = [
+    path.join(__dirname, '..', '..', '..', 'data', 'questions.json'),
+    path.join(__dirname, '..', 'data', 'questions.json'),
+  ];
+  const jsonPath = jsonPaths.find(p => fs.existsSync(p)) || jsonPaths[0];
+  const dbPaths = [
+    path.join(__dirname, '..', '..', '..', 'data', 'questions.db'),
+    path.join(__dirname, '..', 'data', 'questions.db'),
+  ];
+  const dbPath = dbPaths.find(p => fs.existsSync(p)) || dbPaths[0];
   
   const db = await open({
     filename: dbPath,

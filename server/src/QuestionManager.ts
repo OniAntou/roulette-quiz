@@ -1,10 +1,21 @@
 import path from 'path';
+import fs from 'fs';
 import sqlite3 from 'sqlite3';
 import { open, Database } from 'sqlite';
 import { Question } from './types';
 
 export class QuestionManager {
-  private dbPath = path.join(__dirname, '..', 'data', 'questions.db');
+  private get dbPath(): string {
+    // Try multiple possible locations based on rootDir changes
+    const paths = [
+      path.join(__dirname, '..', '..', '..', 'data', 'questions.db'),
+      path.join(__dirname, '..', 'data', 'questions.db'),
+    ];
+    for (const p of paths) {
+      if (fs.existsSync(p)) return p;
+    }
+    return paths[0]; // fallback to first
+  }
   private db: Database | null = null;
   private totalQuestions: number = 0;
   private initPromise: Promise<void> | null = null;
