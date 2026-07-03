@@ -5,16 +5,22 @@ type EventCallback = (data: any) => void;
 class SocketClient {
   private socket: Socket | null = null;
   private _connected: boolean = false;
+  private _connectPromise: Promise<Socket> | null = null;
+  private callbacks: Record<string, EventCallback[]> = {};
+  public playerName: string = 'GUEST';
 
   isConnected(): boolean {
     return this._connected;
   }
-  private callbacks: Record<string, EventCallback[]> = {};
-  public playerName: string = 'GUEST';
 
   connect(url: string): Promise<Socket> {
     if (this.socket && this._connected) {
       return Promise.resolve(this.socket);
+    }
+
+    // If there's already a pending connection, return its promise
+    if (this._connectPromise) {
+      return this._connectPromise;
     }
 
     if (this.socket) {
@@ -25,7 +31,7 @@ class SocketClient {
       this.callbacks = {};
     }
 
-    return new Promise((resolve, reject) => {
+    this._connectPromise = new Promise((resolve, reject) => {
       this.socket = io(url, {
         reconnection: true,
         reconnectionAttempts: 5,
@@ -38,6 +44,7 @@ class SocketClient {
 
       this.socket.on('connect', () => {
         this._connected = true;
+        this._connectPromise = null;
         // console.log('Connected to server');
         if (!settled) {
           settled = true;
@@ -56,6 +63,7 @@ class SocketClient {
         console.error('Connection error:', error.message); // Keep error logs
         if (!settled) {
           settled = true;
+          this._connectPromise = null;
           reject(error);
         }
         this.emit('_connect_error', error);
@@ -78,6 +86,7 @@ class SocketClient {
 
       this.setupEventListeners();
     });
+    return this._connectPromise;
   }
 
   private setupEventListeners(): void {
@@ -192,6 +201,7 @@ class SocketClient {
       this.socket.disconnect();
       this.socket = null;
       this._connected = false;
+      this._connectPromise = null;
     }
   }
 }
