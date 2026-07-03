@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { socketClient } from '../network/SocketClient';
 import { Revolver } from './Revolver';
 import { ThemeToggle } from './ThemeToggle';
-import { ChatBox } from './ChatBox';
 import { VolumeSlider } from './VolumeSlider';
 import { Check, X, ShieldWarning, ArrowLeft } from '@phosphor-icons/react';
 import { GamePhase, Player, CardData, ActiveQuestion, QuestionResult, TriggerResult } from '../types';
@@ -1534,7 +1533,6 @@ export function GameBoard({
         style={{ pointerEvents: 'all' }}
       />
     )}
-    <ChatBox roomId={roomId} localId={localId} />
     </>
   );
 }

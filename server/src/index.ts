@@ -36,6 +36,9 @@ const io = new Server(server, {
 const roomManager = new RoomManager();
 const gameManager = new GameManager(roomManager, io);
 
+// Track player names for global chat
+const globalPlayerNames = new Map<string, string>();
+
 const RATE_LIMIT_WINDOW = 1000;
 const RATE_LIMIT_MAX = 10;
 
@@ -99,6 +102,12 @@ setInterval(() => {
 
 io.on('connection', (socket) => {
   console.log(`Player connected: ${socket.id}`);
+  globalPlayerNames.set(socket.id, 'GUEST');
+
+  // Clean up on disconnect
+  socket.on('disconnect', () => {
+    globalPlayerNames.delete(socket.id);
+  });
 
   // Rate limiter middleware - blocks events when limit exceeded
   socket.use(([event, ...args], next) => {
@@ -114,6 +123,7 @@ io.on('connection', (socket) => {
     const { playerName, isPublic = true } = data;
     const room = roomManager.createRoom(socket.id, playerName, isPublic);
     socket.join(room.id);
+    globalPlayerNames.set(socket.id, playerName);
     socket.emit('room:created', { roomId: room.id, players: room.players, playerId: socket.id });
     console.log(`Room created: ${room.id} (Public: ${isPublic})`);
   });
@@ -129,6 +139,7 @@ io.on('connection', (socket) => {
     console.log('[JOIN] Result:', result);
 
     if (result.success) {
+      globalPlayerNames.set(socket.id, playerName);
       socket.join(roomId);
       console.log(`[JOIN] Socket ${socket.id} joined room ${roomId}`);
       const room = roomManager.getRoom(roomId);
@@ -208,6 +219,23 @@ io.on('connection', (socket) => {
     io.to(roomId).emit('chat:message', {
       senderId: socket.id,
       sender: player.name,
+      message: clean,
+      timestamp: Date.now(),
+    });
+  });
+
+  socket.on('chat:global_send', (data: { message: string }) => {
+    const { message } = data;
+    if (!message || typeof message !== 'string') return;
+    
+    const clean = message.replace(/<[^>]*>/g, '').trim().slice(0, 200);
+    if (!clean) return;
+    
+    const playerName = globalPlayerNames.get(socket.id) || 'GUEST';
+    
+    io.emit('chat:global_message', {
+      senderId: socket.id,
+      sender: playerName,
       message: clean,
       timestamp: Date.now(),
     });

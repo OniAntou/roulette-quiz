@@ -100,6 +100,7 @@ class SocketClient {
     this.socket.on('game:standoffResult', (data: any) => this.emit('game:standoffResult', data));
 
     this.socket.on('chat:message', (data: any) => this.emit('chat:message', data));
+    this.socket.on('chat:global_message', (data: any) => this.emit('chat:global_message', data));
 
     this.socket.on('error', (data: any) => this.emit('error', data));
   }
@@ -175,6 +176,10 @@ class SocketClient {
 
   sendChat(roomId: string, message: string): void {
     this.send('chat:send', { roomId, message });
+  }
+
+  sendGlobalChat(message: string): void {
+    this.send('chat:global_send', { message });
   }
 
   disconnect(): void {

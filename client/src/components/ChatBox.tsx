@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChatCircle, X, PaperPlaneRight } from '@phosphor-icons/react';
+import { ChatCircle, X, PaperPlaneRight, Globe } from '@phosphor-icons/react';
 import { socketClient } from '../network/SocketClient';
 
 interface ChatMessage {
@@ -11,7 +11,7 @@ interface ChatMessage {
 }
 
 interface ChatBoxProps {
-  roomId: string;
+  roomId?: string;
   localId: string;
 }
 
@@ -34,19 +34,39 @@ function getNameColor(name: string): string {
 
 export function ChatBox({ roomId, localId }: ChatBoxProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [tab, setTab] = useState<'room' | 'global'>(roomId ? 'room' : 'global');
+  const [roomMessages, setRoomMessages] = useState<ChatMessage[]>([]);
+  const [globalMessages, setGlobalMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [unread, setUnread] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const messages = tab === 'room' ? roomMessages : globalMessages;
+
+  // Auto-switch tab when roomId changes
+  useEffect(() => {
+    if (!roomId && tab === 'room') setTab('global');
+  }, [roomId]);
+
   useEffect(() => {
     const onMessage = (data: ChatMessage) => {
-      setMessages(prev => [...prev.slice(-50), data]); // keep last 50
+      setRoomMessages(prev => [...prev.slice(-50), data]);
       if (!isOpen) setUnread(prev => prev + 1);
     };
+
+    const onGlobalMessage = (data: ChatMessage) => {
+      setGlobalMessages(prev => [...prev.slice(-50), data]);
+      if (!isOpen) setUnread(prev => prev + 1);
+    };
+
     socketClient.on('chat:message', onMessage);
-    return () => { socketClient.off('chat:message', onMessage); };
+    socketClient.on('chat:global_message', onGlobalMessage);
+
+    return () => {
+      socketClient.off('chat:message', onMessage);
+      socketClient.off('chat:global_message', onGlobalMessage);
+    };
   }, [isOpen]);
 
   useEffect(() => {
@@ -63,7 +83,13 @@ export function ChatBox({ roomId, localId }: ChatBoxProps) {
   const send = () => {
     const text = input.trim();
     if (!text) return;
-    socketClient.sendChat(roomId, text);
+
+    if (tab === 'global') {
+      socketClient.sendGlobalChat(text);
+    } else if (roomId) {
+      socketClient.sendChat(roomId, text);
+    }
+
     setInput('');
   };
 
@@ -92,10 +118,34 @@ export function ChatBox({ roomId, localId }: ChatBoxProps) {
             transition={{ duration: 0.15 }}
             className="fixed bottom-20 right-4 z-[100] w-72 sm:w-80 h-96 bg-surface border border-border-theme rounded-lg flex flex-col overflow-hidden shadow-lg"
           >
-            {/* Header */}
-            <div className="flex items-center justify-between px-3 py-2 border-b border-border-theme">
-              <span className="text-xs font-mono uppercase tracking-wider text-text-theme-dim">Chat</span>
-              <button onClick={() => setIsOpen(false)} className="text-text-theme-dim hover:text-cyan-theme transition-colors">
+            {/* Tabs */}
+            <div className="flex border-b border-border-theme">
+              {roomId && (
+                <button
+                  onClick={() => setTab('room')}
+                  className={`flex-1 py-2 text-[10px] font-extrabold tracking-widest uppercase transition-colors ${
+                    tab === 'room'
+                      ? 'text-cyan-theme border-b-2 border-cyan-theme'
+                      : 'text-text-theme-dim hover:text-text-theme'
+                  }`}
+                >
+                  ROOM
+                </button>
+              )}
+              <button
+                onClick={() => setTab('global')}
+                className={`flex-1 py-2 text-[10px] font-extrabold tracking-widest uppercase flex items-center justify-center gap-1.5 transition-colors ${
+                  tab === 'global'
+                    ? 'text-emerald-theme border-b-2 border-emerald-theme'
+                    : 'text-text-theme-dim hover:text-text-theme'
+                }`}
+              >
+                <Globe size={12} /> GLOBAL
+              </button>
+              <button
+                onClick={() => setIsOpen(false)}
+                className="px-3 py-2 text-text-theme-dim hover:text-cyan-theme transition-colors"
+              >
                 <X size={14} />
               </button>
             </div>
@@ -103,7 +153,9 @@ export function ChatBox({ roomId, localId }: ChatBoxProps) {
             {/* Messages */}
             <div className="flex-1 overflow-y-auto px-3 py-2 space-y-1.5 scrollbar-thin">
               {messages.length === 0 && (
-                <p className="text-[11px] text-text-theme-dim/50 text-center mt-8">Chưa có tin nhắn</p>
+                <p className="text-[11px] text-text-theme-dim/50 text-center mt-8">
+                  {tab === 'room' ? 'Chưa có tin nhắn trong phòng' : 'Chưa có tin nhắn global'}
+                </p>
               )}
               {messages.map((msg, i) => (
                 <div key={i} className="text-[12px] leading-relaxed">
@@ -124,7 +176,7 @@ export function ChatBox({ roomId, localId }: ChatBoxProps) {
                 value={input}
                 onChange={e => setInput(e.target.value.slice(0, 200))}
                 onKeyDown={e => { if (e.key === 'Enter') send(); }}
-                placeholder="Nhắn gì đó..."
+                placeholder={tab === 'global' ? 'Nhắn global...' : 'Nhắn trong phòng...'}
                 className="flex-1 bg-transparent text-[12px] text-text-theme placeholder:text-text-theme-dim/40 outline-none px-2 py-1.5 border border-border-theme rounded focus:border-cyan-theme transition-colors"
               />
               <button

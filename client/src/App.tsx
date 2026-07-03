@@ -4,6 +4,7 @@ import { MainMenu } from './components/MainMenu';
 import { Lobby } from './components/Lobby';
 import { GameBoard } from './components/GameBoard';
 import { GameOver } from './components/GameOver';
+import { ChatBox } from './components/ChatBox';
 import { Screen, ConnectionStatus, GamePhase, Player, CardData, ActiveQuestion, QuestionResult, TriggerResult, WinnerInfo } from './types';
 import { Sounds } from './audio/Sounds';
 import { useBotGame } from './hooks/useBotGame';
@@ -412,6 +413,7 @@ export default function App() {
           disconnect={handleDisconnect}
         />
       )}
+      <ChatBox roomId={roomId} localId={localPlayerId} />
     </main>
   );
 }

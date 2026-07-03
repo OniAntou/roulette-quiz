@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { socketClient } from '../network/SocketClient';
 import { ArrowLeft, Plus, Users, Shield, CheckCircle, WarningCircle, Copy } from '@phosphor-icons/react';
 import { Player } from '../types';
 import { Sounds } from '../audio/Sounds';
 import { ThemeToggle } from './ThemeToggle';
-import { ChatBox } from './ChatBox';
+import { WaterRippleBg } from './WaterRippleBg';
 
 interface LobbyProps {
   roomId: string;
@@ -25,12 +25,15 @@ export function Lobby({ roomId, players, localId, error, disconnect }: LobbyProp
   const [availableRooms, setAvailableRooms] = useState<{id: string, players: number, max: number}[]>([]);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [isPublicMode, setIsPublicMode] = useState<boolean>(true);
+  const [isCreating, setIsCreating] = useState<boolean>(false);
+  const copiedAnimRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const handleCopyCode = async () => {
     if (!roomId) return;
     await navigator.clipboard.writeText(roomId);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    clearTimeout(copiedAnimRef.current);
+    copiedAnimRef.current = setTimeout(() => setCopied(false), 2000);
   };
 
   useEffect(() => {
@@ -43,6 +46,7 @@ export function Lobby({ roomId, players, localId, error, disconnect }: LobbyProp
     
     return () => {
       socketClient.off('room:list_result', onRoomList);
+      clearTimeout(copiedAnimRef.current);
     };
   }, []);
 
@@ -100,6 +104,14 @@ export function Lobby({ roomId, players, localId, error, disconnect }: LobbyProp
     };
   }, [isModalOpen, modalCode, isBrowseOpen]);
 
+  // Auto-refresh room list while browse modal is open
+  useEffect(() => {
+    if (!isBrowseOpen) return;
+    refreshRooms();
+    const interval = setInterval(refreshRooms, 5000);
+    return () => clearInterval(interval);
+  }, [isBrowseOpen]);
+
   const openModal = () => {
     Sounds.buttonClick();
     setModalCode('');
@@ -112,6 +124,7 @@ export function Lobby({ roomId, players, localId, error, disconnect }: LobbyProp
 
   const handleCreate = () => {
     Sounds.buttonClick();
+    setIsCreating(true);
     socketClient.createRoom(socketClient.playerName || 'GUEST', isPublicMode);
   };
 
@@ -144,6 +157,11 @@ export function Lobby({ roomId, players, localId, error, disconnect }: LobbyProp
 
   return (
     <>
+      {/* Water ripple background */}
+      <div className="fixed inset-0 -z-10 bg-surface">
+        <WaterRippleBg className="absolute inset-0 w-full h-full pointer-events-none" mode="ambient" overlayOpacity={0.5} />
+        <div className="absolute inset-0 bg-gradient-to-br from-cyan-400/[0.06] via-transparent to-blue-500/[0.06] pointer-events-none" />
+      </div>
       <div className="fixed top-5 right-5 z-50"><ThemeToggle /></div>
       <div className="w-full max-w-6xl px-4 sm:px-6 md:px-12 grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-12 md:gap-20 items-start z-10 relative py-6 sm:py-8">
       <div className="flex flex-col space-y-8">
@@ -187,14 +205,19 @@ export function Lobby({ roomId, players, localId, error, disconnect }: LobbyProp
               <div className="flex flex-col space-y-3 w-full">
                 <button 
                   onClick={handleCreate}
-                  className="group w-full py-5 sm:py-6 bg-panel-solid/80 backdrop-blur-md border border-border-theme hover:border-red-theme-border hover:bg-surface-2 rounded-2xl text-sm sm:text-base font-extrabold text-text-theme-secondary tracking-widest uppercase flex items-center justify-between px-5 sm:px-8 transition-all duration-300 overflow-hidden"
+                  disabled={isCreating}
+                  className="group w-full py-5 sm:py-6 bg-panel-solid/80 backdrop-blur-md border border-border-theme hover:border-red-theme-border hover:bg-surface-2 rounded-2xl text-sm sm:text-base font-extrabold text-text-theme-secondary tracking-widest uppercase flex items-center justify-between px-5 sm:px-8 transition-all duration-300 overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-border-theme disabled:hover:bg-panel-solid/80"
                 >
                   <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-red-theme scale-y-0 group-hover:scale-y-100 transition-transform duration-300 origin-center"></div>
                   <span className="flex items-center gap-3 transition-transform duration-300 group-hover:translate-x-2">
-                    <Plus size={24} className="text-text-theme-muted group-hover:text-red-theme transition-colors" /> 
-                    CREATE PROTOCOL
+                    {isCreating ? (
+                      <span className="animate-pulse inline-block w-5 h-5 rounded-full border-2 border-red-theme border-t-transparent" />
+                    ) : (
+                      <Plus size={24} className="text-text-theme-muted group-hover:text-red-theme transition-colors" />
+                    )}
+                    {isCreating ? 'INITIALIZING...' : 'CREATE PROTOCOL'}
                   </span>
-                  <span className="group-hover:translate-x-1.5 transition-transform duration-300">↗</span>
+                  <span className="group-hover:translate-x-1.5 transition-transform duration-300">{isCreating ? '⏳' : '↗'}</span>
                 </button>
                 
                 <div 
@@ -261,36 +284,42 @@ export function Lobby({ roomId, players, localId, error, disconnect }: LobbyProp
               <Users size={18} className="text-text-theme-dim animate-pulse" /> Connecting link is idle...
             </div>
           ) : (
-            players.map((player) => (
-              <div key={player.id}
-                className="w-full bg-panel-solid/80 backdrop-blur-sm border border-border-theme rounded-2xl px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between shadow-sm hover:border-border-theme-strong transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center font-black text-sm sm:text-base ${
-                    player.id === localId 
-                      ? 'bg-emerald-theme-bg text-emerald-theme border border-emerald-theme-border' 
-                      : 'bg-red-theme-bg text-red-theme border border-red-theme-border'
-                  }`}>
-                    {player.name.substring(0, 2).toUpperCase()}
+            <AnimatePresence mode="popLayout">
+              {players.map((player) => (
+                <motion.div key={player.id} layout
+                  initial={{ opacity: 0, x: -20, height: 0 }}
+                  animate={{ opacity: 1, x: 0, height: 'auto' }}
+                  exit={{ opacity: 0, x: 20, height: 0 }}
+                  transition={{ duration: 0.25, ease: 'easeOut' }}
+                  className="w-full bg-panel-solid/80 backdrop-blur-sm border border-border-theme rounded-2xl px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between shadow-sm hover:border-border-theme-strong transition-colors overflow-hidden"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center font-black text-sm sm:text-base ${
+                      player.id === localId 
+                        ? 'bg-emerald-theme-bg text-emerald-theme border border-emerald-theme-border' 
+                        : 'bg-red-theme-bg text-red-theme border border-red-theme-border'
+                    }`}>
+                      {player.name.substring(0, 2).toUpperCase()}
+                    </div>
+                    <span className="text-sm sm:text-base font-extrabold text-text-theme tracking-wide uppercase">
+                      {player.name} {player.id === localId && <span className="text-[11px] text-text-theme-muted font-normal italic">(YOU)</span>}
+                    </span>
                   </div>
-                  <span className="text-sm sm:text-base font-extrabold text-text-theme tracking-wide uppercase">
-                    {player.name} {player.id === localId && <span className="text-[11px] text-text-theme-muted font-normal italic">(YOU)</span>}
-                  </span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className={`text-xs font-extrabold tracking-wider ${
-                    player.isReady ? 'text-emerald-theme font-black' : 'text-red-theme font-black'
-                  }`}>
-                    {player.isReady ? 'READY' : 'AWAITING'}
-                  </span>
-                  {player.isReady ? (
-                    <CheckCircle size={24} className="text-emerald-theme" />
-                  ) : (
-                    <WarningCircle size={24} className="text-red-theme animate-pulse" />
-                  )}
-                </div>
-              </div>
-            ))
+                  <div className="flex items-center gap-3">
+                    <span className={`text-xs font-extrabold tracking-wider ${
+                      player.isReady ? 'text-emerald-theme font-black' : 'text-red-theme font-black'
+                    }`}>
+                      {player.isReady ? 'READY' : 'AWAITING'}
+                    </span>
+                    {player.isReady ? (
+                      <CheckCircle size={24} className="text-emerald-theme" />
+                    ) : (
+                      <WarningCircle size={24} className="text-red-theme animate-pulse" />
+                    )}
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
           )}
         </div>
         {error && (
@@ -429,7 +458,6 @@ export function Lobby({ roomId, players, localId, error, disconnect }: LobbyProp
         )}
       </AnimatePresence>
       </div>
-      <ChatBox roomId={roomId} localId={localId} />
     </>
   );
 }

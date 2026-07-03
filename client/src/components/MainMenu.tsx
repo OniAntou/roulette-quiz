@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, WifiHigh, Globe, Robot } from '@phosphor-icons/react';
 import { ConnectionStatus } from '../types';
 import { Sounds } from '../audio/Sounds';
+import { WaterRippleBg } from './WaterRippleBg';
 import { ThemeToggle } from './ThemeToggle';
 import { VolumeSlider } from './VolumeSlider';
 
@@ -61,16 +62,7 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
   const [loadingText, setLoadingText] = useState<string>('SYS.BOOT: DECRYPTING ENGINE...');
   const [name, setName] = useState<string>('');
 
-  // Track theme for canvas
-  useEffect(() => {
-    const updateTheme = () => {
-      themeRef.current = document.documentElement.getAttribute('data-theme') || 'dark';
-    };
-    updateTheme();
-    const observer = new MutationObserver(updateTheme);
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-    return () => observer.disconnect();
-  }, []);
+  // Water ripple effect handled by WaterRippleBg component
 
   // Fake Loading Progress Effect
   useEffect(() => {
@@ -116,161 +108,7 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
     Sounds.initMuted();
   }, []);
 
-  // Mouse cloud-tear effect (canvas)
-  const canvasRef = React.useRef<HTMLCanvasElement>(null);
-  const stampsRef = React.useRef<{ x: number; y: number; born: number; rmax: number; seed: number }[]>([]);
-  const lastMouseRef = React.useRef<{ x: number; y: number } | null>(null);
-  const animFrameRef = React.useRef<number>(0);
-  const themeRef = React.useRef<string>('dark');
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    // Clear any stale stamps from previous instance
-    stampsRef.current = [];
-    lastMouseRef.current = null;
-
-    const R_START = 3;
-    const R_END = 110;
-    const R_VARY = 0.45;
-    const LIFETIME = 1000;
-    const STAMP_STEP = 12;
-    const MAX_STAMPS = 70;
-
-    // Smoother easing
-    const easeOutExpo = (t: number) => t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
-    const easeInOutQuad = (t: number) => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-
-    let w = 0, h = 0;
-    let mountedAt = performance.now();
-    const resize = () => {
-      const rect = canvas.parentElement!.getBoundingClientRect();
-      w = rect.width;
-      h = rect.height;
-      canvas.width = w * devicePixelRatio;
-      canvas.height = h * devicePixelRatio;
-      canvas.style.width = w + 'px';
-      canvas.style.height = h + 'px';
-      ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
-    };
-    resize();
-    window.addEventListener('resize', resize);
-
-    const addStamp = (x: number, y: number) => {
-      if (stampsRef.current.length >= MAX_STAMPS) stampsRef.current.shift();
-      stampsRef.current.push({
-        x, y,
-        born: performance.now(),
-        rmax: R_END * (1 - R_VARY + Math.random() * R_VARY),
-        seed: Math.random() * Math.PI * 2,
-      });
-    };
-
-    const stampAlong = (x: number, y: number) => {
-      const last = lastMouseRef.current;
-      if (!last) { addStamp(x, y); }
-      else {
-        const dx = x - last.x, dy = y - last.y;
-        const dist = Math.hypot(dx, dy);
-        const steps = Math.max(1, Math.ceil(dist / STAMP_STEP));
-        for (let i = 1; i <= steps; i++) {
-          addStamp(last.x + (dx * i) / steps, last.y + (dy * i) / steps);
-        }
-      }
-      lastMouseRef.current = { x, y };
-    };
-
-    // Organic shape with multi-octave noise
-    const carve = (x: number, y: number, r: number, alpha: number, seed: number) => {
-      // Soft radial gradient with 5 stops for smooth edge
-      const g = ctx.createRadialGradient(x, y, r * 0.1, x, y, r);
-      g.addColorStop(0, `rgba(255,255,255,${alpha})`);
-      g.addColorStop(0.25, `rgba(255,255,255,${0.95 * alpha})`);
-      g.addColorStop(0.5, `rgba(255,255,255,${0.6 * alpha})`);
-      g.addColorStop(0.75, `rgba(255,255,255,${0.2 * alpha})`);
-      g.addColorStop(1, 'rgba(255,255,255,0)');
-      ctx.fillStyle = g;
-
-      // Organic wobble with 2 noise octaves
-      ctx.beginPath();
-      const segs = 32;
-      for (let i = 0; i <= segs; i++) {
-        const a = (i / segs) * Math.PI * 2;
-        const n1 = Math.sin(a * 3 + seed) * 0.12;
-        const n2 = Math.sin(a * 7 + seed * 2.1) * 0.06;
-        const n3 = Math.sin(a * 13 + seed * 0.7) * 0.03;
-        const wob = 0.8 + n1 + n2 + n3;
-        const rr = r * wob;
-        const px = x + Math.cos(a) * rr;
-        const py = y + Math.sin(a) * rr;
-        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
-      }
-      ctx.closePath();
-      ctx.fill();
-    };
-
-    let running = false;
-    const loop = () => {
-      const now = performance.now();
-      ctx.clearRect(0, 0, w, h);
-
-      // Only draw overlay when there are active stamps
-      if (stampsRef.current.length > 0) {
-        // Dark overlay (theme-aware)
-        ctx.globalCompositeOperation = 'source-over';
-        ctx.fillStyle = themeRef.current === 'light' ? 'rgba(245,245,245,0.88)' : 'rgba(10,10,10,0.88)';
-        ctx.fillRect(0, 0, w, h);
-
-        // Carve holes
-        ctx.globalCompositeOperation = 'destination-out';
-        for (let i = stampsRef.current.length - 1; i >= 0; i--) {
-          const s = stampsRef.current[i];
-          const t = (now - s.born) / LIFETIME;
-          if (t >= 1) { stampsRef.current.splice(i, 1); continue; }
-          const ease = easeOutExpo(t);
-          const r = R_START + (s.rmax - R_START) * ease;
-          // Smooth fade: hold longer, then fade quickly at end
-          const alpha = t < 0.3 ? 1 : 1 - easeInOutQuad((t - 0.3) / 0.7);
-          carve(s.x, s.y, r, Math.max(0, alpha), s.seed);
-        }
-      }
-
-      if (stampsRef.current.length) {
-        animFrameRef.current = requestAnimationFrame(loop);
-      } else {
-        running = false;
-      }
-    };
-
-    const start = () => {
-      if (!running) { running = true; animFrameRef.current = requestAnimationFrame(loop); }
-    };
-
-    const onMouseMove = (e: MouseEvent) => {
-      // Ignore events for 100ms after mount to prevent stale stamps
-      if (performance.now() - mountedAt < 100) return;
-      const rect = canvas.getBoundingClientRect();
-      stampAlong(e.clientX - rect.left, e.clientY - rect.top);
-      start();
-    };
-
-    const onMouseLeave = () => { lastMouseRef.current = null; };
-
-    window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('mouseleave', onMouseLeave);
-
-    return () => {
-      window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('mouseleave', onMouseLeave);
-      window.removeEventListener('resize', resize);
-      cancelAnimationFrame(animFrameRef.current);
-      stampsRef.current = [];
-      lastMouseRef.current = null;
-    };
-  }, []);
+  // Water ripple effect handled by WaterRippleBg component
 
   // Start Menu BGM
   useEffect(() => {
@@ -513,12 +351,12 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
 
       {/* Tactical Blueprint Ambient Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none -z-10 bg-surface">
-        {/* Layer revealed by cloud tear — theme-aware */}
+        {/* Layer revealed by water ripple — theme-aware */}
         <div className="absolute inset-0 bg-gradient-to-br via-transparent to-transparent" style={{ background: `linear-gradient(to bottom right, var(--tear-gradient-1), transparent 50%, var(--tear-gradient-2))` }} />
         <div className="absolute inset-0 bg-[linear-gradient(var(--grid-line)_1px,transparent_1px),linear-gradient(90deg,var(--grid-line)_1px,transparent_1px)] bg-[size:32px_32px] opacity-40" />
         
-        {/* Cloud tear canvas */}
-        <canvas ref={canvasRef} className="absolute inset-0 z-10 pointer-events-none" />
+        {/* Water ripple canvas */}
+        <WaterRippleBg className="absolute inset-0 z-10 pointer-events-none" />
         
         {/* Breathing grid */}
         <div className="absolute inset-0 bg-[linear-gradient(var(--grid-line)_1px,transparent_1px),linear-gradient(90deg,var(--grid-line)_1px,transparent_1px)] bg-[size:32px_32px] grid-breathe opacity-20" />
