@@ -8,6 +8,7 @@ import helmet from 'helmet';
 import { LRUCache } from 'lru-cache';
 import dgram from 'dgram';
 import path from 'path';
+import fs from 'fs';
 
 const app = express();
 const server = http.createServer(app);
@@ -63,7 +64,10 @@ app.use(helmet({
   contentSecurityPolicy: false,
 }));
 app.use(cors());
-const clientDistPath = path.join(__dirname, '..', '..', 'client', 'dist');
+// Try multiple possible locations for client dist (different rootDir setups)
+const clientDistPath = fs.existsSync(path.join(__dirname, '..', '..', '..', '..', 'client', 'dist'))
+  ? path.join(__dirname, '..', '..', '..', '..', 'client', 'dist')
+  : path.join(__dirname, '..', '..', 'client', 'dist');
 app.use(express.static(clientDistPath));
 app.use(express.static('public'));
 
