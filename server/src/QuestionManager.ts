@@ -81,7 +81,7 @@ export class QuestionManager {
           },
           correct: row.correct
         });
-        excludeIds.push(row.id); // ensure we don't pick it again in this batch
+        safeExclude.push(row.id); // keep dedup within this batch, avoid mutating caller's array
       } else {
         break; // no more questions available
       }

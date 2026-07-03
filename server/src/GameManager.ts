@@ -628,8 +628,15 @@ export class GameManager {
             }
             break;
 
+          case 'dealing':
+            if (isCurrentTurn) {
+              // Current player left during dealing - advance turn so game doesn't hang
+              game.currentTurn = this.getNextAlivePlayer(game, playerIndex);
+            }
+            break;
+
           default:
-            // dealing, game_over, etc. - no action needed
+            // game_over, etc. - no action needed
             break;
         }
 

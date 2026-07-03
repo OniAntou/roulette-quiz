@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { GamePhase, Player, CardData, ActiveQuestion, QuestionResult, TriggerResult, WinnerInfo } from '../types';
 import { Sounds } from '../audio/Sounds';
+import { GAME_CONSTANTS } from '../../../shared/constants';
 
 const BOT_NAMES = ['CIPHER', 'PHANTOM', 'ROGUE', 'GHOST', 'SHADOW', 'NEXUS', 'VIPER', 'STORM'];
 
@@ -520,11 +521,12 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
         ? botsRef.current.find(b => b.id === targetId)?.name || 'BOT'
         : playerName;
 
+      const duration = GAME_CONSTANTS.TIMER[card.difficulty] ?? GAME_CONSTANTS.TIMER.easy;
       scheduleTimeout(() => {
         if (!botModeRef.current) return;
         cb.setActiveQuestion({
           card: { ...card, difficulty: card.difficulty as 'easy' | 'medium' | 'hard', answers: card.answers, correct: card.correct },
-          timer: 10,
+          timer: duration,
           from: botId,
         });
         cb.setPhase('answering');
@@ -535,7 +537,7 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
             if (gamePhaseRef.current === 'answering') {
               processAnswerRef.current('local-player', '', card.correct || 'A');
             }
-          }, 10000);
+          }, duration * 1000);
           botTimerRef.current = answerTimer;
         } else {
           setIsSpectating(true);
@@ -585,6 +587,7 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
       return;
     }
 
+    const duration = GAME_CONSTANTS.TIMER[card.difficulty] ?? GAME_CONSTANTS.TIMER.easy;
     const targetId = getNextAliveTarget('local-player');
     const targetName = targetId === 'local-player'
       ? playerName
@@ -592,7 +595,7 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
 
     callbacks.setActiveQuestion({
       card: { ...card, difficulty: card.difficulty as 'easy' | 'medium' | 'hard', answers: card.answers, correct: card.correct },
-      timer: 10,
+      timer: duration,
       from: 'local-player',
     });
     callbacks.setPhase('answering');
@@ -620,7 +623,7 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
         if (gamePhaseRef.current === 'answering') {
           processAnswerRef.current('local-player', '', card.correct || 'A');
         }
-      }, 10000);
+      }, duration * 1000);
       botTimerRef.current = answerTimer;
     }
   }, [callbacks, showHUDAlert, clearAllTimers, getNextAliveTarget, playerName]);

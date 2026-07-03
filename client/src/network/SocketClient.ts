@@ -18,6 +18,7 @@ class SocketClient {
       this.socket.disconnect();
       this.socket = null;
       this.connected = false;
+      this.callbacks = {};
     }
 
     return new Promise((resolve, reject) => {
