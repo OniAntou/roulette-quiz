@@ -200,7 +200,8 @@ export class GameManager {
       });
 
       // Delay to let them see the card, then trigger standoff
-      setTimeout(() => {
+      game.triggerTimeout = setTimeout(() => {
+        game.triggerTimeout = undefined;
         this.gunEngine.resolveStandoff(roomId, game);
       }, 3000);
       return;

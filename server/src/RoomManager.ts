@@ -47,6 +47,11 @@ export class RoomManager {
   }
 
   createRoom(socketId: string, playerName: string, isPublic: boolean = true): Room {
+    // If player is already in a room, leave it first to avoid ghost players
+    if (this.playerRooms.has(socketId)) {
+      this.handleDisconnect(socketId);
+    }
+
     const sanitized = this.validatePlayerName(playerName);
     let roomId: string;
     let attempts = 0;
@@ -64,6 +69,7 @@ export class RoomManager {
         isAlive: true,
         shotsFired: 0,
       }],
+
       state: 'waiting',
       createdAt: Date.now(),
       isPublic,
@@ -76,12 +82,22 @@ export class RoomManager {
   }
 
   joinRoom(roomId: string, socketId: string, playerName: string): { success: boolean; error?: string; players?: Player[] } {
+    // If player is already in a room, leave it first to avoid ghost players
+    if (this.playerRooms.has(socketId)) {
+      const oldRoomId = this.playerRooms.get(socketId);
+      if (oldRoomId === roomId) {
+        return { success: false, error: 'Already in room' };
+      }
+      this.handleDisconnect(socketId);
+    }
+
     let sanitized = this.validatePlayerName(playerName);
     const room = this.rooms.get(roomId);
 
     if (!room) {
       return { success: false, error: 'Room not found' };
     }
+
 
     if (room.players.length >= 4) {
       return { success: false, error: 'Room is full' };
