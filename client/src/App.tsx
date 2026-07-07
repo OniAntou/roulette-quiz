@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { socketClient } from './network/SocketClient';
 import { MainMenu } from './components/MainMenu';
 import { Lobby } from './components/Lobby';
@@ -6,8 +6,8 @@ import { GameBoard } from './components/GameBoard';
 import { GameOver } from './components/GameOver';
 import { ChatBox } from './components/ChatBox';
 import { Screen, ConnectionStatus, GamePhase, Player, CardData, ActiveQuestion, QuestionResult, TriggerResult, WinnerInfo } from './types';
-import { Sounds } from './audio/Sounds';
 import { useBotGame } from './hooks/useBotGame';
+import { useGameSocket } from './hooks/useGameSocket';
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>('menu');
@@ -28,14 +28,6 @@ export default function App() {
   const [questionResult, setQuestionResult] = useState<QuestionResult | null>(null);
   const [triggerResult, setTriggerResult] = useState<TriggerResult | null>(null);
   const [winnerInfo, setWinnerInfo] = useState<WinnerInfo | null>(null);
-
-  // Refs to access latest state inside socket callbacks (avoids stale closure)
-  const phaseRef = useRef<GamePhase>(phase);
-  phaseRef.current = phase;
-  const localPlayerIdRef = useRef<string>(localPlayerId);
-  localPlayerIdRef.current = localPlayerId;
-  const playerNameRef = useRef<string>(playerName);
-  playerNameRef.current = playerName;
 
   const botCallbacks = {
     setScreen,
@@ -147,243 +139,25 @@ export default function App() {
       .catch(() => {});
   }, []);
 
-  // Socket event listeners - using refs for latest state, dependencies only on stable refs
-  useEffect(() => {
-    socketClient.on('room:created', (data: { roomId: string; playerId: string }) => {
-      setRoomId(data.roomId);
-      setLocalPlayerId(data.playerId);
-      setErrorMsg('');
-    });
+  // Use the custom socket hook to handle all game network events
+  const socketCallbacks = useMemo(() => ({
+    setRoomId,
+    setLocalPlayerId,
+    setErrorMsg,
+    setPlayers,
+    setRound,
+    setPhase,
+    setPlayedCard,
+    setActiveQuestion,
+    setQuestionResult,
+    setTriggerResult,
+    setScreen,
+    setHandCards,
+    setCurrentTurnId,
+    setWinnerInfo,
+  }), []);
 
-    socketClient.on('room:joined', (data: { roomId: string; playerId: string }) => {
-      setRoomId(data.roomId);
-      setLocalPlayerId(data.playerId);
-      setErrorMsg('');
-    });
-
-    socketClient.on('room:players', (data: { players: Player[] }) => {
-      setPlayers(data.players);
-    });
-
-    socketClient.on('room:left', () => {
-      setRoomId('');
-      setLocalPlayerId('');
-      setPlayers([]);
-    });
-
-    socketClient.on('game:start', (data: { players: Player[]; round: number }) => {
-      setPlayers(data.players);
-      setRound(data.round || 1);
-      setPhase('waiting');
-      setPlayedCard(null);
-      setActiveQuestion(null);
-      setQuestionResult(null);
-      setTriggerResult(null);
-      setScreen('game');
-    });
-
-    socketClient.on('game:deal', (data: { cards: CardData[] }) => {
-      setHandCards(data.cards);
-      // Don't set phase here — wait for game:turn to set correct currentTurnId
-      // Setting phase='choosing' here creates a race condition where cards are
-      // clickable before currentTurnId is updated
-    });
-
-    socketClient.on('game:turn', (data: { playerId: string }) => {
-      setCurrentTurnId(data.playerId);
-      setPhase('choosing');
-      setPlayedCard(null);
-      setActiveQuestion(null);
-      setQuestionResult(null);
-    });
-
-    socketClient.on('game:cardPlayed', (data: { playerId: string; card: CardData }) => {
-      setPlayedCard(data.card);
-      setPhase('questioning');
-
-      setPlayers(prev => prev.map(p => {
-        if (p.id === data.playerId) {
-          return { ...p, cardsCount: (p.cardsCount || 4) - 1 };
-        }
-        return p;
-      }));
-
-      // Remove played card from local player's hand
-      if (data.playerId === localPlayerIdRef.current) {
-        setHandCards(prev => prev.filter(c => c.id !== data.card.id));
-      }
-    });
-
-    socketClient.on('game:question', (data: { card: any; timer: number; from: string }) => {
-      setActiveQuestion({
-        card: data.card,
-        timer: data.timer,
-        from: data.from
-      });
-      setPhase('answering');
-    });
-
-    socketClient.on('game:result', (data: { correct: boolean; correctAnswer: string }) => {
-      if (data.correct) {
-        Sounds.correct();
-      } else {
-        Sounds.wrong();
-      }
-      setQuestionResult({
-        correct: data.correct,
-        correctAnswer: data.correctAnswer
-      });
-      setPhase('result');
-
-      setTimeout(() => {
-        setActiveQuestion(null);
-        setQuestionResult(null);
-      }, 2500);
-    });
-
-    socketClient.on('game:trigger', (data: TriggerResult) => {
-      setPhase('trigger');
-      setTriggerResult({
-        alive: data.alive,
-        playerId: data.playerId,
-        playerName: data.playerName,
-        bulletCount: data.bulletCount,
-        currentPosition: data.currentPosition,
-        bulletsFired: data.bulletsFired,
-        shotsFired: data.shotsFired,
-      });
-
-      if (data.playerId) {
-        setPlayers(prev => prev.map(p => {
-          if (p.id === data.playerId) {
-            return {
-              ...p,
-              shotsFired: data.shotsFired,
-            };
-          }
-          return p;
-        }));
-
-        if (!data.alive) {
-          setTimeout(() => {
-            setPlayers(prev => prev.map(p => {
-              if (p.id === data.playerId) {
-                return { ...p, isAlive: false };
-              }
-              return p;
-            }));
-          }, 1320); // 1200ms spin + 120ms fire delay
-        }
-      }
-
-      setTimeout(() => {
-        setTriggerResult(null);
-      }, 5000);
-    });
-
-    socketClient.on('game:standoffResult', (data: { results: { playerId: string; alive: boolean }[] }) => {
-      setPhase('trigger'); // Reuse trigger phase for visual logic
-      const someoneDied = data.results.some(r => !r.alive);
-      setTriggerResult({
-        alive: !someoneDied,
-        playerId: 'STANDOFF', // Special flag
-        playerName: 'STANDOFF',
-        bulletCount: 0,
-        currentPosition: 0,
-        bulletsFired: 0,
-        shotsFired: 0,
-        results: data.results // Pass the array of results
-      });
-
-      setPlayers(prev => prev.map(p => {
-        const result = data.results.find(r => r.playerId === p.id);
-        if (result) {
-          return {
-            ...p,
-            shotsFired: (p.shotsFired || 0) + 1,
-          };
-        }
-        return p;
-      }));
-
-      if (someoneDied) {
-        setTimeout(() => {
-          setPlayers(prev => prev.map(p => {
-            const result = data.results.find(r => r.playerId === p.id);
-            if (result && !result.alive) {
-              return { ...p, isAlive: false };
-            }
-            return p;
-          }));
-        }, 920); // 800ms spin + 120ms fire delay
-      }
-
-      const delay = someoneDied ? 5000 : 2500;
-      setTimeout(() => {
-        setTriggerResult(null);
-      }, delay);
-    });
-
-    socketClient.on('game:newRound', (data: { round: number }) => {
-      Sounds.newRound();
-      setRound(data.round);
-    });
-
-    socketClient.on('game:over', (data: { winner: string; winnerId?: string; stats?: any }) => {
-      const curLocalId = localPlayerIdRef.current;
-      const curPlayerName = playerNameRef.current;
-      const isLocal = data.winnerId ? data.winnerId === curLocalId : data.winner === curPlayerName;
-      if (isLocal) {
-        Sounds.victory();
-      }
-      setWinnerInfo({
-        winner: data.winner,
-        isLocalWinner: isLocal,
-        stats: data.stats,
-      });
-      setPhase('game_over');
-
-      setTimeout(() => {
-        setScreen(prev => prev === 'game' ? 'gameover' : prev);
-      }, 3000);
-    });
-
-    socketClient.on('game:playerLeft', (data: { playerId: string }) => {
-      // Mark disconnected player as dead in UI
-      // Server handles game state - will send game:over if game should end,
-      // or continue the game with remaining players
-      setPlayers(prev => prev.map(p => {
-        if (p.id === data.playerId) {
-          return { ...p, isAlive: false };
-        }
-        return p;
-      }));
-    });
-
-    socketClient.on('game:playerLeftAfterDeath', (data: { playerId: string }) => {
-      setPlayers(prev => prev.filter(p => p.id !== data.playerId));
-    });
-
-    socketClient.on('game:cardsUpdate', (data: { players: { id: string; cardsCount: number; isAlive: boolean; shotsFired: number }[] }) => {
-      setPlayers(prev => prev.map(p => {
-        const update = data.players.find((u: any) => u.id === p.id);
-        if (update) {
-          return { ...p, cardsCount: update.cardsCount, isAlive: update.isAlive, shotsFired: update.shotsFired };
-        }
-        return p;
-      }));
-    });
-
-    socketClient.on('error', (data: { message: string }) => {
-      setErrorMsg('EXCEPTION // ' + data.message.toUpperCase());
-    });
-
-    return () => {
-      ['room:created', 'room:joined', 'room:players', 'room:left', 'game:start', 'game:deal', 'game:turn', 'game:cardPlayed', 'game:question', 'game:result', 'game:trigger', 'game:standoffResult', 'game:newRound', 'game:over', 'game:playerLeft', 'game:playerLeftAfterDeath', 'game:cardsUpdate', 'error'].forEach(event => {
-        socketClient.clearListeners(event);
-      });
-    };
-  }, []);
+  useGameSocket(localPlayerId, playerName, socketCallbacks);
 
   return (
     <main className="w-screen h-screen tech-grid overflow-hidden relative flex items-center justify-center">

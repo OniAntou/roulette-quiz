@@ -1,10 +1,11 @@
 import { v4 as uuidv4 } from 'uuid';
 import { Server } from 'socket.io';
-import crypto from 'crypto';
 import { QuestionManager } from './QuestionManager';
 import { RoomManager } from './RoomManager';
 import { GameState, Gun, Question } from './types';
 import { GAME_CONSTANTS } from '../../shared/constants';
+import { GunEngine } from './GunEngine';
+import { TimeoutManager } from './TimeoutManager';
 
 export class GameManager {
   private roomManager: RoomManager;
@@ -14,6 +15,7 @@ export class GameManager {
   private readonly startDelayMs = 400;
   private readonly resultDelayMs = 3000;
   private readonly postTriggerDelayMs = 3000;
+  private gunEngine: GunEngine;
 
   private ensurePlayerStats(game: GameState, playerId: string): void {
     if (!game.stats.players[playerId]) {
@@ -25,6 +27,13 @@ export class GameManager {
     this.roomManager = roomManager;
     this.io = io;
     this.questionManager = new QuestionManager();
+    this.gunEngine = new GunEngine(io, this.postTriggerDelayMs, {
+      dealCards: (roomId) => this.dealCards(roomId),
+      getNextAlivePlayer: (game, fromIndex) => this.getNextAlivePlayer(game, fromIndex),
+      deleteGame: (roomId) => { this.games.delete(roomId); },
+      ensurePlayerStats: (game, playerId) => this.ensurePlayerStats(game, playerId),
+      advanceToNextTurn: (roomId, game) => this.advanceToNextTurn(roomId, game)
+    });
   }
 
   startGame(roomId: string): void {
@@ -42,7 +51,7 @@ export class GameManager {
       })),
       currentTurn: 0,
       round: 1,
-      gun: this.createGun(),
+      gun: this.gunEngine.createGun(),
       usedCards: [],
       stats: { players: {}, totalRounds: 0 },
     };
@@ -78,17 +87,6 @@ export class GameManager {
         this.games.delete(roomId);
       }
     }, this.startDelayMs);
-  }
-
-  private createGun(): Gun {
-    const chambers = Array(6).fill(false);
-    chambers[crypto.randomInt(0, 6)] = true;
-
-    return {
-      chambers,
-      currentPosition: 0,
-      bulletsFired: 0,
-    };
   }
 
   private async dealCards(roomId: string): Promise<void> {
@@ -170,37 +168,6 @@ export class GameManager {
     });
   }
 
-  /** Clear any pending answer timeout for a game */
-  private clearAnswerTimeout(game: GameState): void {
-    if (game.answerTimeout) {
-      clearTimeout(game.answerTimeout);
-      game.answerTimeout = undefined;
-    }
-  }
-
-  /** Clear any pending trigger timeout for a game */
-  private clearTriggerTimeout(game: GameState): void {
-    if (game.triggerTimeout) {
-      clearTimeout(game.triggerTimeout);
-      game.triggerTimeout = undefined;
-    }
-  }
-
-  /** Clear any pending post-trigger timeout for a game */
-  private clearPostTriggerTimeout(game: GameState): void {
-    if (game.postTriggerTimeout) {
-      clearTimeout(game.postTriggerTimeout);
-      game.postTriggerTimeout = undefined;
-    }
-  }
-
-  /** Clear all pending timeouts */
-  private clearAllTimeouts(game: GameState): void {
-    this.clearAnswerTimeout(game);
-    this.clearTriggerTimeout(game);
-    this.clearPostTriggerTimeout(game);
-  }
-
   handleCardChoice(roomId: string, socketId: string, cardId: string): void {
     const game = this.games.get(roomId);
     if (!game || game.phase !== 'choosing') return;
@@ -234,7 +201,7 @@ export class GameManager {
 
       // Delay to let them see the card, then trigger standoff
       setTimeout(() => {
-        this.resolveStandoff(roomId);
+        this.gunEngine.resolveStandoff(roomId, game);
       }, 3000);
       return;
     }
@@ -242,10 +209,6 @@ export class GameManager {
     game.targetPlayer = this.getNextAlivePlayer(game, playerIndex);
     game.phase = 'questioning';
 
-    // IMPORTANT: emit cardPlayed to room FIRST, then question to target.
-    // This ensures the target player processes cardPlayed (phase='questioning')
-    // before question (phase='answering'). Reversing this order would cause
-    // game:cardPlayed to overwrite phase back to 'questioning' and break the timer.
     this.io.to(roomId).emit('game:cardPlayed', {
       playerId: socketId,
       card: {
@@ -280,7 +243,7 @@ export class GameManager {
     game.phase = 'result';
 
     // Clear the answer timeout (it might be called from disconnect handler)
-    this.clearAnswerTimeout(game);
+    TimeoutManager.clearAnswer(game);
 
     // Track timeout as wrong answer for the target player
     const targetId = game.players[game.targetPlayer!]?.id;
@@ -300,7 +263,7 @@ export class GameManager {
     // Schedule trigger after showing result
     game.triggerTimeout = setTimeout(() => {
       game.triggerTimeout = undefined;
-      this.pullTrigger(roomId);
+      this.gunEngine.pullTrigger(roomId, game);
     }, this.resultDelayMs);
   }
 
@@ -315,7 +278,7 @@ export class GameManager {
     game.phase = 'result';
 
     // Clear answer timeout - we got an answer, no need for timeout
-    this.clearAnswerTimeout(game);
+    TimeoutManager.clearAnswer(game);
 
     const card = game.currentCard!;
     const isCorrect = answer === card.correct;
@@ -351,160 +314,8 @@ export class GameManager {
       // Wrong answer: pull trigger after delay
       game.triggerTimeout = setTimeout(() => {
         game.triggerTimeout = undefined;
-        this.pullTrigger(roomId);
+        this.gunEngine.pullTrigger(roomId, game);
       }, this.resultDelayMs);
-    }
-  }
-
-  private resolveStandoff(roomId: string): void {
-    const game = this.games.get(roomId);
-    if (!game) return;
-
-    game.phase = 'trigger';
-    
-    // Each player has an independent 1/6 chance of dying
-    const results: { playerId: string; alive: boolean }[] = [];
-
-    const alivePlayers = game.players.filter(p => p.isAlive && !p.left);
-    for (const p of alivePlayers) {
-      const isDead = Math.random() < (1/6);
-      p.shotsFired = (p.shotsFired || 0) + 1;
-      if (isDead) {
-        p.isAlive = false;
-        this.ensurePlayerStats(game, p.id);
-        (game.stats.players[p.id] as any).triggerDied++;
-      } else {
-        this.ensurePlayerStats(game, p.id);
-        (game.stats.players[p.id] as any).triggerSurvived++;
-      }
-      results.push({ playerId: p.id, alive: !isDead });
-    }
-
-    // Emit result
-    this.io.to(roomId).emit('game:standoffResult', { results });
-
-    const someoneDied = results.some(r => !r.alive);
-    const delay = someoneDied ? this.postTriggerDelayMs + 2000 : 2500;
-
-    // After a delay, go to next turn or end game
-    game.postTriggerTimeout = setTimeout(() => {
-      game.postTriggerTimeout = undefined;
-      const current = this.games.get(roomId);
-      if (!current) return;
-      
-      const remainingAlive = current.players.filter(p => p.isAlive && !p.left);
-      if (remainingAlive.length <= 1) {
-        // Game over
-        current.stats.totalRounds = current.round;
-        this.io.to(roomId).emit('game:over', {
-          winner: remainingAlive.length === 1 ? remainingAlive[0].name : 'No one',
-          winnerId: remainingAlive.length === 1 ? remainingAlive[0].id : '',
-          stats: current.stats,
-        });
-        this.games.delete(roomId);
-      } else {
-        // Next round
-        this.advanceToNextTurn(roomId, current);
-      }
-    }, delay);
-  }
-
-  private pullTrigger(roomId: string): void {
-    const game = this.games.get(roomId);
-    if (!game) return;
-
-    // Only allow trigger from 'result' phase (after answer/timeout sets it)
-    // This is the single entry point - no double-firing possible
-    if (game.phase !== 'result') {
-      console.warn(`[pullTrigger] Blocked: phase is '${game.phase}', expected 'result'. Room: ${roomId}`);
-      return;
-    }
-
-    game.phase = 'trigger';
-
-    const gun = game.gun;
-    const bullet = gun.chambers[gun.currentPosition];
-    gun.bulletsFired++;
-    gun.currentPosition = (gun.currentPosition + 1) % 6;
-
-    const targetPlayer = game.players[game.targetPlayer!];
-    targetPlayer.shotsFired++;
-
-    if (bullet) {
-      // BULLET HIT - player dies
-      targetPlayer.isAlive = false;
-      this.ensurePlayerStats(game, targetPlayer.id);
-      (game.stats.players[targetPlayer.id] as any).triggerDied++;
-
-      this.io.to(roomId).emit('game:trigger', {
-        alive: false,
-        playerId: targetPlayer.id,
-        playerName: targetPlayer.name,
-        bulletCount: 6 - gun.bulletsFired,
-        currentPosition: gun.currentPosition,
-        bulletsFired: gun.bulletsFired,
-        shotsFired: targetPlayer.shotsFired,
-      });
-
-      const alivePlayers = game.players.filter(p => p.isAlive);
-      if (alivePlayers.length <= 1) {
-        // Game over
-        game.postTriggerTimeout = setTimeout(() => {
-          game.postTriggerTimeout = undefined;
-          const current = this.games.get(roomId);
-          if (!current) return;
-          current.phase = 'game_over';
-          current.stats.totalRounds = current.round;
-          this.io.to(roomId).emit('game:over', {
-            winner: alivePlayers[0]?.name || 'No one',
-            winnerId: alivePlayers[0]?.id || '',
-            stats: current.stats,
-          });
-          this.games.delete(roomId);
-        }, this.postTriggerDelayMs);
-      } else {
-        // Someone died but game continues - NEW ROUND with new gun
-        game.postTriggerTimeout = setTimeout(() => {
-          game.postTriggerTimeout = undefined;
-          const current = this.games.get(roomId);
-          if (!current) return;
-          current.round++;
-          current.gun = this.createGun();
-          current.currentTurn = this.getNextAlivePlayer(current, current.targetPlayer!);
-          current.phase = 'choosing';
-          this.dealCards(roomId).then(() => {
-            this.io.to(roomId).emit('game:newRound', { round: current.round });
-            this.io.to(roomId).emit('game:turn', { playerId: current.players[current.currentTurn].id });
-          });
-        }, this.postTriggerDelayMs);
-      }
-    } else {
-      // SURVIVED - gun clicked but no bullet
-      this.ensurePlayerStats(game, targetPlayer.id);
-      (game.stats.players[targetPlayer.id] as any).triggerSurvived++;
-
-      this.io.to(roomId).emit('game:trigger', {
-        alive: true,
-        playerId: targetPlayer.id,
-        playerName: targetPlayer.name,
-        bulletCount: 6 - gun.bulletsFired,
-        currentPosition: gun.currentPosition,
-        bulletsFired: gun.bulletsFired,
-        shotsFired: targetPlayer.shotsFired,
-      });
-
-      // Survived: just continue the game, same round, same gun
-      // The target player (who survived) gets to choose next
-      game.postTriggerTimeout = setTimeout(() => {
-        game.postTriggerTimeout = undefined;
-        const current = this.games.get(roomId);
-        if (!current) return;
-        current.currentTurn = current.targetPlayer!;
-        current.phase = 'choosing';
-        this.dealCards(roomId).then(() => {
-          this.io.to(roomId).emit('game:turn', { playerId: current.players[current.currentTurn].id });
-        });
-      }, this.postTriggerDelayMs);
     }
   }
 
@@ -572,7 +383,7 @@ export class GameManager {
         // Check if game should end
         if (alivePlayersBefore.length <= 1) {
           // Game over - clear everything
-          this.clearAllTimeouts(game);
+          TimeoutManager.clearAll(game);
           game.phase = 'game_over';
           game.stats.totalRounds = game.round;
           this.io.to(roomId).emit('game:over', {
@@ -596,7 +407,7 @@ export class GameManager {
           case 'questioning':
             if (isTarget || isQuestioner) {
               // Target or questioner left mid-question - cancel and advance
-              this.clearAnswerTimeout(game);
+              TimeoutManager.clearAnswer(game);
               this.advanceToNextTurn(roomId, game);
             }
             // If uninvolved player disconnects, answerTimeout stays intact
@@ -605,7 +416,7 @@ export class GameManager {
           case 'result':
             if (isTarget) {
               // Target left while waiting for trigger/choosing transition - cancel and advance
-              this.clearTriggerTimeout(game);
+              TimeoutManager.clearTrigger(game);
               this.advanceToNextTurn(roomId, game);
             }
             // If uninvolved player disconnects, triggerTimeout stays intact
@@ -614,7 +425,7 @@ export class GameManager {
           case 'trigger':
             if (isTarget) {
               // Target left during trigger resolution - cancel post-trigger and advance
-              this.clearPostTriggerTimeout(game);
+              TimeoutManager.clearPostTrigger(game);
               this.advanceToNextTurn(roomId, game);
             }
             // If uninvolved player disconnects, postTriggerTimeout stays intact
