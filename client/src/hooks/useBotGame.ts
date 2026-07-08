@@ -204,7 +204,12 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
     phaseRef.current = 'choosing';
     callbacksRef.current.setPhase('choosing');
     callbacksRef.current.setTriggerResult(null);
-    callbacksRef.current.setPlayedCard(null);
+    
+    // Delay setPlayedCard(null) slightly so React can render the playedCard and trigger GameBoard's useEffect
+    setTimeout(() => {
+      callbacksRef.current.setPlayedCard(null);
+    }, 50);
+    
     callbacksRef.current.setCurrentTurnId(currentPlayer.id);
     callbacksRef.current.setCurrentNumber(currentNumberRef.current);
     callbacksRef.current.setDirection(directionRef.current);
