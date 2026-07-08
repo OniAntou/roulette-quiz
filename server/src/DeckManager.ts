@@ -7,14 +7,14 @@ export class DeckManager {
 
     // Numbers 1-9 (4 copies each = 36 cards)
     for (let i = 1; i <= 9; i++) {
-      for (let j = 0; j < 4; j++) {
+      for (let j = 0; j < 12; j++) {
         deck.push({ id: uuidv4(), type: 'NUMBER', value: i });
       }
     }
 
     // Skill cards
     for (let i = 0; i < 4; i++) deck.push({ id: uuidv4(), type: 'SKIP' });
-    for (let i = 0; i < 4; i++) deck.push({ id: uuidv4(), type: 'BLOCK' });
+    for (let i = 0; i < 1; i++) deck.push({ id: uuidv4(), type: 'BLOCK' });
     for (let i = 0; i < 4; i++) deck.push({ id: uuidv4(), type: 'REVERSE' });
     for (let i = 0; i < 2; i++) deck.push({ id: uuidv4(), type: 'JOKER' });
     for (let i = 0; i < 1; i++) deck.push({ id: uuidv4(), type: 'STANDOFF' });

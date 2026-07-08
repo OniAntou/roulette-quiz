@@ -27,6 +27,7 @@ interface GameBoardProps {
   onMulligan?: () => void;
   botHudMessage?: { text: string; color: string } | null;
   isBotSpectating?: boolean;
+  turnEndTime?: number | null;
   disconnect?: () => void;
 }
 
@@ -80,6 +81,7 @@ export function GameBoard({
   onMulligan,
   botHudMessage,
   isBotSpectating = false,
+  turnEndTime,
   disconnect
 }: GameBoardProps) {
   
@@ -295,38 +297,10 @@ export function GameBoard({
 
   useEffect(() => {
     // Chỉ trigger deal animation khi số bài TĂNG (được chia bài mới), không phải khi đánh bài
-    if (handCards.length > 0 && handCards.length > prevHandCardsLength.current && phase === 'choosing') {
-      prevHandCardsLength.current = handCards.length;
-      setIsDealing(true);
-      setRevealedCards(new Set());
-
-      let cancelled = false;
-      const timers: ReturnType<typeof setTimeout>[] = [];
-
-      const dealSequence = async () => {
-        for (let i = 0; i < sortedHandCards.length; i++) {
-          await new Promise(resolve => {
-            const t = setTimeout(resolve, 200);
-            timers.push(t);
-          });
-          if (cancelled) return;
-          Sounds.cardDeal();
-          setRevealedCards(prev => new Set([...prev, sortedHandCards[i].id]));
-        }
-        await new Promise(resolve => {
-          const t = setTimeout(resolve, 300);
-          timers.push(t);
-        });
-        if (!cancelled) setIsDealing(false);
-      };
-
-      dealSequence();
-
-      return () => {
-        cancelled = true;
-        timers.forEach(t => clearTimeout(t));
-      };
-    }
+      if (handCards.length > 0 && handCards.length > prevHandCardsLength.current && phase === 'choosing') {
+        prevHandCardsLength.current = handCards.length;
+        setIsDealing(false);
+      }
   }, [handCards, phase, sortedHandCards]);
 
   useEffect(() => {
@@ -334,6 +308,9 @@ export function GameBoard({
       const triggerKey = `${triggerResult.playerId}-${triggerResult.bulletCount}-${triggerResult.bulletsFired}-${triggerResult.alive}`;
       if (lastProcessedTriggerRef.current === triggerKey) return;
       lastProcessedTriggerRef.current = triggerKey;
+
+      // Clear cards from table
+      setCardPile([]);
 
       // Clear any existing trigger timers before starting new ones
       triggerTimersRef.current.forEach(t => clearTimeout(t));
@@ -558,31 +535,21 @@ export function GameBoard({
   }, [triggerResult, localId, players]);
 
   useEffect(() => {
-    if (false && false) {
-      setTimeLeft(activeQuestion.timer);
-      setMaxTime(activeQuestion.timer);
+    if (turnEndTime) {
+      const updateTime = () => {
+        const remaining = Math.max(0, (turnEndTime - Date.now()) / 1000);
+        setTimeLeft(remaining);
+      };
+      updateTime();
+      setMaxTime(20);
 
-      const endTime = Date.now() + activeQuestion.timer * 1000;
-
-      const interval = setInterval(() => {
-        const remaining = Math.max(0, Math.ceil((endTime - Date.now()) / 1000));
-        
-        setTimeLeft(prev => {
-          if (remaining !== prev) {
-            if (remaining === 0) {
-              clearInterval(interval);
-              Sounds.timerWarning();
-            } else {
-              Sounds.countdown(remaining <= 3);
-            }
-          }
-          return remaining;
-        });
-      }, 100);
-
+      const interval = setInterval(updateTime, 100);
       return () => clearInterval(interval);
+    } else {
+      setTimeLeft(0);
+      setMaxTime(20);
     }
-  }, [undefined as any, phase]);
+  }, [turnEndTime]);
 
   const showHUDAlert = (text: string, textColor: string, duration: number) => {
     setHudMessage({ text, color: textColor });
@@ -600,7 +567,7 @@ export function GameBoard({
       setCardPile(prev => {
         if (prev.find(c => c.id === playedCard.id)) return prev;
 
-        const fromId = activeQuestion?.from || currentTurnId;
+        const fromId = (playedCard as any)._fromId || activeQuestion?.from || currentTurnId;
         const oppPos = getOpponentPosition(fromId, opponentPlayers);
         
         let finalRotate = (Math.random() * 20 - 10);
@@ -811,6 +778,25 @@ export function GameBoard({
       transition={{ duration: 0.4 }}
       className={`w-full h-full flex flex-col items-center justify-between py-2 sm:py-4 px-3 sm:px-6 md:px-12 z-10 select-none relative ${isCrtShuttingDown && !false ? 'animate-crt-shutdown' : ''} ${isCrtTurningOn && !false ? 'animate-crt-turn-on' : ''} ${false ? 'presentation-mode' : ''}`}
     >
+        {/* Global Timer Bar */}
+        {timeLeft > 0 && turnEndTime && (
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[130] font-mono font-bold text-lg pointer-events-none flex flex-col items-center">
+            <span className={timeLeft <= 3 ? 'text-red-theme animate-pulse' : 'text-emerald-theme'}>
+              {Math.ceil(timeLeft)}s
+            </span>
+          </div>
+        )}
+        {timeLeft > 0 && turnEndTime && (
+        <div className="absolute top-0 left-0 w-full h-1.5 bg-surface-2 z-[130]">
+          <motion.div 
+            initial={{ width: '100%' }}
+            animate={{ width: `${(timeLeft / maxTime) * 100}%` }}
+            transition={{ duration: 0.1, ease: "linear" }}
+            className={`h-full shadow-none ${timeLeft <= 3 ? 'bg-red-theme' : 'bg-emerald-theme'}`}
+          />
+        </div>
+      )}
+
       {/* Top action bar: Leave & Theme */}
       <div className="absolute top-3 sm:top-6 left-3 sm:left-6 z-[120] flex items-center gap-2 sm:gap-4">
         <button 
@@ -1007,17 +993,17 @@ export function GameBoard({
               transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
               className="w-80 h-80 sm:w-[400px] sm:h-[400px] border-[1.5px] border-dashed border-cyan-theme/20 rounded-full flex items-center justify-center relative"
             >
-              <div className="absolute top-0 w-12 h-6 bg-surface-1 flex items-center justify-center -translate-y-1/2 backdrop-blur-sm rounded-full">
-                <span className="text-cyan-theme/60 text-xs sm:text-sm font-bold tracking-widest">{direction === 1 ? '>>>' : '<<<'}</span>
+              <div className="absolute top-0 w-20 h-10 bg-surface-1 flex items-center justify-center -translate-y-1/2 backdrop-blur-sm rounded-full">
+                <span className="text-cyan-theme/70 text-lg sm:text-xl md:text-2xl font-bold tracking-widest">{direction === 1 ? '>>>' : '<<<'}</span>
               </div>
-              <div className="absolute bottom-0 w-12 h-6 bg-surface-1 flex items-center justify-center translate-y-1/2 rotate-180 backdrop-blur-sm rounded-full">
-                <span className="text-cyan-theme/60 text-xs sm:text-sm font-bold tracking-widest">{direction === 1 ? '>>>' : '<<<'}</span>
+              <div className="absolute bottom-0 w-20 h-10 bg-surface-1 flex items-center justify-center translate-y-1/2 rotate-180 backdrop-blur-sm rounded-full">
+                <span className="text-cyan-theme/70 text-lg sm:text-xl md:text-2xl font-bold tracking-widest">{direction === 1 ? '>>>' : '<<<'}</span>
               </div>
-              <div className="absolute left-0 w-6 h-12 bg-surface-1 flex items-center justify-center -translate-x-1/2 -rotate-90 backdrop-blur-sm rounded-full">
-                <span className="text-cyan-theme/60 text-xs sm:text-sm font-bold tracking-widest">{direction === 1 ? '>>>' : '<<<'}</span>
+              <div className="absolute left-0 w-10 h-20 bg-surface-1 flex items-center justify-center -translate-x-1/2 -rotate-90 backdrop-blur-sm rounded-full">
+                <span className="text-cyan-theme/70 text-lg sm:text-xl md:text-2xl font-bold tracking-widest">{direction === 1 ? '>>>' : '<<<'}</span>
               </div>
-              <div className="absolute right-0 w-6 h-12 bg-surface-1 flex items-center justify-center translate-x-1/2 rotate-90 backdrop-blur-sm rounded-full">
-                <span className="text-cyan-theme/60 text-xs sm:text-sm font-bold tracking-widest">{direction === 1 ? '>>>' : '<<<'}</span>
+              <div className="absolute right-0 w-10 h-20 bg-surface-1 flex items-center justify-center translate-x-1/2 rotate-90 backdrop-blur-sm rounded-full">
+                <span className="text-cyan-theme/70 text-lg sm:text-xl md:text-2xl font-bold tracking-widest">{direction === 1 ? '>>>' : '<<<'}</span>
               </div>
             </motion.div>
           </div>
@@ -1198,14 +1184,14 @@ export function GameBoard({
 
               // Calculate positions
               const neighborOffset = hoveredCardIndex !== null
-                ? (index < hoveredCardIndex ? -8 : index > hoveredCardIndex ? 8 : 0)
+                ? (index < hoveredCardIndex ? -25 : index > hoveredCardIndex ? 25 : 0)
                 : 0;
-              const baseX = dist * 55 + neighborOffset;
+              const baseX = dist * 65 + neighborOffset;
               const baseY = Math.pow(Math.abs(dist), 1.5) * 1.5;
               const baseAngle = dist * 1;
 
               // Hover offsets
-              const hoverY = isHovered ? -90 : baseY;
+              const hoverY = isHovered ? -35 : baseY;
               const hoverScale = isHovered ? 1.15 : isNeighbor ? 0.95 : 1;
               const hoverAngle = isHovered ? 0 : baseAngle;
               const hoverZ = isHovered ? 50 : index;

@@ -58,6 +58,7 @@ export default function App() {
     syncPlayers,
     syncPhase,
     syncCurrentTurn,
+    turnEndTime,
   } = useBotGame(playerName, botCallbacks);
 
   const handleStartBotGame = useCallback((count: number, name: string) => {
@@ -199,6 +200,7 @@ export default function App() {
           onMulligan={botMode ? handleBotMulligan : undefined}
           botHudMessage={botMode ? botHudMessage : null}
           isBotSpectating={botMode ? isSpectating : false}
+          turnEndTime={botMode ? turnEndTime : undefined}
         />
       )}
       {screen === 'gameover' && (

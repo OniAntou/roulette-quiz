@@ -24,7 +24,8 @@ export interface TriggerResult {
   currentPosition?: number;
   bulletsFired?: number;
   shotsFired?: number;
-  results?: { playerId: string; alive: boolean }[];
+  usedBlock?: boolean;
+  results?: { playerId: string; alive: boolean; usedBlock?: boolean }[];
 }
 
 export interface PlayerGameStats {

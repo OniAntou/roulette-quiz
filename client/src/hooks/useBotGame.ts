@@ -4,7 +4,7 @@ import { GamePhase, Player, Card, TriggerResult, WinnerInfo, GameStats } from '.
 const LOCAL_PLAYER_ID = 'local-player';
 const CARDS_PER_HAND = 10;
 const TOTAL_CHAMBERS = 6;
-const BOT_TURN_DELAY_MS = 800;
+const BOT_TURN_DELAY_MS = 1800;
 const TRIGGER_RESULT_DELAY_MS = 1800;
 const GAME_OVER_DELAY_MS = 1200;
 
@@ -62,7 +62,7 @@ function createDeck(): Card[] {
   let id = 0;
 
   for (let value = 1; value <= 9; value++) {
-    for (let copy = 0; copy < 4; copy++) {
+    for (let copy = 0; copy < 12; copy++) {
       deck.push({ id: `number-${value}-${copy}-${id++}`, type: 'NUMBER', value });
     }
   }
@@ -83,13 +83,33 @@ function createDeck(): Card[] {
 
 function drawCards(deckRef: MutableRefObject<Card[]>, count: number): Card[] {
   const cards: Card[] = [];
+  let blockCount = 0;
+  const skippedCards: Card[] = [];
+
   for (let i = 0; i < count; i++) {
     if (deckRef.current.length === 0) {
       deckRef.current = createDeck();
     }
-    const card = deckRef.current.pop();
-    if (card) cards.push(card);
+    let card = deckRef.current.pop();
+    
+    while (card && card.type === 'BLOCK' && blockCount >= 1) {
+      skippedCards.push(card);
+      if (deckRef.current.length === 0) {
+        deckRef.current = createDeck();
+      }
+      card = deckRef.current.pop();
+    }
+
+    if (card) {
+      cards.push(card);
+      if (card.type === 'BLOCK') blockCount++;
+    }
   }
+
+  if (skippedCards.length > 0) {
+    deckRef.current.unshift(...skippedCards);
+  }
+
   return cards;
 }
 
@@ -105,12 +125,20 @@ function toPlayerView(player: BotState): Player {
 }
 
 function isPlayableCard(card: Card, currentNumber: number): boolean {
-  return card.type !== 'NUMBER' || (card.value ?? 0) > currentNumber;
+  if (card.type === 'BLOCK') return false; // Block is passive, never playable
+  if (currentNumber === -1) {
+    return ['JOKER', 'SKIP', 'REVERSE'].includes(card.type);
+  }
+  return card.type !== 'NUMBER' || (card.value ?? 0) >= currentNumber;
 }
 
 function chooseBotCard(hand: Card[], currentNumber: number): Card | undefined {
+  if (currentNumber === -1) {
+    return hand.find(card => ['JOKER', 'SKIP', 'REVERSE'].includes(card.type));
+  }
+  
   const playableNumbers = hand
-    .filter(card => card.type === 'NUMBER' && (card.value ?? 0) > currentNumber)
+    .filter(card => card.type === 'NUMBER' && (card.value ?? 0) >= currentNumber)
     .sort((a, b) => (a.value ?? 0) - (b.value ?? 0));
   if (playableNumbers[0]) return playableNumbers[0];
 
@@ -130,6 +158,8 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
   const [bots, setBots] = useState<BotState[]>([]);
   const [botHudMessage, setBotHudMessage] = useState<{ text: string; color: string } | null>(null);
   const [isSpectating, setIsSpectating] = useState(false);
+  const [turnEndTime, setTurnEndTime] = useState<number | null>(null);
+  const turnTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const playersRef = useRef<BotState[]>([]);
   const deckRef = useRef<Card[]>([]);
@@ -145,6 +175,8 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
   const clearTimers = useCallback(() => {
     timersRef.current.forEach(clearTimeout);
     timersRef.current = [];
+    if (turnTimeoutRef.current) clearTimeout(turnTimeoutRef.current);
+    setTurnEndTime(null);
   }, []);
 
   const schedule = useCallback((fn: () => void, delay: number) => {
@@ -158,7 +190,7 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
   const updatePlayerViews = useCallback(() => {
     callbacksRef.current.setPlayers(playersRef.current.map(toPlayerView));
     const localPlayer = playersRef.current.find(player => player.id === LOCAL_PLAYER_ID);
-    callbacksRef.current.setHandCards(localPlayer?.hand ?? []);
+    callbacksRef.current.setHandCards(localPlayer ? [...localPlayer.hand] : []);
     setBots(playersRef.current.filter(player => player.id !== LOCAL_PLAYER_ID));
     setIsSpectating(Boolean(localPlayer && !localPlayer.isAlive));
   }, []);
@@ -200,7 +232,7 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
     const currentPlayer = playersRef.current[currentTurnIndexRef.current];
     if (!currentPlayer?.isAlive) return;
 
-    dealIfNeeded(currentPlayer);
+    // dealIfNeeded(currentPlayer); // TEMPORARILY DISABLED: do not auto-draw when hand is empty
     phaseRef.current = 'choosing';
     callbacksRef.current.setPhase('choosing');
     callbacksRef.current.setTriggerResult(null);
@@ -212,6 +244,14 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
     
     callbacksRef.current.setCurrentTurnId(currentPlayer.id);
     callbacksRef.current.setCurrentNumber(currentNumberRef.current);
+
+    if (turnTimeoutRef.current) clearTimeout(turnTimeoutRef.current);
+    setTurnEndTime(Date.now() + 20000);
+    if (currentPlayer.id === LOCAL_PLAYER_ID) {
+      turnTimeoutRef.current = setTimeout(() => {
+        resolveTrigger(currentTurnIndexRef.current);
+      }, 20000);
+    }
     callbacksRef.current.setDirection(directionRef.current);
     updatePlayerViews();
 
@@ -225,13 +265,15 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
   }, [dealIfNeeded, schedule, updatePlayerViews]);
 
   const resolveTrigger = useCallback((targetIndex: number) => {
+    if (turnTimeoutRef.current) clearTimeout(turnTimeoutRef.current);
+    setTurnEndTime(null);
     const target = playersRef.current[targetIndex];
     if (!target?.isAlive) return;
 
     phaseRef.current = 'trigger';
     callbacksRef.current.setPhase('trigger');
-    currentNumberRef.current = 0;
-    callbacksRef.current.setCurrentNumber(0);
+    currentNumberRef.current = 1;
+    callbacksRef.current.setCurrentNumber(1);
 
     const gun = gunRef.current;
     const bullet = gun.chambers[gun.currentPosition];
@@ -239,19 +281,31 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
     gun.currentPosition = (gun.currentPosition + 1) % TOTAL_CHAMBERS;
     target.shotsFired++;
 
+    const blockCardIndex = target.hand.findIndex(c => c.type === 'BLOCK');
+    const usedBlock = bullet && blockCardIndex !== -1;
+    if (usedBlock) {
+      target.hand = target.hand.filter((_, i) => i !== blockCardIndex);
+      target.cardsCount = target.hand.length;
+    }
+
     const result: TriggerResult = {
-      alive: !bullet,
+      alive: !bullet || usedBlock,
       playerId: target.id,
       playerName: target.name,
       bulletCount: TOTAL_CHAMBERS - gun.bulletsFired,
       currentPosition: gun.currentPosition,
       bulletsFired: gun.bulletsFired,
       shotsFired: target.shotsFired,
+      usedBlock,
     };
 
     if (bullet) {
-      target.isAlive = false;
-      statsRef.current.players[target.id].triggerDied++;
+      if (usedBlock) {
+        statsRef.current.players[target.id].triggerSurvived++;
+      } else {
+        target.isAlive = false;
+        statsRef.current.players[target.id].triggerDied++;
+      }
     } else {
       statsRef.current.players[target.id].triggerSurvived++;
     }
@@ -271,6 +325,9 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
         gunRef.current = createGun();
         currentTurnIndexRef.current = getNextAliveIndex(targetIndex);
         callbacksRef.current.setRound(roundRef.current);
+        playersRef.current.forEach(p => {
+          if (p.isAlive) dealIfNeeded(p, true);
+        });
         startChoosingTurn(`ROUND ${roundRef.current}`);
       } else {
         currentTurnIndexRef.current = targetIndex;
@@ -280,6 +337,8 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
   }, [finishGame, getNextAliveIndex, schedule, startChoosingTurn, updatePlayerViews]);
 
   const resolveStandoff = useCallback((fromIndex: number) => {
+    if (turnTimeoutRef.current) clearTimeout(turnTimeoutRef.current);
+    setTurnEndTime(null);
     phaseRef.current = 'trigger';
     callbacksRef.current.setPhase('trigger');
 
@@ -289,14 +348,27 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
         const isDead = Math.random() < 1 / TOTAL_CHAMBERS;
         player.shotsFired++;
 
+        let survived = !isDead;
+        let usedBlock = false;
+        
         if (isDead) {
+          const blockIndex = player.hand.findIndex(c => c.type === 'BLOCK');
+          if (blockIndex !== -1) {
+            player.hand = player.hand.filter((_, i) => i !== blockIndex);
+            player.cardsCount = player.hand.length;
+            survived = true;
+            usedBlock = true;
+          }
+        }
+
+        if (!survived) {
           player.isAlive = false;
           statsRef.current.players[player.id].triggerDied++;
         } else {
           statsRef.current.players[player.id].triggerSurvived++;
         }
 
-        return { playerId: player.id, alive: !isDead };
+        return { playerId: player.id, alive: survived, usedBlock };
       });
 
     callbacksRef.current.setTriggerResult({
@@ -325,6 +397,8 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
 
   const playCardForCurrentPlayer = useCallback((cardId: string) => {
     if (phaseRef.current !== 'choosing') return;
+    if (turnTimeoutRef.current) clearTimeout(turnTimeoutRef.current);
+    setTurnEndTime(null);
 
     const player = playersRef.current[currentTurnIndexRef.current];
     if (!player?.isAlive) return;
@@ -335,16 +409,16 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
     const card = player.hand[cardIndex];
     if (!isPlayableCard(card, currentNumberRef.current)) return;
 
-    player.hand.splice(cardIndex, 1);
+    player.hand = player.hand.filter((_, i) => i !== cardIndex);
     player.cardsCount = player.hand.length;
     statsRef.current.players[player.id].cardsPlayed++;
 
-    callbacksRef.current.setPlayedCard(card);
+    callbacksRef.current.setPlayedCard({ ...card, _fromId: player.id } as any);
 
     if (card.type === 'NUMBER') {
       currentNumberRef.current = card.value ?? 0;
     } else if (card.type === 'JOKER') {
-      currentNumberRef.current = 0;
+      currentNumberRef.current = -1;
     } else if (card.type === 'REVERSE') {
       directionRef.current *= -1;
     }
@@ -357,12 +431,9 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
     }
 
     let nextIndex = currentTurnIndexRef.current;
-    if (card.type === 'SKIP') {
-      nextIndex = getNextAliveIndex(nextIndex);
-      nextIndex = getNextAliveIndex(nextIndex);
-    } else {
-      nextIndex = getNextAliveIndex(nextIndex);
-    }
+    const alivePlayersCount = playersRef.current.filter(p => p.isAlive).length;
+    
+    nextIndex = getNextAliveIndex(nextIndex);
 
     currentTurnIndexRef.current = nextIndex;
     startChoosingTurn(`${player.name} played ${card.type === 'NUMBER' ? card.value : card.type}`);
@@ -407,7 +478,8 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
     const safeBotCount = Math.max(1, Math.min(3, count));
     deckRef.current = createDeck();
     gunRef.current = createGun();
-    currentNumberRef.current = 0;
+    currentNumberRef.current = 1;
+    callbacksRef.current.setCurrentNumber(1);
     directionRef.current = 1;
     currentTurnIndexRef.current = 0;
     roundRef.current = 1;
@@ -505,6 +577,7 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
     bots,
     botHudMessage,
     isSpectating,
+    turnEndTime,
     startBotGame,
     handleBotDisconnect,
     handleBotCardChoice,
