@@ -29,7 +29,8 @@ export class GameManager {
       getNextAlivePlayer: (game, fromIndex) => this.getNextAlivePlayer(game, fromIndex),
       deleteGame: (roomId) => { this.games.delete(roomId); },
       ensurePlayerStats: (game, playerId) => this.ensurePlayerStats(game, playerId),
-      advanceToNextTurn: (roomId, game) => this.advanceToNextTurn(roomId, game)
+      advanceToNextTurn: (roomId, game) => this.advanceToNextTurn(roomId, game),
+      startChoosingTurn: (roomId, game) => this.advanceTurnAndDeal(roomId, game),
     });
   }
 
@@ -205,8 +206,7 @@ export class GameManager {
     TimeoutManager.clearChoosing(game);
     game.phase = GAME_CONSTANTS.STATES.TRIGGER;
     game.targetPlayer = playerIndex; // They target themselves
-
-    // "Không đánh được? Bóp cò" -> Sau đó reset bàn.
+    // Cannot beat the table number, so the player pulls the trigger and the table resets.
     game.currentNumber = 0;
     game.turnStack = [];
 

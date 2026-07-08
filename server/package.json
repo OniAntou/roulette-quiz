@@ -1,7 +1,7 @@
 {
   "name": "roulette-quiz-server",
   "version": "1.0.0",
-  "description": "Roulette Quiz Server",
+  "description": "Roulette number-card game server",
   "main": "dist/index.js",
   "scripts": {
     "start": "ts-node src/index.ts",

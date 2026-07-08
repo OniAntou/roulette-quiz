@@ -28,7 +28,6 @@ class SocketClient {
       this.socket.disconnect();
       this.socket = null;
       this._connected = false;
-      this.callbacks = {};
     }
 
     this._connectPromise = new Promise((resolve, reject) => {
@@ -101,8 +100,6 @@ class SocketClient {
     this.socket.on('game:start', (data: any) => this.emit('game:start', data));
     this.socket.on('game:deal', (data: any) => this.emit('game:deal', data));
     this.socket.on('game:cardPlayed', (data: any) => this.emit('game:cardPlayed', data));
-    this.socket.on('game:question', (data: any) => this.emit('game:question', data));
-    this.socket.on('game:result', (data: any) => this.emit('game:result', data));
     this.socket.on('game:trigger', (data: any) => this.emit('game:trigger', data));
     this.socket.on('game:newRound', (data: any) => this.emit('game:newRound', data));
     this.socket.on('game:over', (data: any) => this.emit('game:over', data));
@@ -175,13 +172,6 @@ class SocketClient {
     this.send('room:leave', { roomId });
   }
 
-  chooseCard(roomId: string, cardId: string): void {
-    this.send('game:choose', { roomId, cardId });
-  }
-
-  submitAnswer(roomId: string, answer: string): void {
-    this.send('game:answer', { roomId, answer });
-  }
 
   leaveAfterDeath(roomId: string): void {
     this.send('game:leaveAfterDeath', { roomId });

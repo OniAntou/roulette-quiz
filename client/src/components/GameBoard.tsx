@@ -3,7 +3,6 @@ import { Player, Card, TriggerResult, GamePhase } from '../types';
 import { socketClient } from '../network/SocketClient';
 import { Sounds } from '../audio/Sounds';
 import { Revolver } from './Revolver';
-import { ChatBox } from './ChatBox';
 
 interface GameBoardProps {
   round: number;
@@ -19,6 +18,8 @@ interface GameBoardProps {
   roomId: string;
   onLeaveAfterDeath: () => void;
   onCardChoice?: (cardId: string) => void;
+  onPullTrigger?: () => void;
+  onMulligan?: () => void;
   botHudMessage?: { text: string; color: string } | null;
   isBotSpectating?: boolean;
 }
@@ -37,8 +38,8 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   roomId,
   onLeaveAfterDeath,
   onCardChoice,
-  botHudMessage,
-  isBotSpectating
+  onPullTrigger,
+  onMulligan,
 }) => {
   const localPlayer = players.find(p => p.id === localId);
   const isLocalTurn = currentTurnId === localId && phase === 'choosing';
@@ -61,14 +62,22 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   const handlePullTrigger = () => {
     if (!isLocalTurn) return;
     Sounds.buttonClick();
-    socketClient.send('game:pull_trigger', { roomId });
+    if (onPullTrigger) {
+      onPullTrigger();
+    } else {
+      socketClient.send('game:pull_trigger', { roomId });
+    }
   };
 
   const handleMulligan = () => {
     if (!isLocalTurn) return;
     if (localPlayer?.left) return;
     Sounds.buttonClick();
-    socketClient.send('game:mulligan', { roomId });
+    if (onMulligan) {
+      onMulligan();
+    } else {
+      socketClient.send('game:mulligan', { roomId });
+    }
   };
 
   const getCardColor = (type: string) => {
@@ -103,7 +112,6 @@ export const GameBoard: React.FC<GameBoardProps> = ({
 
   return (
     <div className="w-full h-full flex flex-col items-center bg-gray-900 text-white overflow-hidden relative">
-      {/* Header */}
       <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
         <h1 className="text-2xl font-bold text-red-500 uppercase tracking-widest drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]">
           ĐÈ SỐ - VÒNG {round}
@@ -113,7 +121,6 @@ export const GameBoard: React.FC<GameBoardProps> = ({
         </div>
       </div>
 
-      {/* Opponents (Top) */}
       <div className="absolute top-4 right-4 flex gap-6 z-10">
         {players.filter(p => p.id !== localId).map(p => (
           <div key={p.id} className={`flex flex-col items-center p-2 rounded ${p.id === currentTurnId ? 'ring-2 ring-yellow-400 bg-yellow-400/20' : ''} ${!p.isAlive ? 'opacity-50 grayscale' : ''}`}>
@@ -124,9 +131,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
         ))}
       </div>
 
-      {/* Table Center */}
       <div className="flex-1 flex flex-col items-center justify-center w-full relative z-0">
-        {/* Table Number */}
         <div className="absolute top-1/3 text-center pointer-events-none">
           <div className="text-6xl font-black text-cyan-400 drop-shadow-[0_0_15px_rgba(34,211,238,0.8)]">
             {currentNumber > 0 ? currentNumber : 'BÀN TRỐNG'}
@@ -136,7 +141,6 @@ export const GameBoard: React.FC<GameBoardProps> = ({
           </div>
         </div>
 
-        {/* Phase Overlays */}
         {phase === 'trigger' && triggerResult && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/80 z-50">
             <div className="text-center">
@@ -166,17 +170,13 @@ export const GameBoard: React.FC<GameBoardProps> = ({
         )}
       </div>
 
-      {/* Local Player Hand & Actions */}
       <div className="absolute bottom-0 w-full p-6 flex flex-col items-center bg-gradient-to-t from-black to-transparent pt-32">
-        
-        {/* Player Status */}
         <div className="absolute left-6 bottom-6 flex flex-col">
           <span className="text-xl font-bold">{localPlayer?.name} (Bạn)</span>
           <span className="text-sm text-red-400">Đã bóp cò: {localPlayer?.shotsFired || 0} lần</span>
           {isDead && <span className="text-xl font-black text-red-600 uppercase mt-2">💀 ĐÃ CHẾT</span>}
         </div>
 
-        {/* Turn Actions */}
         {isLocalTurn && !isDead && (
           <div className="flex gap-4 mb-8">
             <button
@@ -194,12 +194,11 @@ export const GameBoard: React.FC<GameBoardProps> = ({
           </div>
         )}
 
-        {/* Hand Cards */}
         <div className={`flex gap-2 md:gap-4 overflow-x-auto w-full max-w-5xl px-4 pb-4 ${!isLocalTurn || isDead ? 'opacity-50 pointer-events-none' : ''}`}>
           {handCards.map((card) => {
             let disabled = false;
             if (card.type === 'NUMBER' && card.value! <= currentNumber) {
-              disabled = true; // Invalid move
+              disabled = true;
             }
             return renderCard(card, () => handlePlayCard(card), disabled);
           })}

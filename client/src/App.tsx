@@ -49,6 +49,8 @@ export default function App() {
     startBotGame,
     handleBotDisconnect,
     handleBotCardChoice,
+    handleBotPullTrigger,
+    handleBotMulligan,
     handleBotModePlayerAnswer,
     botHudMessage,
     isSpectating,
@@ -192,7 +194,9 @@ export default function App() {
           triggerResult={triggerResult}
           roomId={roomId}
           onLeaveAfterDeath={handleLeaveAfterDeath}
-          onCardChoice={botMode ? (cardId: string) => handleBotCardChoice(cardId, phase, currentTurnId, handCards as any) : undefined}
+          onCardChoice={botMode ? (cardId: string) => handleBotCardChoice(cardId) : undefined}
+          onPullTrigger={botMode ? handleBotPullTrigger : undefined}
+          onMulligan={botMode ? handleBotMulligan : undefined}
           botHudMessage={botMode ? botHudMessage : null}
           isBotSpectating={botMode ? isSpectating : false}
         />
@@ -203,7 +207,7 @@ export default function App() {
           localId={localPlayerId}
           playerName={playerName}
           players={players}
-          disconnect={handleDisconnect}
+          disconnect={botMode ? handleBotDisconnect : handleDisconnect}
         />
       )}
       {!botMode && <ChatBox roomId={roomId} localId={localPlayerId} />}

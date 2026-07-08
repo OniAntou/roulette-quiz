@@ -1,7 +1,7 @@
 {
   "name": "roulette-quiz",
   "version": "1.0.0",
-  "description": "Multiplayer party game combining quiz with Russian Roulette",
+  "description": "Multiplayer number-card roulette party game",
   "scripts": {
     "start": "cd server && npm run serve",
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
