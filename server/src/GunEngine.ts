@@ -76,11 +76,11 @@ export class GunEngine {
   }
 
   pullTrigger(roomId: string, game: GameState): void {
-    // Only allow trigger from 'result' phase (after answer/timeout sets it)
-    if (game.phase !== 'result') {
-      console.warn(`[pullTrigger] Blocked: phase is '${game.phase}', expected 'result'. Room: ${roomId}`);
+    if (game.phase !== 'trigger') {
+      console.warn(`[pullTrigger] Blocked: phase is '${game.phase}', expected 'trigger'. Room: ${roomId}`);
       return;
     }
+
 
     game.phase = 'trigger';
 

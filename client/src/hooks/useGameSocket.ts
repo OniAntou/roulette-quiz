@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { socketClient } from '../network/SocketClient';
-import { Player, CardData, TriggerResult, ActiveQuestion, QuestionResult, WinnerInfo, GamePhase, Screen } from '../types';
+import { Player, Card, TriggerResult, WinnerInfo, GamePhase, Screen } from '../types';
 import { Sounds } from '../audio/Sounds';
 
 export interface GameSocketCallbacks {
@@ -10,12 +10,12 @@ export interface GameSocketCallbacks {
   setPlayers: React.Dispatch<React.SetStateAction<Player[]>>;
   setRound: React.Dispatch<React.SetStateAction<number>>;
   setPhase: React.Dispatch<React.SetStateAction<GamePhase>>;
-  setPlayedCard: React.Dispatch<React.SetStateAction<CardData | null>>;
-  setActiveQuestion: React.Dispatch<React.SetStateAction<ActiveQuestion | null>>;
-  setQuestionResult: React.Dispatch<React.SetStateAction<QuestionResult | null>>;
+  setPlayedCard: React.Dispatch<React.SetStateAction<Card | null>>;
+  setCurrentNumber: React.Dispatch<React.SetStateAction<number>>;
+  setDirection: React.Dispatch<React.SetStateAction<number>>;
   setTriggerResult: React.Dispatch<React.SetStateAction<TriggerResult | null>>;
   setScreen: React.Dispatch<React.SetStateAction<Screen>>;
-  setHandCards: React.Dispatch<React.SetStateAction<CardData[]>>;
+  setHandCards: React.Dispatch<React.SetStateAction<Card[]>>;
   setCurrentTurnId: React.Dispatch<React.SetStateAction<string>>;
   setWinnerInfo: React.Dispatch<React.SetStateAction<WinnerInfo | null>>;
 }
@@ -25,7 +25,6 @@ export function useGameSocket(
   playerName: string,
   callbacks: GameSocketCallbacks
 ) {
-  // Use refs to avoid stale closures in socket listeners
   const localPlayerIdRef = useRef<string>(localPlayerId);
   localPlayerIdRef.current = localPlayerId;
   
@@ -60,13 +59,13 @@ export function useGameSocket(
       callbacks.setRound(data.round || 1);
       callbacks.setPhase('waiting');
       callbacks.setPlayedCard(null);
-      callbacks.setActiveQuestion(null);
-      callbacks.setQuestionResult(null);
+      callbacks.setCurrentNumber(0);
+      callbacks.setDirection(1);
       callbacks.setTriggerResult(null);
       callbacks.setScreen('game');
     });
 
-    socketClient.on('game:deal', (data: { cards: CardData[] }) => {
+    socketClient.on('game:deal', (data: { cards: Card[] }) => {
       callbacks.setHandCards(data.cards);
     });
 
@@ -74,17 +73,20 @@ export function useGameSocket(
       callbacks.setCurrentTurnId(data.playerId);
       callbacks.setPhase('choosing');
       callbacks.setPlayedCard(null);
-      callbacks.setActiveQuestion(null);
-      callbacks.setQuestionResult(null);
     });
 
-    socketClient.on('game:cardPlayed', (data: { playerId: string; card: CardData }) => {
+    socketClient.on('game:stateUpdate', (data: { currentNumber: number; direction: number }) => {
+      callbacks.setCurrentNumber(data.currentNumber);
+      callbacks.setDirection(data.direction);
+    });
+
+    socketClient.on('game:cardPlayed', (data: { playerId: string; card: Card }) => {
       callbacks.setPlayedCard(data.card);
-      callbacks.setPhase('questioning');
+      // Wait to see the played card before phase changes
 
       callbacks.setPlayers(prev => prev.map(p => {
         if (p.id === data.playerId) {
-          return { ...p, cardsCount: (p.cardsCount || 4) - 1 };
+          return { ...p, cardsCount: Math.max((p.cardsCount || 1) - 1, 0) };
         }
         return p;
       }));
@@ -94,31 +96,8 @@ export function useGameSocket(
       }
     });
 
-    socketClient.on('game:question', (data: { card: any; timer: number; from: string }) => {
-      callbacks.setActiveQuestion({
-        card: data.card,
-        timer: data.timer,
-        from: data.from
-      });
-      callbacks.setPhase('answering');
-    });
-
-    socketClient.on('game:result', (data: { correct: boolean; correctAnswer: string }) => {
-      if (data.correct) {
-        Sounds.correct();
-      } else {
-        Sounds.wrong();
-      }
-      callbacks.setQuestionResult({
-        correct: data.correct,
-        correctAnswer: data.correctAnswer
-      });
-      callbacks.setPhase('result');
-
-      setTimeout(() => {
-        callbacks.setActiveQuestion(null);
-        callbacks.setQuestionResult(null);
-      }, 2500);
+    socketClient.on('game:mulliganUsed', (data: { playerId: string }) => {
+      // Could play a sound or show a flash
     });
 
     socketClient.on('game:trigger', (data: TriggerResult) => {
@@ -256,10 +235,10 @@ export function useGameSocket(
     });
 
     return () => {
-      ['room:created', 'room:joined', 'room:players', 'room:left', 'game:start', 'game:deal', 'game:turn', 'game:cardPlayed', 'game:question', 'game:result', 'game:trigger', 'game:standoffResult', 'game:newRound', 'game:over', 'game:playerLeft', 'game:playerLeftAfterDeath', 'game:cardsUpdate', 'error'].forEach(event => {
+      ['room:created', 'room:joined', 'room:players', 'room:left', 'game:start', 'game:deal', 'game:turn', 'game:cardPlayed', 'game:mulliganUsed', 'game:stateUpdate', 'game:trigger', 'game:standoffResult', 'game:newRound', 'game:over', 'game:playerLeft', 'game:playerLeftAfterDeath', 'game:cardsUpdate', 'error'].forEach(event => {
         socketClient.clearListeners(event);
       });
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only run once on mount
+  }, []);
 }

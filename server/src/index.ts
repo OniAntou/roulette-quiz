@@ -188,14 +188,19 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('game:choose', (data: { roomId: string; cardId: string }) => {
+  socket.on('game:play_card', (data: { roomId: string; cardId: string }) => {
     const { roomId, cardId } = data;
-    gameManager.handleCardChoice(roomId, socket.id, cardId);
+    gameManager.handlePlayCard(roomId, socket.id, cardId);
   });
 
-  socket.on('game:answer', (data: { roomId: string; answer: string }) => {
-    const { roomId, answer } = data;
-    gameManager.handleAnswer(roomId, socket.id, answer);
+  socket.on('game:pull_trigger', (data: { roomId: string }) => {
+    const { roomId } = data;
+    gameManager.handlePullTrigger(roomId, socket.id);
+  });
+
+  socket.on('game:mulligan', (data: { roomId: string }) => {
+    const { roomId } = data;
+    gameManager.handleMulligan(roomId, socket.id);
   });
 
   socket.on('game:leaveAfterDeath', (data: { roomId: string }) => {

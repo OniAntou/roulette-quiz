@@ -1,10 +1,10 @@
 import { GameState } from './types';
 
 export class TimeoutManager {
-  static clearAnswer(game: GameState): void {
-    if (game.answerTimeout) {
-      clearTimeout(game.answerTimeout);
-      game.answerTimeout = undefined;
+  static clearChoosing(game: GameState): void {
+    if (game.triggerTimeout) { // We used triggerTimeout for choosing turn time
+      clearTimeout(game.triggerTimeout);
+      game.triggerTimeout = undefined;
     }
   }
 
@@ -23,7 +23,7 @@ export class TimeoutManager {
   }
 
   static clearAll(game: GameState): void {
-    this.clearAnswer(game);
+    this.clearChoosing(game);
     this.clearTrigger(game);
     this.clearPostTrigger(game);
   }

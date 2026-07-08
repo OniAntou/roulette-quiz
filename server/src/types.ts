@@ -1,21 +1,20 @@
-export interface Question {
+export type CardType = 'NUMBER' | 'JOKER' | 'SKIP' | 'BLOCK' | 'REVERSE' | 'STANDOFF';
+
+export interface Card {
   id: string;
-  topic: string;
-  difficulty: 'easy' | 'medium' | 'hard';
-  question: string;
-  answers: Record<string, string>;
-  correct: string;
+  type: CardType;
+  value?: number; // Only for NUMBER cards
 }
 
 export interface Player {
   id: string;
   name: string;
   isReady: boolean;
-  hand: Question[];
+  hand: Card[];
   isAlive: boolean;
   left?: boolean;
   shotsFired: number;
-  easterEggChance?: number;
+  hasUsedMulligan: boolean;
 }
 
 export interface Room {
@@ -33,8 +32,7 @@ export interface Gun {
 }
 
 export interface PlayerGameStats {
-  correctAnswers: number;
-  wrongAnswers: number;
+  cardsPlayed: number;
   triggerSurvived: number;
   triggerDied: number;
 }
@@ -50,23 +48,15 @@ export interface GameState {
   phase: string;
   players: Player[];
   currentTurn: number;
+  direction: number; // 1 for clockwise, -1 for counter-clockwise
+  currentNumber: number; // The number on the table to beat
+  turnStack: Card[]; // Played cards
+  deck: Card[];
   round: number;
   gun: Gun;
-  usedCards: string[];
   stats: GameStats;
-  currentCard?: Question;
   currentPlayer?: number;
   targetPlayer?: number;
-  answerTimeout?: NodeJS.Timeout;
   triggerTimeout?: NodeJS.Timeout;
   postTriggerTimeout?: NodeJS.Timeout;
-}
-
-export interface CardData {
-  id: string;
-  topic: string;
-  difficulty: string;
-  question: string;
-  answers: Record<string, string>;
-  correct: string;
 }
