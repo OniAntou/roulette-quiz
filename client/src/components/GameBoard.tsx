@@ -998,8 +998,31 @@ export function GameBoard({
       <div className="absolute top-[48%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] sm:w-[80vw] md:w-[720px] h-[160px] sm:h-[200px] md:h-[260px] flex items-center justify-center gap-8 md:gap-16 px-4 sm:px-8 md:px-12 z-10 overflow-visible">
         
         {/* Discard Pile / Played Card */}
-        <div className="flex flex-col items-center space-y-2 z-20">
-          <div className="w-32 h-44 bg-transparent border border-transparent rounded-none flex items-center justify-center relative">
+        <div className="flex flex-col items-center space-y-2 z-20 relative">
+          
+          {/* Turn Direction Indicator */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-0 flex items-center justify-center">
+            <motion.div 
+              animate={{ rotate: direction === 1 ? 360 : -360 }}
+              transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+              className="w-80 h-80 sm:w-[400px] sm:h-[400px] border-[1.5px] border-dashed border-cyan-theme/20 rounded-full flex items-center justify-center relative"
+            >
+              <div className="absolute top-0 w-12 h-6 bg-surface-1 flex items-center justify-center -translate-y-1/2 backdrop-blur-sm rounded-full">
+                <span className="text-cyan-theme/60 text-xs sm:text-sm font-bold tracking-widest">{direction === 1 ? '>>>' : '<<<'}</span>
+              </div>
+              <div className="absolute bottom-0 w-12 h-6 bg-surface-1 flex items-center justify-center translate-y-1/2 rotate-180 backdrop-blur-sm rounded-full">
+                <span className="text-cyan-theme/60 text-xs sm:text-sm font-bold tracking-widest">{direction === 1 ? '>>>' : '<<<'}</span>
+              </div>
+              <div className="absolute left-0 w-6 h-12 bg-surface-1 flex items-center justify-center -translate-x-1/2 -rotate-90 backdrop-blur-sm rounded-full">
+                <span className="text-cyan-theme/60 text-xs sm:text-sm font-bold tracking-widest">{direction === 1 ? '>>>' : '<<<'}</span>
+              </div>
+              <div className="absolute right-0 w-6 h-12 bg-surface-1 flex items-center justify-center translate-x-1/2 rotate-90 backdrop-blur-sm rounded-full">
+                <span className="text-cyan-theme/60 text-xs sm:text-sm font-bold tracking-widest">{direction === 1 ? '>>>' : '<<<'}</span>
+              </div>
+            </motion.div>
+          </div>
+
+          <div className="w-32 h-44 bg-transparent border border-transparent rounded-none flex items-center justify-center relative z-10">
             {/* Minimal Wrapper */}
 
             <AnimatePresence>
@@ -1039,19 +1062,18 @@ export function GameBoard({
                       />
                     )}
                     
-                    <div className="flex justify-between items-start w-full">
+                    <div className="flex flex-col items-start w-full">
                       <span className="text-xl font-black font-mono text-text-theme leading-none">
                         {card.type === 'NUMBER' ? card.value : card.type.substring(0, 3)}
                       </span>
-                      <span className={`w-1.5 h-1.5 rounded-none opacity-50 ${
-                        card.id === 'EASTER_EGG_STANDOFF' ? 'bg-amber-400'
-                        : ('NORMAL' as any) === 'easy' ? 'bg-emerald-theme' : ('NORMAL' as any) === 'medium' ? 'bg-amber-theme' : 'bg-red-theme'
-                      }`}></span>
                     </div>
-                    <div className="flex-1 flex items-start justify-start py-2 overflow-hidden">
-                      <p className="text-xs font-black leading-tight text-left uppercase font-mono text-text-theme opacity-50">
-                        {card.type === 'NUMBER' ? card.value : (card.type.substring(0, 45) + (card.type.length > 45 ? '...' : ''))}
-                      </p>
+                    <div className="flex-1 flex items-center justify-center text-center font-black font-mono text-4xl text-text-theme opacity-80">
+                      {card.type === 'NUMBER' ? card.value : card.type.substring(0, 3)}
+                    </div>
+                    <div className="flex flex-col items-end w-full">
+                      <span className="text-xl font-black font-mono text-text-theme leading-none rotate-180">
+                        {card.type === 'NUMBER' ? card.value : card.type.substring(0, 3)}
+                      </span>
                     </div>
                   </motion.div>
                 );
@@ -1247,11 +1269,13 @@ export function GameBoard({
                             {card.type === 'NUMBER' ? card.value : card.type.substring(0, 3)}
                           </span>
                         </div>
-                        <div className={`flex-1 flex items-center justify-center text-center font-bold font-mono tracking-wider leading-relaxed text-sm sm:text-base md:text-lg text-cyan-theme`}>
-                          {card.type === 'NUMBER' ? card.value : card.type}
+                        <div className={`flex-1 flex items-center justify-center text-center font-black font-mono tracking-wider leading-relaxed text-4xl sm:text-5xl md:text-6xl text-cyan-theme`}>
+                          {card.type === 'NUMBER' ? card.value : card.type.substring(0, 3)}
                         </div>
-                        <div className="flex justify-between items-end w-full opacity-50">
-                          <span className="text-[8px] font-mono tracking-widest">#{card.id.substring(0, 4).toUpperCase()}</span>
+                        <div className="flex flex-col items-end w-full">
+                          <span className={`text-2xl font-black font-mono text-cyan-theme leading-none rotate-180`}>
+                            {card.type === 'NUMBER' ? card.value : card.type.substring(0, 3)}
+                          </span>
                         </div>
                       </>
                     ) : (
