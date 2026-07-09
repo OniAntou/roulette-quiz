@@ -197,7 +197,7 @@ export default function App() {
           onLeaveAfterDeath={handleLeaveAfterDeath}
           onCardChoice={botMode ? (cardId: string) => handleBotCardChoice(cardId) : undefined}
           onPullTrigger={botMode ? handleBotPullTrigger : undefined}
-          onMulligan={botMode ? handleBotMulligan : undefined}
+          onMulligan={botMode ? handleBotMulligan : () => socketClient.sendMulligan(roomId)}
           botHudMessage={botMode ? botHudMessage : null}
           isBotSpectating={botMode ? isSpectating : false}
           turnEndTime={botMode ? turnEndTime : undefined}

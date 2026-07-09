@@ -71,6 +71,7 @@ export class GunEngine {
         this.callbacks.deleteGame(roomId);
       } else {
         // Next round
+        game.newRound = true;
         this.callbacks.advanceToNextTurn(roomId, game);
       }
     }, delay);
@@ -131,6 +132,7 @@ export class GunEngine {
           game.gun = this.createGun();
           game.currentTurn = this.callbacks.getNextAlivePlayer(game, game.targetPlayer!);
           this.io.to(roomId).emit('game:newRound', { round: game.round });
+          game.newRound = true;
           this.callbacks.startChoosingTurn(roomId, game);
         }, this.postTriggerDelayMs);
       }

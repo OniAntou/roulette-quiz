@@ -59,4 +59,5 @@ export interface GameState {
   targetPlayer?: number;
   triggerTimeout?: NodeJS.Timeout;
   postTriggerTimeout?: NodeJS.Timeout;
+  newRound?: boolean;
 }

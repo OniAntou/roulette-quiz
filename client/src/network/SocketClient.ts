@@ -108,6 +108,7 @@ class SocketClient {
     this.socket.on('game:cardsUpdate', (data: any) => this.emit('game:cardsUpdate', data));
     this.socket.on('game:turn', (data: any) => this.emit('game:turn', data));
     this.socket.on('game:standoffResult', (data: any) => this.emit('game:standoffResult', data));
+    this.socket.on('game:autoTriggerCountdown', (data: any) => this.emit('game:autoTriggerCountdown', data));
 
     this.socket.on('chat:message', (data: any) => this.emit('chat:message', data));
     this.socket.on('chat:global_message', (data: any) => this.emit('chat:global_message', data));
@@ -175,6 +176,10 @@ class SocketClient {
 
   leaveAfterDeath(roomId: string): void {
     this.send('game:leaveAfterDeath', { roomId });
+  }
+
+  sendMulligan(roomId: string): void {
+    this.send('game:mulligan', { roomId });
   }
 
   sendChat(roomId: string, message: string): void {

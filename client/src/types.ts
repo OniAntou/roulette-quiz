@@ -6,6 +6,7 @@ export interface Player {
   isAlive?: boolean;
   shotsFired?: number;
   left?: boolean;
+  hasUsedMulligan?: boolean;
 }
 
 export type CardType = 'NUMBER' | 'JOKER' | 'SKIP' | 'REVERSE' | 'STANDOFF' | 'BLOCK';

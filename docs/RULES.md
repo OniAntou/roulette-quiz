@@ -42,10 +42,15 @@ Nếu đến lượt mà bạn **KHÔNG CÓ BÀI HỢP LỆ** để đánh:
 1. **Mulligan (Đổi bài):**
    - Khi tới lượt, người chơi được phép đánh bài hoặc lựa chọn rút 1 lá từ bộ bài bằng cách hy sinh 1 lá bất kì đang có trên tay.
    - Nếu như trên tay không có bài để hy sinh thì sẽ không được đổi bài.
+   - Mỗi người chỉ được dùng Mulligan **mỗi ván một lần duy nhất**. Sau khi dùng, nút đổi bài sẽ biến mất.
+   - **Animation:** Khi bấm đổi bài, lá được hy sinh sẽ bay lên deck, deck phát sáng, rồi lá mới bay xuống tay.
 
-2. **Pull Trigger (Bóp Cò):**
-   - Nếu bạn không thể đánh bài VÀ đã hết quyền Mulligan, bạn BẮT BUỘC phải Bóp Cò (Pull Trigger).
-   - Tỷ lệ chết phụ thuộc vào khẩu súng (mặc định có 1 viên đạn thật trong tổng số ổ đạn).
+2. **Auto-Trigger (Tự động bóp cò):**
+   - Nếu bạn không có bài hợp lệ VÀ đã hết quyền Mulligan, hệ thống sẽ tự động đếm ngược **5 giây**.
+   - Hết 5 giây mà bạn chưa đánh bài, bạn sẽ tự động bị bóp cò.
+   - **Lưu ý:** Nút Bóp Cò thủ công đã bị GỠ. Hệ thống sẽ tự xử lý khi hết thời gian.
+
+3. **Kết quả Bóp Cò:**
    - **Sống sót (Click):** Bạn may mắn không trúng đạn. Tuy nhiên, lượt của bạn VẪN CHƯA KẾT THÚC. Bạn phải tiếp tục đánh bài. Vì bạn đang hết bài, bạn sẽ phải tiếp tục Bóp Cò liên tục cho đến khi nào viên đạn thật nổ (hoặc thắng game). Đây là cái giá rất đắt nếu để hết bài!
    - **Chết (Bang):** Bạn bị loại. Lượt được chuyển sang người tiếp theo. Trò chơi nạp lại khẩu súng mới (Reset lại viên đạn) và bắt đầu Vòng (Round) mới, **con số trên bàn được reset về 1, và TOÀN BỘ NGƯỜI CHƠI CÒN SỐNG ĐƯỢC NẠP LẠI 10 LÁ BÀI MỚI** (không cần biết trước đó có bao nhiêu lá).
 
@@ -53,11 +58,14 @@ Nếu đến lượt mà bạn **KHÔNG CÓ BÀI HỢP LỆ** để đánh:
 - State `direction` là `1` hoặc `-1`.
 - State `handCards` của Local Player phải luôn được trả về dưới dạng tham chiếu mảng mới (new array `[...hand]`) sau mỗi lần đánh bài để React có thể re-render đúng đắn. Tránh mutate in-place như `splice` trực tiếp vào mảng.
 - Thẻ BLOCK hiện tại đang xài chung nhánh logic với SKIP, nó sẽ gọi `getNextAliveIndex(nextIndex)` hai lần để lướt qua người tiếp theo.
+- **Mulligan server:** `handleMulligan()` nhận `requestSocket` để emit trực tiếp socket (tránh stale socket ID khi reconnect). Server trả `game:mulliganFailed` với lý do khi reject.
+- **Auto-deal:** Hệ thống KHÔNG tự động chia bài khi tay trống. Chỉ chia bài mới khi bắt đầu round mới (sau khi có người chết).
 
 ## Thời gian (Timer)
-- Mỗi người chơi có tối đa **20 giây** để thực hiện hành động (đánh bài, đổi bài, bóp cò).
-- Hết 20 giây mà chưa làm gì, người chơi sẽ tự động bị ép bóp cò súng.
+- Mỗi người chơi có tối đa **20 giây** để thực hiện hành động (đánh bài, đổi bài).
+- Hết 20 giây mà chưa làm gì, người chơi sẽ tự động bị bóp cò (Auto-Trigger đếm ngược 5 giây).
+- Sau khi dùng Mulligan, bộ đếm thời gian sẽ được reset lại.
 
 ## Hết bài (Cạn kiệt)
 - Nếu bạn đánh hết toàn bộ số bài trên tay, hệ thống sẽ KHÔNG tự động phát bài mới ở lượt tiếp theo.
-- Bạn sẽ phải dùng quyền Đổi Bài (Mulligan) để lấy 6 lá mới, hoặc nếu đã dùng rồi thì chỉ còn nước liên tục Bóp Cò.
+- Bạn sẽ phải dùng Mulligan (nếu chưa dùng) hoặc chờ Auto-Trigger bóp cò.

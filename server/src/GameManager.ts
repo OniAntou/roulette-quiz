@@ -69,13 +69,14 @@ export class GameManager {
         cardsCount: GAME_CONSTANTS.CARDS_PER_HAND,
         isAlive: true,
         shotsFired: 0,
+        hasUsedMulligan: false,
       })),
       round: gameState.round,
     });
 
     setTimeout(async () => {
       try {
-        await this.dealCards(roomId);
+        await this.dealCards(roomId, undefined, true);
         const game = this.games.get(roomId);
         if (!game) return;
         game.phase = GAME_CONSTANTS.STATES.CHOOSING;
@@ -93,12 +94,12 @@ export class GameManager {
     }, this.startDelayMs);
   }
 
-  private async dealCards(roomId: string, forcePlayerId?: string): Promise<void> {
+  private async dealCards(roomId: string, forcePlayerId?: string, newRound?: boolean): Promise<void> {
     const game = this.games.get(roomId);
     if (!game) return;
 
     for (const player of game.players) {
-      if (player.isAlive && (player.hand.length === 0 || player.id === forcePlayerId)) {
+      if (player.isAlive && (newRound || player.id === forcePlayerId)) {
         player.hand = [];
         for (let i = 0; i < GAME_CONSTANTS.CARDS_PER_HAND; i++) {
           if (game.deck.length === 0) {
@@ -128,6 +129,7 @@ export class GameManager {
         cardsCount: p.isAlive ? p.hand.length : 0,
         isAlive: p.isAlive,
         shotsFired: p.shotsFired,
+        hasUsedMulligan: p.hasUsedMulligan,
       })),
     });
   }
@@ -146,7 +148,7 @@ export class GameManager {
 
     // Validate play
     if (card.type === 'NUMBER') {
-      if (card.value! <= game.currentNumber) return; // Must be higher
+      if (card.value! < game.currentNumber) return; // Must be >= current number
     }
 
     // Process card
@@ -213,31 +215,72 @@ export class GameManager {
     this.gunEngine.pullTrigger(roomId, game);
   }
 
-  handleMulligan(roomId: string, socketId: string): void {
+  handleMulligan(roomId: string, socketId: string, requestSocket?: any): void {
     const game = this.games.get(roomId);
-    if (!game || game.phase !== GAME_CONSTANTS.STATES.CHOOSING) return;
+    if (!game || game.phase !== GAME_CONSTANTS.STATES.CHOOSING) {
+      console.warn(`[Mulligan] Rejected: game not found or phase is '${game?.phase}'`);
+      requestSocket?.emit('game:mulliganFailed', { reason: 'not_allowed' });
+      return;
+    }
 
     const playerIndex = game.players.findIndex(p => p.id === socketId);
-    if (playerIndex === -1 || playerIndex !== game.currentTurn || !game.players[playerIndex].isAlive) return;
+    if (playerIndex === -1 || playerIndex !== game.currentTurn || !game.players[playerIndex].isAlive) {
+      console.warn(`[Mulligan] Rejected: playerIndex=${playerIndex}, currentTurn=${game.currentTurn}, isAlive=${game.players[playerIndex]?.isAlive}`);
+      requestSocket?.emit('game:mulliganFailed', { reason: 'not_your_turn' });
+      return;
+    }
 
     const player = game.players[playerIndex];
-    if (player.hasUsedMulligan) return;
+    if (player.hasUsedMulligan) {
+      console.warn(`[Mulligan] Rejected: player already used mulligan`);
+      requestSocket?.emit('game:mulliganFailed', { reason: 'already_used' });
+      return;
+    }
+    if (player.hand.length === 0) {
+      console.warn(`[Mulligan] Rejected: hand is empty`);
+      requestSocket?.emit('game:mulliganFailed', { reason: 'empty_hand' });
+      return;
+    }
 
     player.hasUsedMulligan = true;
     
     // Clear timeout, will restart after mulligan
     TimeoutManager.clearChoosing(game);
 
-    this.dealCards(roomId, player.id).then(() => {
-      this.io.to(roomId).emit('game:mulliganUsed', { playerId: player.id });
-      this.startTurnTimeout(roomId, game);
-    });
+    // Sacrifice 1 random card from hand
+    const sacrificeIndex = Math.floor(Math.random() * player.hand.length);
+    player.hand.splice(sacrificeIndex, 1);
+
+    // Draw 1 new card from deck
+    if (game.deck.length === 0) {
+      game.deck = DeckManager.getShuffledDeck();
+    }
+    player.hand.push(game.deck.pop()!);
+
+    // Emit updated hand directly to the requesting socket (avoids stale socket ID lookup)
+    requestSocket?.emit(GAME_CONSTANTS.EVENTS.GAME_DEAL, { cards: player.hand });
+    this.emitCardsUpdate(roomId, game);
+
+    this.io.to(roomId).emit('game:mulliganUsed', { playerId: player.id });
+    this.startTurnTimeout(roomId, game);
   }
 
   private startTurnTimeout(roomId: string, game: GameState): void {
     game.triggerTimeout = setTimeout(() => {
       this.handlePullTrigger(roomId, game.players[game.currentTurn].id);
     }, GAME_CONSTANTS.TIMEOUTS.choosing);
+  }
+
+  private hasPlayableCard(player: Player, currentNumber: number): boolean {
+    return player.hand.some(card => {
+      if (card.type === 'NUMBER') return (card.value ?? 0) >= currentNumber;
+      if (card.type === 'BLOCK') return false; // Passive, cannot be played
+      return true; // SKIP, REVERSE, JOKER, STANDOFF are always playable
+    });
+  }
+
+  private canMulligan(player: Player): boolean {
+    return !player.hasUsedMulligan && player.hand.length > 0;
   }
 
   private getNextAlivePlayer(game: GameState, fromIndex: number, direction: number = 1): number {
@@ -270,10 +313,29 @@ export class GameManager {
 
   private advanceTurnAndDeal(roomId: string, game: GameState): void {
     game.phase = GAME_CONSTANTS.STATES.CHOOSING;
-    this.dealCards(roomId).then(() => {
+    const newRound = game.newRound;
+    game.newRound = false;
+    this.dealCards(roomId, undefined, newRound).then(() => {
       this.io.to(roomId).emit('game:turn', { playerId: game.players[game.currentTurn].id });
       this.io.to(roomId).emit('game:stateUpdate', { currentNumber: game.currentNumber, direction: game.direction });
-      this.startTurnTimeout(roomId, game);
+      
+      const currentPlayer = game.players[game.currentTurn];
+      const hasPlayable = this.hasPlayableCard(currentPlayer, game.currentNumber);
+      const canMulligan = this.canMulligan(currentPlayer);
+      
+      if (!hasPlayable && !canMulligan) {
+        // No playable cards and no mulligan - auto-pull trigger after 5s
+        this.io.to(roomId).emit('game:autoTriggerCountdown', { 
+          playerId: currentPlayer.id, 
+          delay: 5 
+        });
+        game.triggerTimeout = setTimeout(() => {
+          this.handlePullTrigger(roomId, currentPlayer.id);
+        }, 5000);
+      } else {
+        // Has playable cards or mulligan available - normal turn with timeout
+        this.startTurnTimeout(roomId, game);
+      }
     }).catch(err => {
       console.error('Error dealing cards:', err);
     });

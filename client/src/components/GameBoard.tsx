@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { socketClient } from '../network/SocketClient';
 import { Revolver } from './Revolver';
@@ -139,6 +139,9 @@ export function GameBoard({
   const [isSpectatorModeVisual, setIsSpectatorModeVisual] = useState<boolean>(false);
   const [deathMessage, setDeathMessage] = useState<string>('');
   const [pendingActionText, setPendingActionText] = useState<string | null>(null);
+  const [mulliganAnimating, setMulliganAnimating] = useState<boolean>(false);
+  const [mulliganSacrificeIndex, setMulliganSacrificeIndex] = useState<number | null>(null);
+  const mulliganTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const opponentPlayers = players.filter(p => p.id !== localId);
   
   interface PileCard {
@@ -300,6 +303,15 @@ export function GameBoard({
       if (handCards.length > 0 && handCards.length > prevHandCardsLength.current && phase === 'choosing') {
         prevHandCardsLength.current = handCards.length;
         setIsDealing(false);
+      }
+      // Reset mulligan animation when hand changes (mulligan succeeded)
+      if (mulliganAnimating) {
+        if (mulliganTimerRef.current) {
+          clearTimeout(mulliganTimerRef.current);
+          mulliganTimerRef.current = null;
+        }
+        setMulliganAnimating(false);
+        setMulliganSacrificeIndex(null);
       }
   }, [handCards, phase, sortedHandCards]);
 
@@ -556,6 +568,29 @@ export function GameBoard({
     setTimeout(() => setHudMessage(null), duration);
   };
 
+  const handleMulliganClick = useCallback(() => {
+    if (mulliganAnimating || !onMulligan) return;
+    setMulliganAnimating(true);
+    setMulliganSacrificeIndex(Math.floor(Math.random() * sortedHandCards.length));
+    Sounds.cardPlay();
+    mulliganTimerRef.current = setTimeout(() => {
+      onMulligan();
+      setMulliganAnimating(false);
+      setMulliganSacrificeIndex(null);
+      mulliganTimerRef.current = null;
+    }, 800);
+  }, [mulliganAnimating, onMulligan, sortedHandCards.length]);
+
+  // Cleanup mulligan animation on unmount
+  useEffect(() => {
+    return () => {
+      if (mulliganTimerRef.current) {
+        clearTimeout(mulliganTimerRef.current);
+        mulliganTimerRef.current = null;
+      }
+    };
+  }, []);
+
   useEffect(() => {
     if (playedCard) {
       setPendingActionText(null);
@@ -632,7 +667,7 @@ export function GameBoard({
     return { border: 'var(--red-theme-border)', glow: 'var(--red-theme)', glowLight: 'var(--red-theme-bg)' };
   };
 
-  const localPlayer = players.find(p => p.id === localId) || { name: 'YOU', isAlive: true, shotsFired: 0 };
+  const localPlayer = players.find(p => p.id === localId) || { name: 'YOU', isAlive: true, shotsFired: 0, hasUsedMulligan: false };
   const isSpectating = !localPlayer.isAlive;
 
   const isMyTurn = currentTurnId === localId;
@@ -1366,6 +1401,133 @@ export function GameBoard({
           )}
         </div>
       </div>
+
+      {/* 5. Draw Deck - Left Side (for Mulligan) */}
+      {isMyTurn && localPlayer.isAlive && onMulligan && !localPlayer.hasUsedMulligan && handCards.length > 0 && (
+        <div className="absolute bottom-24 sm:bottom-32 left-2 sm:left-6 z-20">
+          <motion.button
+            whileHover={{ scale: 1.05, x: 5 }}
+            whileTap={{ scale: 0.95 }}
+            animate={mulliganAnimating ? { 
+              scale: [1, 1.15, 1],
+              filter: ['brightness(1)', 'brightness(1.6)', 'brightness(1)'],
+            } : {}}
+            transition={mulliganAnimating ? { duration: 0.8, ease: 'easeInOut' } : {}}
+            onClick={handleMulliganClick}
+            disabled={mulliganAnimating}
+            className={`relative flex flex-col items-center gap-2 cursor-pointer group ${mulliganAnimating ? 'pointer-events-none' : ''}`}
+            title="Đổi bài (hy sinh 1 lá + rút 1 lá mới)"
+          >
+            {/* Deck stack visual */}
+            <div className="relative w-16 h-24 sm:w-20 sm:h-28">
+              {/* Bottom cards (stack effect) */}
+              <div className="absolute bottom-0 left-1 w-full h-full bg-surface-3 border border-cyan-theme-muted rounded-sm transform rotate-2" />
+              <div className="absolute bottom-0.5 left-0.5 w-full h-full bg-surface-2 border border-cyan-theme-muted rounded-sm transform -rotate-1" />
+              <div className="absolute bottom-1 left-0 w-full h-full bg-surface border border-cyan-theme-muted rounded-sm transform rotate-1" />
+              {/* Top card */}
+              <div className="absolute bottom-1.5 left-0 w-full h-full bg-card-theme border-2 border-cyan-theme rounded-sm flex flex-col items-center justify-center gap-1 group-hover:border-cyan-theme-light group-hover:bg-cyan-theme-light/10 transition-all duration-200">
+                <span className="text-[8px] sm:text-[9px] font-mono font-bold text-cyan-theme tracking-wider">DECK</span>
+                <div className="w-6 h-6 sm:w-8 sm:h-8 border border-cyan-theme/50 rounded-sm flex items-center justify-center">
+                  <span className="text-cyan-theme text-lg sm:text-xl">?</span>
+                </div>
+                <span className="text-[7px] sm:text-[8px] font-mono text-cyan-theme-muted">DRAW</span>
+              </div>
+              {/* Mulligan glow ring */}
+              {mulliganAnimating && (
+                <motion.div
+                  className="absolute -inset-2 border-2 border-cyan-theme rounded-lg"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: [0, 0.8, 0], scale: [0.8, 1.3, 1.5] }}
+                  transition={{ duration: 0.8, ease: 'easeOut' }}
+                />
+              )}
+            </div>
+            {/* Label */}
+            <div className="flex flex-col items-center">
+              <span className="text-[8px] sm:text-[9px] font-mono font-bold text-cyan-theme tracking-wider group-hover:text-cyan-theme-light transition-colors">
+                ĐỔI BÀI
+              </span>
+              <span className="text-[7px] sm:text-[8px] font-mono text-cyan-theme-muted">
+                // SACRIFICE 1
+              </span>
+            </div>
+          </motion.button>
+        </div>
+      )}
+
+      {/* Mulligan sacrifice card fly animation */}
+      <AnimatePresence>
+        {mulliganAnimating && mulliganSacrificeIndex !== null && sortedHandCards[mulliganSacrificeIndex] && (
+          <motion.div
+            key="sacrifice-fly"
+            className="absolute z-50 pointer-events-none"
+            initial={{ 
+              bottom: '6rem',
+              left: '50%',
+              x: `${(mulliganSacrificeIndex - (sortedHandCards.length - 1) / 2) * 65}px`,
+              opacity: 1,
+              scale: 1,
+              rotate: 0,
+            }}
+            animate={{ 
+              bottom: ['6rem', '10rem', '18rem'],
+              left: ['50%', '35%', '8%'],
+              x: '0px',
+              opacity: [1, 1, 0],
+              scale: [1, 0.8, 0.3],
+              rotate: [0, -15, -30],
+            }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.7, ease: [0.4, 0, 0.2, 1] }}
+          >
+            <div className="w-20 h-28 sm:w-24 sm:h-32 bg-card-theme border-2 border-red-theme rounded-sm flex flex-col items-center justify-center gap-1 shadow-lg shadow-red-theme/30">
+              <span className="text-[8px] font-mono font-bold text-red-theme tracking-wider">SACRIFICE</span>
+              <div className="w-5 h-5 border border-red-theme/50 rounded-sm flex items-center justify-center">
+                <span className="text-red-theme text-sm">X</span>
+              </div>
+              <span className="text-[7px] font-mono text-red-theme-muted">
+                {sortedHandCards[mulliganSacrificeIndex].type === 'NUMBER' 
+                  ? sortedHandCards[mulliganSacrificeIndex].value 
+                  : sortedHandCards[mulliganSacrificeIndex].type}
+              </span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Mulligan deck draw animation */}
+      <AnimatePresence>
+        {mulliganAnimating && (
+          <motion.div
+            key="draw-fly"
+            className="absolute z-50 pointer-events-none"
+            initial={{ 
+              bottom: '18rem',
+              left: '8%',
+              opacity: 0,
+              scale: 0.3,
+              rotate: -30,
+            }}
+            animate={{ 
+              bottom: ['18rem', '10rem', '6rem'],
+              left: ['8%', '35%', '50%'],
+              opacity: [0, 1, 1, 0],
+              scale: [0.3, 0.8, 1, 1],
+              rotate: [-30, 15, 0],
+            }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.7, ease: [0.4, 0, 0.2, 1], delay: 0.3 }}
+          >
+            <div className="w-20 h-28 sm:w-24 sm:h-32 bg-card-theme border-2 border-cyan-theme rounded-sm flex flex-col items-center justify-center gap-1 shadow-lg shadow-cyan-theme/30">
+              <span className="text-[8px] font-mono font-bold text-cyan-theme tracking-wider">NEW CARD</span>
+              <div className="w-5 h-5 border border-cyan-theme/50 rounded-sm flex items-center justify-center">
+                <span className="text-cyan-theme text-sm">?</span>
+              </div>
+              <span className="text-[7px] font-mono text-cyan-theme-muted">DRAWN</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {false && (hudMessage || botHudMessage) && (

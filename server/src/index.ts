@@ -257,7 +257,7 @@ io.on('connection', (socket) => {
       rejectInvalidPayload(socket, 'game:mulligan');
       return;
     }
-    gameManager.handleMulligan(roomId, socket.id);
+    gameManager.handleMulligan(roomId, socket.id, socket);
   });
 
   socket.on('game:leaveAfterDeath', (data: unknown) => {

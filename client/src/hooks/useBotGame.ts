@@ -68,7 +68,7 @@ function createDeck(): Card[] {
   }
 
   for (let i = 0; i < 4; i++) deck.push({ id: `skip-${i}-${id++}`, type: 'SKIP' });
-  for (let i = 0; i < 4; i++) deck.push({ id: `block-${i}-${id++}`, type: 'BLOCK' });
+  deck.push({ id: `block-${id++}`, type: 'BLOCK' });
   for (let i = 0; i < 4; i++) deck.push({ id: `reverse-${i}-${id++}`, type: 'REVERSE' });
   for (let i = 0; i < 2; i++) deck.push({ id: `joker-${i}-${id++}`, type: 'JOKER' });
   deck.push({ id: `standoff-${id++}`, type: 'STANDOFF' });
@@ -83,31 +83,15 @@ function createDeck(): Card[] {
 
 function drawCards(deckRef: MutableRefObject<Card[]>, count: number): Card[] {
   const cards: Card[] = [];
-  let blockCount = 0;
-  const skippedCards: Card[] = [];
 
   for (let i = 0; i < count; i++) {
     if (deckRef.current.length === 0) {
       deckRef.current = createDeck();
     }
-    let card = deckRef.current.pop();
-    
-    while (card && card.type === 'BLOCK' && blockCount >= 1) {
-      skippedCards.push(card);
-      if (deckRef.current.length === 0) {
-        deckRef.current = createDeck();
-      }
-      card = deckRef.current.pop();
-    }
-
+    const card = deckRef.current.pop();
     if (card) {
       cards.push(card);
-      if (card.type === 'BLOCK') blockCount++;
     }
-  }
-
-  if (skippedCards.length > 0) {
-    deckRef.current.unshift(...skippedCards);
   }
 
   return cards;
@@ -444,13 +428,24 @@ export function useBotGame(playerName: string, callbacks: BotGameCallbacks) {
 
     const player = playersRef.current[currentTurnIndexRef.current];
     if (!player?.isAlive || player.hasUsedMulligan) return false;
+    if (player.hand.length === 0) return false; // Cannot mulligan with empty hand
 
     player.hasUsedMulligan = true;
-    dealIfNeeded(player, true);
+
+    // Sacrifice 1 random card from hand
+    const sacrificeIndex = Math.floor(Math.random() * player.hand.length);
+    player.hand = player.hand.filter((_, i) => i !== sacrificeIndex);
+
+    // Draw 1 new card from deck
+    const newCards = drawCards(deckRef, 1);
+    if (newCards.length > 0) {
+      player.hand.push(newCards[0]);
+    }
+
     updatePlayerViews();
-    setBotHudMessage({ text: `${player.name} redrew their hand`, color: 'cyan' });
+    setBotHudMessage({ text: `${player.name} sacrificed a card and drew a new one`, color: 'cyan' });
     return true;
-  }, [dealIfNeeded, updatePlayerViews]);
+  }, [updatePlayerViews]);
 
   function runBotTurn() {
     if (phaseRef.current !== 'choosing') return;

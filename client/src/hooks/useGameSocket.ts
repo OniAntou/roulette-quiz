@@ -75,6 +75,11 @@ export function useGameSocket(
       callbacks.setPlayedCard(null);
     });
 
+    socketClient.on('game:autoTriggerCountdown', (data: { playerId: string; delay: number }) => {
+      // Auto-trigger countdown - player has no playable cards and no mulligan
+      // Could show a countdown UI if needed
+    });
+
     socketClient.on('game:stateUpdate', (data: { currentNumber: number; direction: number }) => {
       callbacks.setCurrentNumber(data.currentNumber);
       callbacks.setDirection(data.direction);
@@ -98,6 +103,10 @@ export function useGameSocket(
 
     socketClient.on('game:mulliganUsed', (data: { playerId: string }) => {
       // Could play a sound or show a flash
+    });
+
+    socketClient.on('game:mulliganFailed', (data: { reason: string }) => {
+      console.warn(`[Mulligan] Failed: ${data.reason}`);
     });
 
     socketClient.on('game:trigger', (data: TriggerResult) => {
@@ -220,11 +229,11 @@ export function useGameSocket(
       callbacks.setPlayers(prev => prev.filter(p => p.id !== data.playerId));
     });
 
-    socketClient.on('game:cardsUpdate', (data: { players: { id: string; cardsCount: number; isAlive: boolean; shotsFired: number }[] }) => {
+    socketClient.on('game:cardsUpdate', (data: { players: { id: string; cardsCount: number; isAlive: boolean; shotsFired: number; hasUsedMulligan: boolean }[] }) => {
       callbacks.setPlayers(prev => prev.map(p => {
         const update = data.players.find((u: any) => u.id === p.id);
         if (update) {
-          return { ...p, cardsCount: update.cardsCount, isAlive: update.isAlive, shotsFired: update.shotsFired };
+          return { ...p, cardsCount: update.cardsCount, isAlive: update.isAlive, shotsFired: update.shotsFired, hasUsedMulligan: update.hasUsedMulligan };
         }
         return p;
       }));
@@ -235,7 +244,7 @@ export function useGameSocket(
     });
 
     return () => {
-      ['room:created', 'room:joined', 'room:players', 'room:left', 'game:start', 'game:deal', 'game:turn', 'game:cardPlayed', 'game:mulliganUsed', 'game:stateUpdate', 'game:trigger', 'game:standoffResult', 'game:newRound', 'game:over', 'game:playerLeft', 'game:playerLeftAfterDeath', 'game:cardsUpdate', 'error'].forEach(event => {
+      ['room:created', 'room:joined', 'room:players', 'room:left', 'game:start', 'game:deal', 'game:turn', 'game:cardPlayed', 'game:mulliganUsed', 'game:mulliganFailed', 'game:stateUpdate', 'game:trigger', 'game:standoffResult', 'game:newRound', 'game:over', 'game:playerLeft', 'game:playerLeftAfterDeath', 'game:cardsUpdate', 'game:autoTriggerCountdown', 'error'].forEach(event => {
         socketClient.clearListeners(event);
       });
     };
