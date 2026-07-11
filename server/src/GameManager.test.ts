@@ -74,6 +74,7 @@ describe('GameManager current card rules', () => {
       currentPosition: 0,
       bulletsFired: 0,
     };
+    game.players[0].hand = game.players[0].hand.filter(card => card.type !== 'BLOCK');
 
     gameManager.handlePullTrigger(room.id, 'p1');
     expect(game.phase).toBe('trigger');

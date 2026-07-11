@@ -15,6 +15,9 @@ export interface Player {
   left?: boolean;
   shotsFired: number;
   hasUsedMulligan: boolean;
+  reconnectToken?: string;
+  reconnecting?: boolean;
+  reconnectDeadline?: number;
 }
 
 export interface Room {
@@ -60,4 +63,6 @@ export interface GameState {
   triggerTimeout?: NodeJS.Timeout;
   postTriggerTimeout?: NodeJS.Timeout;
   newRound?: boolean;
+  paused?: boolean;
+  reconnectTimeouts?: Map<string, NodeJS.Timeout>;
 }

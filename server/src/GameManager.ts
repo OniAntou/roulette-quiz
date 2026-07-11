@@ -6,6 +6,8 @@ import { GAME_CONSTANTS } from '../../shared/constants';
 import { GunEngine } from './GunEngine';
 import { TimeoutManager } from './TimeoutManager';
 import { DeckManager } from './DeckManager';
+import { canPlayCard, EMPTY_TABLE, JOKER_TABLE } from '../../shared/gameRules';
+import crypto from 'crypto';
 
 export class GameManager {
   private roomManager: RoomManager;
@@ -48,6 +50,7 @@ export class GameManager {
         isAlive: true,
         shotsFired: 0,
         hasUsedMulligan: false,
+        reconnectToken: crypto.randomUUID(),
       })),
       currentTurn: 0,
       direction: 1,
@@ -57,6 +60,8 @@ export class GameManager {
       round: 1,
       gun: this.gunEngine.createGun(),
       stats: { players: {}, totalRounds: 0 },
+      paused: false,
+      reconnectTimeouts: new Map(),
     };
 
     this.games.set(roomId, gameState);
@@ -72,6 +77,12 @@ export class GameManager {
         hasUsedMulligan: false,
       })),
       round: gameState.round,
+    });
+    gameState.players.forEach(player => {
+      this.io.sockets.sockets.get(player.id)?.emit('game:session', {
+        roomId,
+        token: player.reconnectToken,
+      });
     });
 
     setTimeout(async () => {
@@ -136,7 +147,7 @@ export class GameManager {
 
   handlePlayCard(roomId: string, socketId: string, cardId: string): void {
     const game = this.games.get(roomId);
-    if (!game || game.phase !== GAME_CONSTANTS.STATES.CHOOSING) return;
+    if (!game || game.paused || game.phase !== GAME_CONSTANTS.STATES.CHOOSING) return;
 
     const playerIndex = game.players.findIndex(p => p.id === socketId);
     if (playerIndex === -1 || playerIndex !== game.currentTurn || !game.players[playerIndex].isAlive) return;
@@ -146,10 +157,7 @@ export class GameManager {
     if (cardIndex === -1) return;
     const card = player.hand[cardIndex];
 
-    // Validate play
-    if (card.type === 'NUMBER') {
-      if (card.value! < game.currentNumber) return; // Must be >= current number
-    }
+    if (!canPlayCard(card, game.currentNumber)) return;
 
     // Process card
     player.hand.splice(cardIndex, 1);
@@ -177,7 +185,7 @@ export class GameManager {
       game.currentNumber = card.value!;
       game.turnStack.push(card);
     } else if (card.type === 'JOKER') {
-      game.currentNumber = 0; // Reset table
+      game.currentNumber = JOKER_TABLE;
       game.turnStack = [];
     } else if (card.type === 'BLOCK') {
       // Just passes the turn without pulling trigger or changing table
@@ -200,7 +208,7 @@ export class GameManager {
 
   handlePullTrigger(roomId: string, socketId: string): void {
     const game = this.games.get(roomId);
-    if (!game || game.phase !== GAME_CONSTANTS.STATES.CHOOSING) return;
+    if (!game || game.paused || game.phase !== GAME_CONSTANTS.STATES.CHOOSING) return;
 
     const playerIndex = game.players.findIndex(p => p.id === socketId);
     if (playerIndex === -1 || playerIndex !== game.currentTurn || !game.players[playerIndex].isAlive) return;
@@ -209,7 +217,7 @@ export class GameManager {
     game.phase = GAME_CONSTANTS.STATES.TRIGGER;
     game.targetPlayer = playerIndex; // They target themselves
     // Cannot beat the table number, so the player pulls the trigger and the table resets.
-    game.currentNumber = 0;
+    game.currentNumber = EMPTY_TABLE;
     game.turnStack = [];
 
     this.gunEngine.pullTrigger(roomId, game);
@@ -217,7 +225,7 @@ export class GameManager {
 
   handleMulligan(roomId: string, socketId: string, requestSocket?: any): void {
     const game = this.games.get(roomId);
-    if (!game || game.phase !== GAME_CONSTANTS.STATES.CHOOSING) {
+    if (!game || game.paused || game.phase !== GAME_CONSTANTS.STATES.CHOOSING) {
       console.warn(`[Mulligan] Rejected: game not found or phase is '${game?.phase}'`);
       requestSocket?.emit('game:mulliganFailed', { reason: 'not_allowed' });
       return;
@@ -272,15 +280,74 @@ export class GameManager {
   }
 
   private hasPlayableCard(player: Player, currentNumber: number): boolean {
-    return player.hand.some(card => {
-      if (card.type === 'NUMBER') return (card.value ?? 0) >= currentNumber;
-      if (card.type === 'BLOCK') return false; // Passive, cannot be played
-      return true; // SKIP, REVERSE, JOKER, STANDOFF are always playable
-    });
+    return player.hand.some(card => canPlayCard(card, currentNumber));
   }
 
   private canMulligan(player: Player): boolean {
     return !player.hasUsedMulligan && player.hand.length > 0;
+  }
+
+  handleTransportDisconnect(socketId: string): boolean {
+    for (const [roomId, game] of this.games.entries()) {
+      const player = game.players.find(p => p.id === socketId);
+      if (!player || !player.isAlive || player.reconnecting) continue;
+
+      TimeoutManager.clearChoosing(game);
+      TimeoutManager.clearPostTrigger(game);
+      game.paused = true;
+      player.reconnecting = true;
+      player.reconnectDeadline = Date.now() + 30_000;
+      this.io.to(roomId).emit('game:reconnecting', { playerId: socketId, deadline: player.reconnectDeadline });
+      const timeout = setTimeout(() => {
+        if (player.reconnecting && player.reconnectDeadline && player.reconnectDeadline <= Date.now()) {
+          player.reconnecting = false;
+          game.reconnectTimeouts?.delete(socketId);
+          this.handleDisconnect(socketId);
+        }
+      }, 30_000);
+      game.reconnectTimeouts?.set(socketId, timeout);
+      return true;
+    }
+    return false;
+  }
+
+  handleReconnect(roomId: string, token: string, socket: any): boolean {
+    const game = this.games.get(roomId);
+    if (!game) return false;
+    const player = game.players.find(p => p.reconnecting && p.reconnectToken === token && (p.reconnectDeadline ?? 0) > Date.now());
+    if (!player) return false;
+
+    const oldSocketId = player.id;
+    if (!this.roomManager.replacePlayerSocketId(roomId, oldSocketId, socket.id)) return false;
+    const timeout = game.reconnectTimeouts?.get(oldSocketId);
+    if (timeout) clearTimeout(timeout);
+    game.reconnectTimeouts?.delete(oldSocketId);
+    player.id = socket.id;
+    player.reconnecting = false;
+    player.reconnectDeadline = undefined;
+    if (game.stats.players[oldSocketId]) {
+      game.stats.players[socket.id] = game.stats.players[oldSocketId];
+      delete game.stats.players[oldSocketId];
+    }
+    socket.join(roomId);
+    socket.emit(GAME_CONSTANTS.EVENTS.GAME_DEAL, { cards: player.hand });
+    socket.emit('game:stateSnapshot', {
+      players: game.players.map(({ hand, reconnectToken, ...publicPlayer }) => ({ ...publicPlayer, cardsCount: hand.length })),
+      round: game.round,
+      phase: game.phase,
+      currentTurnId: game.players[game.currentTurn]?.id,
+      currentNumber: game.currentNumber,
+      direction: game.direction,
+    });
+    if (!game.players.some(p => p.reconnecting)) {
+      game.paused = false;
+      this.io.to(roomId).emit('game:resumed');
+      if (game.phase === GAME_CONSTANTS.STATES.CHOOSING) {
+        this.io.to(roomId).emit('game:turn', { playerId: game.players[game.currentTurn].id });
+        this.startTurnTimeout(roomId, game);
+      }
+    }
+    return true;
   }
 
   private getNextAlivePlayer(game: GameState, fromIndex: number, direction: number = 1): number {
@@ -351,6 +418,9 @@ export class GameManager {
     for (const [roomId, game] of this.games.entries()) {
       const playerIndex = game.players.findIndex(p => p.id === socketId);
       if (playerIndex !== -1) {
+        const reconnectTimeout = game.reconnectTimeouts?.get(socketId);
+        if (reconnectTimeout) clearTimeout(reconnectTimeout);
+        game.reconnectTimeouts?.delete(socketId);
         const alivePlayersBefore = game.players.filter(p => p.isAlive && p.id !== socketId);
         game.players[playerIndex].isAlive = false;
 

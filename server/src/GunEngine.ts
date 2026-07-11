@@ -1,6 +1,7 @@
 import { Server } from 'socket.io';
 import crypto from 'crypto';
 import { GameState, Gun } from './types';
+import { consumeBlock } from '../../shared/gameRules';
 
 export interface GunEngineCallbacks {
   dealCards: (roomId: string) => Promise<void>;
@@ -38,7 +39,15 @@ export class GunEngine {
     for (const p of alivePlayers) {
       const isDead = Math.random() < (1/6);
       p.shotsFired = (p.shotsFired || 0) + 1;
+      let usedBlock = false;
       if (isDead) {
+        const protection = consumeBlock(p.hand);
+        usedBlock = protection.used;
+        if (usedBlock) {
+          p.hand = protection.hand;
+        }
+      }
+      if (isDead && !usedBlock) {
         p.isAlive = false;
         this.callbacks.ensurePlayerStats(game, p.id);
         game.stats.players[p.id].triggerDied++;
@@ -46,7 +55,7 @@ export class GunEngine {
         this.callbacks.ensurePlayerStats(game, p.id);
         game.stats.players[p.id].triggerSurvived++;
       }
-      results.push({ playerId: p.id, alive: !isDead });
+      results.push({ playerId: p.id, alive: !isDead || usedBlock, usedBlock } as any);
     }
 
     // Emit result
@@ -94,7 +103,12 @@ export class GunEngine {
     const targetPlayer = game.players[game.targetPlayer!];
     targetPlayer.shotsFired++;
 
-    if (bullet) {
+    const protection = bullet ? consumeBlock(targetPlayer.hand) : { used: false, hand: targetPlayer.hand };
+    if (protection.used) {
+      targetPlayer.hand = protection.hand;
+    }
+
+    if (bullet && !protection.used) {
       // BULLET HIT - player dies
       targetPlayer.isAlive = false;
       this.callbacks.ensurePlayerStats(game, targetPlayer.id);
@@ -108,6 +122,7 @@ export class GunEngine {
         currentPosition: gun.currentPosition,
         bulletsFired: gun.bulletsFired,
         shotsFired: targetPlayer.shotsFired,
+        usedBlock: false,
       });
 
       const alivePlayers = game.players.filter(p => p.isAlive);
@@ -149,6 +164,7 @@ export class GunEngine {
         currentPosition: gun.currentPosition,
         bulletsFired: gun.bulletsFired,
         shotsFired: targetPlayer.shotsFired,
+        usedBlock: protection.used,
       });
 
       // Survived: just continue the game, same round, same gun

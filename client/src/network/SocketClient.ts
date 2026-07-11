@@ -109,6 +109,10 @@ class SocketClient {
     this.socket.on('game:turn', (data: any) => this.emit('game:turn', data));
     this.socket.on('game:standoffResult', (data: any) => this.emit('game:standoffResult', data));
     this.socket.on('game:autoTriggerCountdown', (data: any) => this.emit('game:autoTriggerCountdown', data));
+    this.socket.on('game:session', (data: any) => this.emit('game:session', data));
+    this.socket.on('game:stateSnapshot', (data: any) => this.emit('game:stateSnapshot', data));
+    this.socket.on('game:reconnecting', (data: any) => this.emit('game:reconnecting', data));
+    this.socket.on('game:resumed', (data: any) => this.emit('game:resumed', data));
 
     this.socket.on('chat:message', (data: any) => this.emit('chat:message', data));
     this.socket.on('chat:global_message', (data: any) => this.emit('chat:global_message', data));
@@ -180,6 +184,10 @@ class SocketClient {
 
   sendMulligan(roomId: string): void {
     this.send('game:mulligan', { roomId });
+  }
+
+  reconnectGame(roomId: string, token: string): void {
+    this.send('game:reconnect', { roomId, token });
   }
 
   sendChat(roomId: string, message: string): void {

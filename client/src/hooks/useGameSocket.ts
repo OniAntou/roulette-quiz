@@ -25,6 +25,7 @@ export function useGameSocket(
   playerName: string,
   callbacks: GameSocketCallbacks
 ) {
+  const gameSessionKey = 'roulette-quiz:game-session';
   const localPlayerIdRef = useRef<string>(localPlayerId);
   localPlayerIdRef.current = localPlayerId;
   
@@ -49,6 +50,7 @@ export function useGameSocket(
     });
 
     socketClient.on('room:left', () => {
+      sessionStorage.removeItem(gameSessionKey);
       callbacks.setRoomId('');
       callbacks.setLocalPlayerId('');
       callbacks.setPlayers([]);
@@ -64,6 +66,34 @@ export function useGameSocket(
       callbacks.setTriggerResult(null);
       callbacks.setScreen('game');
     });
+
+    socketClient.on('game:session', (data: { roomId: string; token: string }) => {
+      sessionStorage.setItem(gameSessionKey, JSON.stringify(data));
+    });
+
+    socketClient.on('_reconnect', () => {
+      const raw = sessionStorage.getItem(gameSessionKey);
+      if (!raw) return;
+      try {
+        const session = JSON.parse(raw) as { roomId: string; token: string };
+        socketClient.reconnectGame(session.roomId, session.token);
+      } catch {
+        sessionStorage.removeItem(gameSessionKey);
+      }
+    });
+
+    socketClient.on('game:stateSnapshot', (data: { players: Player[]; round: number; phase: GamePhase; currentTurnId: string; currentNumber: number; direction: number }) => {
+      callbacks.setPlayers(data.players);
+      callbacks.setRound(data.round);
+      callbacks.setPhase(data.phase);
+      callbacks.setCurrentTurnId(data.currentTurnId);
+      callbacks.setCurrentNumber(data.currentNumber);
+      callbacks.setDirection(data.direction);
+      callbacks.setScreen('game');
+    });
+
+    socketClient.on('game:reconnecting', () => callbacks.setErrorMsg('PLAYER RECONNECTING // MATCH PAUSED'));
+    socketClient.on('game:resumed', () => callbacks.setErrorMsg(''));
 
     socketClient.on('game:deal', (data: { cards: Card[] }) => {
       callbacks.setHandCards(data.cards);
@@ -198,6 +228,7 @@ export function useGameSocket(
     });
 
     socketClient.on('game:over', (data: { winner: string; winnerId?: string; stats?: any }) => {
+      sessionStorage.removeItem(gameSessionKey);
       const curLocalId = localPlayerIdRef.current;
       const curPlayerName = playerNameRef.current;
       const isLocal = data.winnerId ? data.winnerId === curLocalId : data.winner === curPlayerName;
@@ -244,7 +275,7 @@ export function useGameSocket(
     });
 
     return () => {
-      ['room:created', 'room:joined', 'room:players', 'room:left', 'game:start', 'game:deal', 'game:turn', 'game:cardPlayed', 'game:mulliganUsed', 'game:mulliganFailed', 'game:stateUpdate', 'game:trigger', 'game:standoffResult', 'game:newRound', 'game:over', 'game:playerLeft', 'game:playerLeftAfterDeath', 'game:cardsUpdate', 'game:autoTriggerCountdown', 'error'].forEach(event => {
+      ['room:created', 'room:joined', 'room:players', 'room:left', 'game:start', 'game:session', 'game:stateSnapshot', 'game:reconnecting', 'game:resumed', '_reconnect', 'game:deal', 'game:turn', 'game:cardPlayed', 'game:mulliganUsed', 'game:mulliganFailed', 'game:stateUpdate', 'game:trigger', 'game:standoffResult', 'game:newRound', 'game:over', 'game:playerLeft', 'game:playerLeftAfterDeath', 'game:cardsUpdate', 'game:autoTriggerCountdown', 'error'].forEach(event => {
         socketClient.clearListeners(event);
       });
     };

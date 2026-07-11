@@ -44,6 +44,15 @@ const io = new Server(server, {
 const roomManager = new RoomManager();
 const gameManager = new GameManager(roomManager, io);
 
+function getCanonicalRoomId(socket: Socket, requestedRoomId?: string): string | undefined {
+  const roomId = roomManager.getRoomIdForPlayer(socket.id);
+  if (!roomId || (requestedRoomId && roomId !== requestedRoomId)) {
+    socket.emit('error', { code: 'ROOM_MEMBERSHIP_REQUIRED', message: 'Socket is not a member of that room.' });
+    return undefined;
+  }
+  return roomId;
+}
+
 const globalPlayerNames = new Map<string, string>();
 
 const RATE_LIMIT_WINDOW = 1000;
@@ -154,6 +163,12 @@ io.on('connection', (socket) => {
       return;
     }
 
+    const previousRoomId = roomManager.getRoomIdForPlayer(socket.id);
+    if (previousRoomId) {
+      if (roomManager.getRoom(previousRoomId)?.state === 'playing') gameManager.handleDisconnect(socket.id);
+      socket.leave(previousRoomId);
+      roomManager.handleDisconnect(socket.id);
+    }
     const isPublic = getOptionalBoolean(data, 'isPublic') ?? true;
     const room = roomManager.createRoom(socket.id, playerName, isPublic);
     socket.join(room.id);
@@ -174,6 +189,12 @@ io.on('connection', (socket) => {
       return;
     }
 
+    const previousRoomId = roomManager.getRoomIdForPlayer(socket.id);
+    if (previousRoomId && previousRoomId !== roomId) {
+      if (roomManager.getRoom(previousRoomId)?.state === 'playing') gameManager.handleDisconnect(socket.id);
+      socket.leave(previousRoomId);
+      roomManager.handleDisconnect(socket.id);
+    }
     console.log(`[JOIN] Player ${playerName} (${socket.id}) joining room ${roomId}`);
     const result = roomManager.joinRoom(roomId, socket.id, playerName);
     console.log('[JOIN] Result:', result);
@@ -199,6 +220,7 @@ io.on('connection', (socket) => {
       return;
     }
 
+    if (!getCanonicalRoomId(socket, roomId)) return;
     console.log(`[READY] Player ${socket.id} toggling ready in room ${roomId}`);
     const result = roomManager.toggleReady(roomId, socket.id);
     console.log('[READY] Result:', result);
@@ -223,12 +245,15 @@ io.on('connection', (socket) => {
       return;
     }
 
-    roomManager.leaveRoom(roomId, socket.id);
-    socket.leave(roomId);
+    const canonicalRoomId = getCanonicalRoomId(socket, roomId);
+    if (!canonicalRoomId) return;
+    if (roomManager.getRoom(canonicalRoomId)?.state === 'playing') gameManager.handleDisconnect(socket.id);
+    roomManager.leaveRoom(canonicalRoomId, socket.id);
+    socket.leave(canonicalRoomId);
     socket.emit('room:left');
-    const updatedRoom = roomManager.getRoom(roomId);
+    const updatedRoom = roomManager.getRoom(canonicalRoomId);
     if (updatedRoom) {
-      io.to(roomId).emit('room:players', { players: updatedRoom.players });
+      io.to(canonicalRoomId).emit('room:players', { players: updatedRoom.players });
     }
   });
 
@@ -239,7 +264,8 @@ io.on('connection', (socket) => {
       rejectInvalidPayload(socket, 'game:play_card');
       return;
     }
-    gameManager.handlePlayCard(roomId, socket.id, cardId);
+    const canonicalRoomId = getCanonicalRoomId(socket, roomId);
+    if (canonicalRoomId) gameManager.handlePlayCard(canonicalRoomId, socket.id, cardId);
   });
 
   socket.on('game:pull_trigger', (data: unknown) => {
@@ -248,7 +274,8 @@ io.on('connection', (socket) => {
       rejectInvalidPayload(socket, 'game:pull_trigger');
       return;
     }
-    gameManager.handlePullTrigger(roomId, socket.id);
+    const canonicalRoomId = getCanonicalRoomId(socket, roomId);
+    if (canonicalRoomId) gameManager.handlePullTrigger(canonicalRoomId, socket.id);
   });
 
   socket.on('game:mulligan', (data: unknown) => {
@@ -257,7 +284,8 @@ io.on('connection', (socket) => {
       rejectInvalidPayload(socket, 'game:mulligan');
       return;
     }
-    gameManager.handleMulligan(roomId, socket.id, socket);
+    const canonicalRoomId = getCanonicalRoomId(socket, roomId);
+    if (canonicalRoomId) gameManager.handleMulligan(canonicalRoomId, socket.id, socket);
   });
 
   socket.on('game:leaveAfterDeath', (data: unknown) => {
@@ -266,8 +294,10 @@ io.on('connection', (socket) => {
       rejectInvalidPayload(socket, 'game:leaveAfterDeath');
       return;
     }
-    gameManager.handleLeaveAfterDeath(roomId, socket.id);
-    socket.leave(roomId);
+    const canonicalRoomId = getCanonicalRoomId(socket, roomId);
+    if (!canonicalRoomId) return;
+    gameManager.handleLeaveAfterDeath(canonicalRoomId, socket.id);
+    socket.leave(canonicalRoomId);
     socket.emit('room:left');
   });
 
@@ -279,13 +309,15 @@ io.on('connection', (socket) => {
     const clean = message.replace(/<[^>]*>/g, '').trim().slice(0, 200);
     if (!clean) return;
 
-    const room = roomManager.getRoom(roomId);
+    const canonicalRoomId = getCanonicalRoomId(socket, roomId);
+    if (!canonicalRoomId) return;
+    const room = roomManager.getRoom(canonicalRoomId);
     if (!room) return;
 
     const player = room.players.find(p => p.id === socket.id);
     if (!player) return;
 
-    io.to(roomId).emit('chat:message', {
+    io.to(canonicalRoomId).emit('chat:message', {
       senderId: socket.id,
       sender: player.name,
       message: clean,
@@ -316,16 +348,29 @@ io.on('connection', (socket) => {
 
     const previousRoom = roomManager.getPlayerRoom(socket.id);
     const previousRoomId = previousRoom?.id;
-    roomManager.handleDisconnect(socket.id);
+    const isPlaying = previousRoom?.state === 'playing';
+    if (isPlaying) {
+      gameManager.handleTransportDisconnect(socket.id);
+    } else {
+      roomManager.handleDisconnect(socket.id);
+    }
 
-    if (previousRoomId) {
+    if (previousRoomId && !isPlaying) {
       const updatedRoom = roomManager.getRoom(previousRoomId);
       if (updatedRoom && updatedRoom.state === 'waiting') {
         io.to(previousRoomId).emit('room:players', { players: updatedRoom.players });
       }
     }
 
-    gameManager.handleDisconnect(socket.id);
+    if (!isPlaying) gameManager.handleDisconnect(socket.id);
+  });
+
+  socket.on('game:reconnect', (data: unknown) => {
+    const roomId = getString(data, 'roomId')?.toUpperCase();
+    const token = getString(data, 'token');
+    if (!roomId || !token || !gameManager.handleReconnect(roomId, token, socket)) {
+      socket.emit('error', { code: 'RECONNECT_FAILED', message: 'Unable to restore game session.' });
+    }
   });
 });
 
