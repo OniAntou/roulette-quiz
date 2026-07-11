@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { socketClient } from '../network/SocketClient';
 import { Revolver } from './Revolver';
 import { ThemeToggle } from './ThemeToggle';
 import { VolumeSlider } from './VolumeSlider';
 import { Check, X, ShieldWarning, ArrowLeft } from '@phosphor-icons/react';
-import { GamePhase, Player, CardData, ActiveQuestion, QuestionResult, TriggerResult } from '../types';
+import { GamePhase, Player, Card, TriggerResult } from '../types';
 import { Sounds } from '../audio/Sounds';
 import { TypewriterText } from './TypewriterText';
 
@@ -15,17 +15,20 @@ interface GameBoardProps {
   players: Player[];
   localId: string;
   currentTurnId: string;
-  handCards: CardData[];
-  playedCard: CardData | null;
-  activeQuestion: ActiveQuestion | null;
-  questionResult: QuestionResult | null;
+  handCards: Card[];
+  playedCard: Card | null;
+  currentNumber: number;
+  direction: number;
   triggerResult: TriggerResult | null;
   roomId: string;
   onLeaveAfterDeath: () => void;
   onCardChoice?: (cardId: string) => void;
-  onAnswerSubmit?: (letter: string) => void;
+  onPullTrigger?: () => void;
+  onMulligan?: () => void;
   botHudMessage?: { text: string; color: string } | null;
   isBotSpectating?: boolean;
+  turnEndTime?: number | null;
+  disconnect?: () => void;
 }
 
 interface HudMessage {
@@ -68,17 +71,35 @@ export function GameBoard({
   currentTurnId, 
   handCards, 
   playedCard, 
-  activeQuestion, 
-  questionResult, 
+  currentNumber,
+  direction,
   triggerResult,
   roomId,
   onLeaveAfterDeath,
   onCardChoice,
-  onAnswerSubmit,
+  onPullTrigger,
+  onMulligan,
   botHudMessage,
-  isBotSpectating
+  isBotSpectating = false,
+  turnEndTime,
+  disconnect
 }: GameBoardProps) {
   
+    const activeQuestion: any = null;
+  const questionResult: any = null;
+  const onAnswerSubmit: any = () => {};
+
+  const sortedHandCards = useMemo(() => {
+    return [...handCards].sort((a, b) => {
+      if (a.type === 'NUMBER' && b.type === 'NUMBER') {
+        return (a.value || 0) - (b.value || 0);
+      }
+      if (a.type === 'NUMBER') return -1;
+      if (b.type === 'NUMBER') return 1;
+      return a.type.localeCompare(b.type);
+    });
+  }, [handCards]);
+
   const [isSpinning, setIsSpinning] = useState<boolean>(false);
   const [isFiring, setIsFiring] = useState<boolean>(false);
   const [showShotEffect, setShowShotEffect] = useState<boolean>(false);
@@ -118,11 +139,14 @@ export function GameBoard({
   const [isSpectatorModeVisual, setIsSpectatorModeVisual] = useState<boolean>(false);
   const [deathMessage, setDeathMessage] = useState<string>('');
   const [pendingActionText, setPendingActionText] = useState<string | null>(null);
+  const [mulliganAnimating, setMulliganAnimating] = useState<boolean>(false);
+  const [mulliganSacrificeIndex, setMulliganSacrificeIndex] = useState<number | null>(null);
+  const mulliganTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const opponentPlayers = players.filter(p => p.id !== localId);
   
   interface PileCard {
     id: string;
-    card: CardData;
+    card: Card;
     rotate: number;
     offsetX: number;
     offsetY: number;
@@ -195,7 +219,7 @@ export function GameBoard({
 
   // Heartbeat Effect (căng thẳng tăng dần theo số đạn đã bắn)
   useEffect(() => {
-    if (displayedShots < 2 || false || phase === 'result' || isCrtShuttingDown || isDeadSpectating) return;
+    if (displayedShots < 2 || false || false || isCrtShuttingDown || isDeadSpectating) return;
 
     let intervalTime = 1200;
     let volume = 0.2; // Nhỏ lại
@@ -225,7 +249,7 @@ export function GameBoard({
     prevPhase.current = phase;
     
     // Show indicator when opponent answers (answering -> result/trigger)
-    if (prev === 'answering' && (phase === 'result' || phase === 'trigger')) {
+    if (false && (false || phase === 'trigger')) {
       if (currentTurnId && currentTurnId !== localId && questionResult) {
         setAnswerIndicator({ playerId: currentTurnId, correct: questionResult.correct });
         
@@ -276,45 +300,29 @@ export function GameBoard({
 
   useEffect(() => {
     // Chỉ trigger deal animation khi số bài TĂNG (được chia bài mới), không phải khi đánh bài
-    if (handCards.length > 0 && handCards.length > prevHandCardsLength.current && phase === 'choosing') {
-      prevHandCardsLength.current = handCards.length;
-      setIsDealing(true);
-      setRevealedCards(new Set());
-
-      let cancelled = false;
-      const timers: ReturnType<typeof setTimeout>[] = [];
-
-      const dealSequence = async () => {
-        for (let i = 0; i < handCards.length; i++) {
-          await new Promise(resolve => {
-            const t = setTimeout(resolve, 200);
-            timers.push(t);
-          });
-          if (cancelled) return;
-          Sounds.cardDeal();
-          setRevealedCards(prev => new Set([...prev, handCards[i].id]));
+      if (handCards.length > 0 && handCards.length > prevHandCardsLength.current && phase === 'choosing') {
+        prevHandCardsLength.current = handCards.length;
+        setIsDealing(false);
+      }
+      // Reset mulligan animation when hand changes (mulligan succeeded)
+      if (mulliganAnimating) {
+        if (mulliganTimerRef.current) {
+          clearTimeout(mulliganTimerRef.current);
+          mulliganTimerRef.current = null;
         }
-        await new Promise(resolve => {
-          const t = setTimeout(resolve, 300);
-          timers.push(t);
-        });
-        if (!cancelled) setIsDealing(false);
-      };
-
-      dealSequence();
-
-      return () => {
-        cancelled = true;
-        timers.forEach(t => clearTimeout(t));
-      };
-    }
-  }, [handCards, phase]);
+        setMulliganAnimating(false);
+        setMulliganSacrificeIndex(null);
+      }
+  }, [handCards, phase, sortedHandCards]);
 
   useEffect(() => {
     if (triggerResult) {
       const triggerKey = `${triggerResult.playerId}-${triggerResult.bulletCount}-${triggerResult.bulletsFired}-${triggerResult.alive}`;
       if (lastProcessedTriggerRef.current === triggerKey) return;
       lastProcessedTriggerRef.current = triggerKey;
+
+      // Clear cards from table
+      setCardPile([]);
 
       // Clear any existing trigger timers before starting new ones
       triggerTimersRef.current.forEach(t => clearTimeout(t));
@@ -539,36 +547,49 @@ export function GameBoard({
   }, [triggerResult, localId, players]);
 
   useEffect(() => {
-    if (activeQuestion && phase === 'answering') {
-      setTimeLeft(activeQuestion.timer);
-      setMaxTime(activeQuestion.timer);
+    if (turnEndTime) {
+      const updateTime = () => {
+        const remaining = Math.max(0, (turnEndTime - Date.now()) / 1000);
+        setTimeLeft(remaining);
+      };
+      updateTime();
+      setMaxTime(20);
 
-      const endTime = Date.now() + activeQuestion.timer * 1000;
-
-      const interval = setInterval(() => {
-        const remaining = Math.max(0, Math.ceil((endTime - Date.now()) / 1000));
-        
-        setTimeLeft(prev => {
-          if (remaining !== prev) {
-            if (remaining === 0) {
-              clearInterval(interval);
-              Sounds.timerWarning();
-            } else {
-              Sounds.countdown(remaining <= 3);
-            }
-          }
-          return remaining;
-        });
-      }, 100);
-
+      const interval = setInterval(updateTime, 100);
       return () => clearInterval(interval);
+    } else {
+      setTimeLeft(0);
+      setMaxTime(20);
     }
-  }, [activeQuestion, phase]);
+  }, [turnEndTime]);
 
   const showHUDAlert = (text: string, textColor: string, duration: number) => {
     setHudMessage({ text, color: textColor });
     setTimeout(() => setHudMessage(null), duration);
   };
+
+  const handleMulliganClick = useCallback(() => {
+    if (mulliganAnimating || !onMulligan) return;
+    setMulliganAnimating(true);
+    setMulliganSacrificeIndex(Math.floor(Math.random() * sortedHandCards.length));
+    Sounds.cardPlay();
+    mulliganTimerRef.current = setTimeout(() => {
+      onMulligan();
+      setMulliganAnimating(false);
+      setMulliganSacrificeIndex(null);
+      mulliganTimerRef.current = null;
+    }, 800);
+  }, [mulliganAnimating, onMulligan, sortedHandCards.length]);
+
+  // Cleanup mulligan animation on unmount
+  useEffect(() => {
+    return () => {
+      if (mulliganTimerRef.current) {
+        clearTimeout(mulliganTimerRef.current);
+        mulliganTimerRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (playedCard) {
@@ -581,7 +602,7 @@ export function GameBoard({
       setCardPile(prev => {
         if (prev.find(c => c.id === playedCard.id)) return prev;
 
-        const fromId = activeQuestion?.from || currentTurnId;
+        const fromId = (playedCard as any)._fromId || activeQuestion?.from || currentTurnId;
         const oppPos = getOpponentPosition(fromId, opponentPlayers);
         
         let finalRotate = (Math.random() * 20 - 10);
@@ -608,13 +629,10 @@ export function GameBoard({
     }
   }, [playedCard, activeQuestion?.from, currentTurnId, localId, opponentPlayers.length]);
 
-  const handleCardClick = (card: CardData) => {
+  const handleCardClick = (card: Card) => {
     if (phase !== 'choosing' || currentTurnId !== localId) return;
     if (onCardChoice) {
-      onCardChoice(card.id);
-    } else {
-      setPendingActionText('SEND_CARD_SELECTION');
-      socketClient.chooseCard(roomId, card.id);
+      onCardChoice?.(card.id);
     }
   };
 
@@ -629,15 +647,15 @@ export function GameBoard({
       onAnswerSubmit(letter);
     } else {
       setPendingActionText('SEND_ANSWER');
-      socketClient.submitAnswer(roomId, letter);
+      onAnswerSubmit(roomId, letter);
     }
   };
 
   useEffect(() => {
-    if (questionResult || phase === 'trigger' || phase === 'questioning') {
+    if (questionResult || phase === 'trigger' || false) {
       setPendingActionText(null);
     }
-  }, [questionResult, phase]);
+  }, [undefined as any, phase]);
 
   const handleCardMouseLeave = () => {
     setHoveredCardIndex(null);
@@ -649,7 +667,7 @@ export function GameBoard({
     return { border: 'var(--red-theme-border)', glow: 'var(--red-theme)', glowLight: 'var(--red-theme-bg)' };
   };
 
-  const localPlayer = players.find(p => p.id === localId) || { name: 'YOU', isAlive: true, shotsFired: 0 };
+  const localPlayer = players.find(p => p.id === localId) || { name: 'YOU', isAlive: true, shotsFired: 0, hasUsedMulligan: false };
   const isSpectating = !localPlayer.isAlive;
 
   const isMyTurn = currentTurnId === localId;
@@ -658,9 +676,9 @@ export function GameBoard({
   const getHUDPhaseLabel = () => {
     if (phase === 'waiting') return 'SYSTEM // TRANSMITTING_CARDS';
     if (phase === 'choosing') return 'PROTOCOL // CHOOSE_TARGET_CARD';
-    if (phase === 'questioning') return 'ATTACK // ANSWER_OR_DIE';
-    if (phase === 'answering') return 'DEFEND // VERIFYING_DECRYPT';
-    if (phase === 'result') return 'DECRYPT // RESULT';
+    if (false) return 'ATTACK // ANSWER_OR_DIE';
+    if (false) return 'DEFEND // VERIFYING_DECRYPT';
+    if (false) return 'DECRYPT // RESULT';
     if (phase === 'trigger') return 'HAZARD // PULL_TRIGGER';
     if (phase === 'game_over') return 'SYSTEM // CONFLICT_TERMINATED';
     return 'SYSTEM // INITIALIZED';
@@ -668,7 +686,7 @@ export function GameBoard({
 
   const getHUDPhaseColor = () => {
     if (phase === 'trigger') return 'text-red-theme';
-    if (phase === 'choosing' || phase === 'answering') return 'text-amber-theme';
+    if (phase === 'choosing' || false) return 'text-amber-theme';
     return 'text-text-theme-secondary';
   };
 
@@ -697,9 +715,9 @@ export function GameBoard({
 
   const renderProfileIndicator = (playerId: string) => {
     // 1. Answering phase
-    if (phase === 'questioning' || phase === 'answering') {
+    if (false || false) {
       const target = getTargetPlayer();
-      if (target && target.id === playerId) {
+      if (target && target?.id === playerId) {
         return (
           <motion.div
             initial={{ opacity: 0, scale: 0.8, y: 10 }}
@@ -715,9 +733,9 @@ export function GameBoard({
     }
 
     // 2. Result phase
-    if (phase === 'result' && questionResult) {
+    if (false && questionResult) {
       const target = getTargetPlayer();
-      if (target && target.id === playerId) {
+      if (target && target?.id === playerId) {
         if (questionResult.correct) {
           return (
             <motion.div
@@ -795,10 +813,29 @@ export function GameBoard({
       transition={{ duration: 0.4 }}
       className={`w-full h-full flex flex-col items-center justify-between py-2 sm:py-4 px-3 sm:px-6 md:px-12 z-10 select-none relative ${isCrtShuttingDown && !false ? 'animate-crt-shutdown' : ''} ${isCrtTurningOn && !false ? 'animate-crt-turn-on' : ''} ${false ? 'presentation-mode' : ''}`}
     >
+        {/* Global Timer Bar */}
+        {timeLeft > 0 && turnEndTime && (
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[130] font-mono font-bold text-lg pointer-events-none flex flex-col items-center">
+            <span className={timeLeft <= 3 ? 'text-red-theme animate-pulse' : 'text-emerald-theme'}>
+              {Math.ceil(timeLeft)}s
+            </span>
+          </div>
+        )}
+        {timeLeft > 0 && turnEndTime && (
+        <div className="absolute top-0 left-0 w-full h-1.5 bg-surface-2 z-[130]">
+          <motion.div 
+            initial={{ width: '100%' }}
+            animate={{ width: `${(timeLeft / maxTime) * 100}%` }}
+            transition={{ duration: 0.1, ease: "linear" }}
+            className={`h-full shadow-none ${timeLeft <= 3 ? 'bg-red-theme' : 'bg-emerald-theme'}`}
+          />
+        </div>
+      )}
+
       {/* Top action bar: Leave & Theme */}
       <div className="absolute top-3 sm:top-6 left-3 sm:left-6 z-[120] flex items-center gap-2 sm:gap-4">
         <button 
-          onClick={onLeaveAfterDeath}
+          onClick={disconnect || onLeaveAfterDeath}
           className="px-3 sm:px-4 py-1.5 sm:py-2 bg-red-theme/10 hover:bg-red-theme/20 border border-red-theme/50 text-red-theme font-mono text-[10px] sm:text-xs font-bold tracking-[0.1em] transition-colors shadow-none"
           title="Bỏ cuộc / Rời phòng"
         >
@@ -871,7 +908,7 @@ export function GameBoard({
                 
                 {/* Turn arrow indicator for opponent */}
                 <AnimatePresence>
-                  {(phase === 'choosing' || phase === 'answering') && isCurrentTurn && opponent.isAlive && (
+                  {(phase === 'choosing' || false) && isCurrentTurn && opponent.isAlive && (
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -929,8 +966,8 @@ export function GameBoard({
                   const mid = (total - 1) / 2;
                   const dist = idx - mid;
                   const xOffset = dist * 20;
-                  const arcY = Math.abs(dist) * 2;
-                  const arcAngle = dist * 4;
+                  const arcY = Math.abs(dist) * 0.5;
+                  const arcAngle = dist * 1;
 
                   return (
                     <motion.div
@@ -958,7 +995,7 @@ export function GameBoard({
                 ? '// TERMINATED' 
                 : phase === 'choosing' && isCurrentTurn 
                   ? '// CHOSING_CARD' 
-                  : phase === 'answering' && isCurrentTurn 
+                  : false && isCurrentTurn 
                     ? '// ĐANG TRẢ LỜI' 
                     : `CARDS // [0${cardCount}]`
               }
@@ -979,92 +1016,96 @@ export function GameBoard({
       )}
 
       {/* 2. Center Table */}
-      <div className="absolute top-[48%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] sm:w-[80vw] md:w-[720px] h-[160px] sm:h-[200px] md:h-[260px] rounded-none bg-surface-3/80 border border-cyan-theme-muted flex items-center justify-center gap-8 md:gap-16 px-4 sm:px-8 md:px-12 z-10 overflow-visible">
-
-        {/* Discard Pile / Played Card */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20">
-          <svg className="w-full h-full" viewBox="0 0 720 340" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="360" cy="170" r="140" fill="none" stroke="var(--cyan-theme)" strokeWidth="0.8" strokeDasharray="4,6" />
-            <circle cx="360" cy="170" r="80" fill="none" stroke="var(--cyan-theme)" strokeWidth="0.8" strokeDasharray="2,4" />
-            <circle cx="360" cy="170" r="30" fill="none" stroke="var(--cyan-theme)" strokeWidth="0.5" />
-            <line x1="360" y1="10" x2="360" y2="330" stroke="var(--cyan-theme)" strokeWidth="0.8" strokeDasharray="3,3" />
-            <line x1="180" y1="170" x2="540" y2="170" stroke="var(--cyan-theme)" strokeWidth="0.8" strokeDasharray="3,3" />
-            <path d="M 20 20 L 40 20 M 20 20 L 20 40" stroke="var(--cyan-theme)" strokeWidth="1" />
-            <path d="M 700 20 L 680 20 M 700 20 L 700 40" stroke="var(--cyan-theme)" strokeWidth="1" />
-            <path d="M 20 320 L 40 320 M 20 320 L 20 300" stroke="var(--cyan-theme)" strokeWidth="1" />
-            <path d="M 700 320 L 680 320 M 700 320 L 700 300" stroke="var(--cyan-theme)" strokeWidth="1" />
-            <text x="360" y="25" fill="var(--cyan-theme)" fontSize="7" fontFamily="monospace" textAnchor="middle">-90° // APEX</text>
-            <text x="360" y="325" fill="var(--cyan-theme)" fontSize="7" fontFamily="monospace" textAnchor="middle">90° // BASE</text>
-            <text x="195" y="173" fill="var(--cyan-theme)" fontSize="7" fontFamily="monospace" textAnchor="start">180° // PORT</text>
-            <text x="525" y="173" fill="var(--cyan-theme)" fontSize="7" fontFamily="monospace" textAnchor="end">0° // STBD</text>
-            <text x="370" y="160" fill="var(--cyan-theme)" fontSize="6" fontFamily="monospace" opacity="0.6">SYS.ROT // {rotationAngle}°</text>
-          </svg>
-        </div>
+      <div className="absolute top-[48%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] sm:w-[80vw] md:w-[720px] h-[160px] sm:h-[200px] md:h-[260px] flex items-center justify-center gap-8 md:gap-16 px-4 sm:px-8 md:px-12 z-10 overflow-visible">
         
         {/* Discard Pile / Played Card */}
-        <div className="flex flex-col items-center space-y-2 z-20">
-          <div className="w-32 h-44 bg-card-theme/50 border border-cyan-theme-muted border-dashed rounded-none flex items-center justify-center relative">
+        <div className="flex flex-col items-center space-y-2 z-20 relative">
+          
+          {/* Turn Direction Indicator */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-0 flex items-center justify-center">
+            <motion.div 
+              animate={{ rotate: direction === 1 ? 360 : -360 }}
+              transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+              className="w-80 h-80 sm:w-[400px] sm:h-[400px] border-[1.5px] border-dashed border-cyan-theme/20 rounded-full flex items-center justify-center relative"
+            >
+              <div className="absolute top-0 w-20 h-10 bg-surface-1 flex items-center justify-center -translate-y-1/2 backdrop-blur-sm rounded-full">
+                <span className="text-cyan-theme/70 text-lg sm:text-xl md:text-2xl font-bold tracking-widest">{direction === 1 ? '>>>' : '<<<'}</span>
+              </div>
+              <div className="absolute bottom-0 w-20 h-10 bg-surface-1 flex items-center justify-center translate-y-1/2 rotate-180 backdrop-blur-sm rounded-full">
+                <span className="text-cyan-theme/70 text-lg sm:text-xl md:text-2xl font-bold tracking-widest">{direction === 1 ? '>>>' : '<<<'}</span>
+              </div>
+              <div className="absolute left-0 w-10 h-20 bg-surface-1 flex items-center justify-center -translate-x-1/2 -rotate-90 backdrop-blur-sm rounded-full">
+                <span className="text-cyan-theme/70 text-lg sm:text-xl md:text-2xl font-bold tracking-widest">{direction === 1 ? '>>>' : '<<<'}</span>
+              </div>
+              <div className="absolute right-0 w-10 h-20 bg-surface-1 flex items-center justify-center translate-x-1/2 rotate-90 backdrop-blur-sm rounded-full">
+                <span className="text-cyan-theme/70 text-lg sm:text-xl md:text-2xl font-bold tracking-widest">{direction === 1 ? '>>>' : '<<<'}</span>
+              </div>
+            </motion.div>
+          </div>
+
+          <div className="w-32 h-44 bg-transparent border border-transparent rounded-none flex items-center justify-center relative z-10">
             {/* Minimal Wrapper */}
 
             <AnimatePresence>
               {cardPile.length > 0 ? (
                 cardPile.map((pileItem, index) => {
                   const card = pileItem.card;
-                  return (
-                    <motion.div 
-                      key={pileItem.id}
-                      initial={getPlayedCardInitial(pileItem.fromId)}
-                      animate={{ x: pileItem.offsetX, y: pileItem.offsetY, scale: 1, opacity: 1, rotate: pileItem.rotate, filter: 'blur(0px)' }}
-                      exit={{ scale: 0.5, opacity: 0, filter: 'blur(10px)' }}
-                      transition={{ type: "spring", duration: 0.65, bounce: 0.3 }}
-                      className={`absolute w-32 h-44 border rounded-none p-3 flex flex-col justify-between shadow-none overflow-hidden bg-card-theme ${
-                        card.id === 'EASTER_EGG_STANDOFF'
-                          ? 'border-amber-400 text-amber-400 shadow-none'
-                          : card.difficulty === 'easy' 
-                            ? 'border-emerald-theme-border text-emerald-theme' 
-                            : card.difficulty === 'medium' 
-                              ? 'border-amber-theme-border text-amber-theme' 
-                              : 'border-red-theme-border text-red-theme'
-                      }`}
-                      style={{ zIndex: index }}
-                    >
-                      {card.id === 'EASTER_EGG_STANDOFF' && (
-                        <motion.div
-                          className="absolute top-0 bottom-0 w-[150%] bg-gradient-to-r from-transparent via-amber-200 to-transparent pointer-events-none mix-blend-overlay"
-                          initial={{ left: '-150%' }}
-                          animate={{ left: '150%' }}
-                          transition={{
-                            repeat: Infinity,
-                            duration: 2.5,
-                            ease: "linear",
-                            repeatDelay: 1
-                          }}
-                          style={{ transform: 'skewX(-20deg)', opacity: 0.7 }}
-                        />
-                      )}
-                      
-                      <div className="flex justify-between items-start w-full opacity-50">
-                        <span className="text-[8px] font-mono tracking-widest">#{card.id.substring(0, 4).toUpperCase()}</span>
-                        <span className={`w-1.5 h-1.5 rounded-none ${
-                          card.id === 'EASTER_EGG_STANDOFF' ? 'bg-amber-400'
-                          : card.difficulty === 'easy' ? 'bg-emerald-theme' : card.difficulty === 'medium' ? 'bg-amber-theme' : 'bg-red-theme'
-                        }`}></span>
-                      </div>
-                      <div className="flex-1 flex items-start justify-start py-2 overflow-hidden">
-                        <p className="text-xs font-black leading-tight text-left uppercase font-mono text-text-theme">
-                          {card.question.substring(0, 45) + (card.question.length > 45 ? '...' : '')}
-                        </p>
-                      </div>
-                    </motion.div>
-                  );
-                })
-              ) : (
-                <span className="text-[9px] font-extrabold text-text-theme-dim tracking-widest uppercase text-center font-mono">
+                return (
+                  <motion.div 
+                    key={pileItem.id}
+                    initial={getPlayedCardInitial(pileItem.fromId)}
+                    animate={{ x: pileItem.offsetX, y: pileItem.offsetY, scale: 1, opacity: 1, rotate: pileItem.rotate, filter: 'blur(0px)' }}
+                    exit={{ scale: 0.5, opacity: 0, filter: 'blur(10px)' }}
+                    transition={{ type: "spring", duration: 0.65, bounce: 0.3 }}
+                    className={`absolute w-32 h-44 border rounded-none p-3 flex flex-col justify-between shadow-none overflow-hidden bg-card-theme ${
+                      card.id === 'EASTER_EGG_STANDOFF'
+                        ? 'border-amber-400 text-amber-400 shadow-none'
+                        : ('NORMAL' as any) === 'easy' 
+                          ? 'border-emerald-theme-border text-emerald-theme' 
+                          : ('NORMAL' as any) === 'medium' 
+                            ? 'border-amber-theme-border text-amber-theme' 
+                            : 'border-red-theme-border text-red-theme'
+                    }`}
+                    style={{ zIndex: index }}
+                  >
+                    {card.id === 'EASTER_EGG_STANDOFF' && (
+                      <motion.div
+                        className="absolute top-0 bottom-0 w-[150%] bg-gradient-to-r from-transparent via-amber-200 to-transparent pointer-events-none mix-blend-overlay"
+                        initial={{ left: '-150%' }}
+                        animate={{ left: '150%' }}
+                        transition={{
+                          repeat: Infinity,
+                          duration: 2.5,
+                          ease: "linear",
+                          repeatDelay: 1
+                        }}
+                        style={{ transform: 'skewX(-20deg)', opacity: 0.7 }}
+                      />
+                    )}
+                    
+                    <div className="flex flex-col items-start w-full">
+                      <span className="text-xl font-black font-mono text-text-theme leading-none">
+                        {card.type === 'NUMBER' ? card.value : card.type.substring(0, 3)}
+                      </span>
+                    </div>
+                    <div className="flex-1 flex items-center justify-center text-center font-black font-mono text-4xl text-text-theme opacity-80">
+                      {card.type === 'NUMBER' ? card.value : card.type.substring(0, 3)}
+                    </div>
+                    <div className="flex flex-col items-end w-full">
+                      <span className="text-xl font-black font-mono text-text-theme leading-none rotate-180">
+                        {card.type === 'NUMBER' ? card.value : card.type.substring(0, 3)}
+                      </span>
+                    </div>
+                  </motion.div>
+                );
+              })
+            ) : (
+                <span className="text-[9px] font-extrabold text-transparent tracking-widest uppercase text-center font-mono opacity-0 select-none pointer-events-none">
                   AWAITING
                   <br />
                   ATTACK //
                 </span>
-              )}
+            )}
             </AnimatePresence>
           </div>
         </div>
@@ -1163,29 +1204,29 @@ export function GameBoard({
       <div className="absolute bottom-1 sm:bottom-2 left-1/2 -translate-x-1/2 flex flex-col items-center space-y-0.5 sm:space-y-1 z-20 w-full max-w-2xl px-2">
         <div className="flex justify-center items-center h-24 sm:h-32 md:h-36 relative w-full" style={{ perspective: '1200px' }}>
           <AnimatePresence>
-            {handCards.map((card, index) => {
-              const total = handCards.length;
+            {sortedHandCards.map((card, index) => {
+              const total = sortedHandCards.length;
               const mid = (total - 1) / 2;
               const dist = index - mid;
               const isPlayable = phase === 'choosing' && isMyTurn;
               const isRevealed = !isDealing || revealedCards.has(card.id);
               const isHovered = hoveredCardIndex === index;
               const isNeighbor = hoveredCardIndex !== null && Math.abs(hoveredCardIndex - index) === 1;
-              let colors = isRevealed ? getDifficultyColor(card.difficulty) : null;
+              let colors = isRevealed ? getDifficultyColor(('NORMAL' as any)) : null;
               if (isRevealed && card.id === 'EASTER_EGG_STANDOFF') {
                 colors = { border: '#fbbf24', glow: '#f59e0b' } as any; // Override with amber/gold
               }
 
               // Calculate positions
               const neighborOffset = hoveredCardIndex !== null
-                ? (index < hoveredCardIndex ? -8 : index > hoveredCardIndex ? 8 : 0)
+                ? (index < hoveredCardIndex ? -25 : index > hoveredCardIndex ? 25 : 0)
                 : 0;
-              const baseX = dist * 55 + neighborOffset;
-              const baseY = Math.pow(Math.abs(dist), 1.5) * 6;
-              const baseAngle = dist * 3;
+              const baseX = dist * 65 + neighborOffset;
+              const baseY = Math.pow(Math.abs(dist), 1.5) * 1.5;
+              const baseAngle = dist * 1;
 
               // Hover offsets
-              const hoverY = isHovered ? -90 : baseY;
+              const hoverY = isHovered ? -35 : baseY;
               const hoverScale = isHovered ? 1.15 : isNeighbor ? 0.95 : 1;
               const hoverAngle = isHovered ? 0 : baseAngle;
               const hoverZ = isHovered ? 50 : index;
@@ -1243,34 +1284,22 @@ export function GameBoard({
                   {/* Minimal Card Border */}
 
                   {isRevealed ? (
-                    <>
-                      <div className="flex justify-between items-start w-full opacity-50">
-                        <span className="text-[10px] font-mono tracking-widest">#{card.id.substring(0, 4).toUpperCase()}</span>
-                        <span className={`w-2 h-2 rounded-none ${
-                          card.difficulty === 'easy' ? 'bg-emerald-theme' : card.difficulty === 'medium' ? 'bg-amber-theme' : 'bg-red-theme'
-                        }`}></span>
-                      </div>
-                      <div className="flex-1 flex items-start justify-start py-4 overflow-hidden">
-                        <p className={`text-sm md:text-base font-black leading-tight text-left uppercase font-mono transition-colors duration-300 line-clamp-5 ${
-                          isHovered ? 'text-text-theme' : 'text-text-theme-secondary'
-                        }`}>
-                          {card.question}
-                        </p>
-                      </div>
-                      {/* Hover: difficulty icon overlay */}
-                      {isHovered && (
-                        <motion.div
-                          initial={{ opacity: 0, scale: 0.8 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          className="absolute top-3 right-3 w-6 h-6 flex items-center justify-center"
-                        >
-                          {card.difficulty === 'easy' && <Check size={16} className="text-emerald-theme" />}
-                          {card.difficulty === 'medium' && <ShieldWarning size={16} className="text-amber-theme" />}
-                          {card.difficulty === 'hard' && <X size={16} className="text-red-theme" />}
-                        </motion.div>
-                      )}
-                    </>
-                  ) : (
+                      <>
+                        <div className="flex flex-col items-start w-full">
+                          <span className={`text-2xl font-black font-mono text-cyan-theme leading-none`}>
+                            {card.type === 'NUMBER' ? card.value : card.type.substring(0, 3)}
+                          </span>
+                        </div>
+                        <div className={`flex-1 flex items-center justify-center text-center font-black font-mono tracking-wider leading-relaxed text-4xl sm:text-5xl md:text-6xl text-cyan-theme`}>
+                          {card.type === 'NUMBER' ? card.value : card.type.substring(0, 3)}
+                        </div>
+                        <div className="flex flex-col items-end w-full">
+                          <span className={`text-2xl font-black font-mono text-cyan-theme leading-none rotate-180`}>
+                            {card.type === 'NUMBER' ? card.value : card.type.substring(0, 3)}
+                          </span>
+                        </div>
+                      </>
+                    ) : (
                     <div className="absolute inset-0 flex flex-col justify-between p-2">
                       <div className="w-full h-1 bg-border-subtle mb-auto"></div>
                       <div className="w-full h-full my-2 opacity-30" style={{ background: 'repeating-linear-gradient(45deg, var(--color-border-subtle), var(--color-border-subtle) 2px, transparent 2px, transparent 6px)' }}></div>
@@ -1291,7 +1320,7 @@ export function GameBoard({
       <div className="absolute bottom-2 sm:bottom-6 left-2 sm:left-6 z-20">
         {/* Turn arrow indicator for local player */}
         <AnimatePresence>
-          {(phase === 'choosing' || phase === 'answering') && isMyTurn && (
+          {(phase === 'choosing' || false) && isMyTurn && (
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: [0, -6, 0] }}
@@ -1350,7 +1379,7 @@ export function GameBoard({
                 ? '// TERMINATED' 
                 : phase === 'choosing' && isMyTurn 
                   ? '// YOUR TURN // SELECT CARD' 
-                  : phase === 'answering' && isAnswering 
+                  : false && isAnswering 
                     ? '// ĐANG TRẢ LỜI' 
                     : 'LINK STATE // SECURED'
               }
@@ -1363,7 +1392,7 @@ export function GameBoard({
           </div>
           {!localPlayer.isAlive && (
             <button 
-              onClick={onLeaveAfterDeath}
+              onClick={disconnect || onLeaveAfterDeath}
               className="ml-4 px-4 py-2 bg-surface-3 border border-red-theme-border hover:border-red-theme hover:bg-red-theme-bg rounded-none text-[9px] font-mono font-bold text-red-theme tracking-widest uppercase flex items-center gap-1 transition-all duration-300 cursor-pointer"
             >
               <ArrowLeft size={14} />
@@ -1373,8 +1402,135 @@ export function GameBoard({
         </div>
       </div>
 
+      {/* 5. Draw Deck - Left Side (for Mulligan) */}
+      {isMyTurn && localPlayer.isAlive && onMulligan && !localPlayer.hasUsedMulligan && handCards.length > 0 && (
+        <div className="absolute bottom-24 sm:bottom-32 left-2 sm:left-6 z-20">
+          <motion.button
+            whileHover={{ scale: 1.05, x: 5 }}
+            whileTap={{ scale: 0.95 }}
+            animate={mulliganAnimating ? { 
+              scale: [1, 1.15, 1],
+              filter: ['brightness(1)', 'brightness(1.6)', 'brightness(1)'],
+            } : {}}
+            transition={mulliganAnimating ? { duration: 0.8, ease: 'easeInOut' } : {}}
+            onClick={handleMulliganClick}
+            disabled={mulliganAnimating}
+            className={`relative flex flex-col items-center gap-2 cursor-pointer group ${mulliganAnimating ? 'pointer-events-none' : ''}`}
+            title="Đổi bài (hy sinh 1 lá + rút 1 lá mới)"
+          >
+            {/* Deck stack visual */}
+            <div className="relative w-16 h-24 sm:w-20 sm:h-28">
+              {/* Bottom cards (stack effect) */}
+              <div className="absolute bottom-0 left-1 w-full h-full bg-surface-3 border border-cyan-theme-muted rounded-sm transform rotate-2" />
+              <div className="absolute bottom-0.5 left-0.5 w-full h-full bg-surface-2 border border-cyan-theme-muted rounded-sm transform -rotate-1" />
+              <div className="absolute bottom-1 left-0 w-full h-full bg-surface border border-cyan-theme-muted rounded-sm transform rotate-1" />
+              {/* Top card */}
+              <div className="absolute bottom-1.5 left-0 w-full h-full bg-card-theme border-2 border-cyan-theme rounded-sm flex flex-col items-center justify-center gap-1 group-hover:border-cyan-theme-light group-hover:bg-cyan-theme-light/10 transition-all duration-200">
+                <span className="text-[8px] sm:text-[9px] font-mono font-bold text-cyan-theme tracking-wider">DECK</span>
+                <div className="w-6 h-6 sm:w-8 sm:h-8 border border-cyan-theme/50 rounded-sm flex items-center justify-center">
+                  <span className="text-cyan-theme text-lg sm:text-xl">?</span>
+                </div>
+                <span className="text-[7px] sm:text-[8px] font-mono text-cyan-theme-muted">DRAW</span>
+              </div>
+              {/* Mulligan glow ring */}
+              {mulliganAnimating && (
+                <motion.div
+                  className="absolute -inset-2 border-2 border-cyan-theme rounded-lg"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: [0, 0.8, 0], scale: [0.8, 1.3, 1.5] }}
+                  transition={{ duration: 0.8, ease: 'easeOut' }}
+                />
+              )}
+            </div>
+            {/* Label */}
+            <div className="flex flex-col items-center">
+              <span className="text-[8px] sm:text-[9px] font-mono font-bold text-cyan-theme tracking-wider group-hover:text-cyan-theme-light transition-colors">
+                ĐỔI BÀI
+              </span>
+              <span className="text-[7px] sm:text-[8px] font-mono text-cyan-theme-muted">
+                // SACRIFICE 1
+              </span>
+            </div>
+          </motion.button>
+        </div>
+      )}
+
+      {/* Mulligan sacrifice card fly animation */}
       <AnimatePresence>
-        {(hudMessage || botHudMessage) && (
+        {mulliganAnimating && mulliganSacrificeIndex !== null && sortedHandCards[mulliganSacrificeIndex] && (
+          <motion.div
+            key="sacrifice-fly"
+            className="absolute z-50 pointer-events-none"
+            initial={{ 
+              bottom: '6rem',
+              left: '50%',
+              x: `${(mulliganSacrificeIndex - (sortedHandCards.length - 1) / 2) * 65}px`,
+              opacity: 1,
+              scale: 1,
+              rotate: 0,
+            }}
+            animate={{ 
+              bottom: ['6rem', '10rem', '18rem'],
+              left: ['50%', '35%', '8%'],
+              x: '0px',
+              opacity: [1, 1, 0],
+              scale: [1, 0.8, 0.3],
+              rotate: [0, -15, -30],
+            }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.7, ease: [0.4, 0, 0.2, 1] }}
+          >
+            <div className="w-20 h-28 sm:w-24 sm:h-32 bg-card-theme border-2 border-red-theme rounded-sm flex flex-col items-center justify-center gap-1 shadow-lg shadow-red-theme/30">
+              <span className="text-[8px] font-mono font-bold text-red-theme tracking-wider">SACRIFICE</span>
+              <div className="w-5 h-5 border border-red-theme/50 rounded-sm flex items-center justify-center">
+                <span className="text-red-theme text-sm">X</span>
+              </div>
+              <span className="text-[7px] font-mono text-red-theme-muted">
+                {sortedHandCards[mulliganSacrificeIndex].type === 'NUMBER' 
+                  ? sortedHandCards[mulliganSacrificeIndex].value 
+                  : sortedHandCards[mulliganSacrificeIndex].type}
+              </span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Mulligan deck draw animation */}
+      <AnimatePresence>
+        {mulliganAnimating && (
+          <motion.div
+            key="draw-fly"
+            className="absolute z-50 pointer-events-none"
+            initial={{ 
+              bottom: '18rem',
+              left: '8%',
+              opacity: 0,
+              scale: 0.3,
+              rotate: -30,
+            }}
+            animate={{ 
+              bottom: ['18rem', '10rem', '6rem'],
+              left: ['8%', '35%', '50%'],
+              opacity: [0, 1, 1, 0],
+              scale: [0.3, 0.8, 1, 1],
+              rotate: [-30, 15, 0],
+            }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.7, ease: [0.4, 0, 0.2, 1], delay: 0.3 }}
+          >
+            <div className="w-20 h-28 sm:w-24 sm:h-32 bg-card-theme border-2 border-cyan-theme rounded-sm flex flex-col items-center justify-center gap-1 shadow-lg shadow-cyan-theme/30">
+              <span className="text-[8px] font-mono font-bold text-cyan-theme tracking-wider">NEW CARD</span>
+              <div className="w-5 h-5 border border-cyan-theme/50 rounded-sm flex items-center justify-center">
+                <span className="text-cyan-theme text-sm">?</span>
+              </div>
+              <span className="text-[7px] font-mono text-cyan-theme-muted">DRAWN</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {false && (hudMessage || botHudMessage) && (
           <motion.div 
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
@@ -1392,7 +1548,7 @@ export function GameBoard({
       </AnimatePresence>
 
       <AnimatePresence>
-        {isAnswering && activeQuestion && !isBotTarget && (
+        {isAnswering && false && !isBotTarget && (
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -1433,7 +1589,7 @@ export function GameBoard({
               </div>
 
               <h2 className={`${false ? 'text-3xl' : 'text-xl md:text-2xl'} font-bold text-text-theme text-center mb-8 leading-relaxed max-w-3xl mx-auto uppercase tracking-wider font-mono`}>
-                {activeQuestion.card.question}
+                {activeQuestion.card.type}
               </h2>
 
               <div className="flex flex-col space-y-3 w-full">
@@ -1462,7 +1618,7 @@ export function GameBoard({
                       <div className={`w-8 h-8 rounded-none border border-cyan-theme-muted group-hover:border-text-theme bg-transparent flex items-center justify-center font-mono font-black ${false ? 'text-lg' : 'text-xs'} text-cyan-theme group-hover:text-text-theme transition-colors duration-200`}>
                         {letter}
                       </div>
-                      <span className={`text-left leading-normal font-bold font-mono ${false ? 'text-xl' : ''}`}>{answer}</span>
+                      <span className={`text-left leading-normal font-bold font-mono ${false ? 'text-xl' : ''}`}>{String(answer)}</span>
                     </button>
                   );
                 })}

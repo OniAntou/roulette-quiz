@@ -68,6 +68,7 @@ export class RoomManager {
         hand: [],
         isAlive: true,
         shotsFired: 0,
+        hasUsedMulligan: false,
       }],
 
       state: 'waiting',
@@ -126,6 +127,7 @@ export class RoomManager {
       hand: [],
       isAlive: true,
       shotsFired: 0,
+      hasUsedMulligan: false,
     });
 
     this.playerRooms.set(socketId, roomId);
@@ -193,6 +195,24 @@ export class RoomManager {
   getPlayerRoom(socketId: string): Room | undefined {
     const roomId = this.playerRooms.get(socketId);
     return roomId ? this.rooms.get(roomId) : undefined;
+  }
+
+  getRoomIdForPlayer(socketId: string): string | undefined {
+    return this.playerRooms.get(socketId);
+  }
+
+  isPlayerInRoom(socketId: string, roomId: string): boolean {
+    return this.playerRooms.get(socketId) === roomId && this.rooms.get(roomId)?.players.some(p => p.id === socketId) === true;
+  }
+
+  replacePlayerSocketId(roomId: string, oldSocketId: string, newSocketId: string): boolean {
+    const room = this.rooms.get(roomId);
+    const player = room?.players.find(p => p.id === oldSocketId);
+    if (!room || !player || this.playerRooms.get(oldSocketId) !== roomId) return false;
+    player.id = newSocketId;
+    this.playerRooms.delete(oldSocketId);
+    this.playerRooms.set(newSocketId, roomId);
+    return true;
   }
 
   getAvailableRooms(): { id: string; players: number; max: number }[] {

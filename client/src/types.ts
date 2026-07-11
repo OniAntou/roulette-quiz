@@ -6,35 +6,15 @@ export interface Player {
   isAlive?: boolean;
   shotsFired?: number;
   left?: boolean;
+  hasUsedMulligan?: boolean;
 }
 
-export interface Question {
+export type CardType = 'NUMBER' | 'JOKER' | 'SKIP' | 'REVERSE' | 'STANDOFF' | 'BLOCK';
+
+export interface Card {
   id: string;
-  topic: string;
-  difficulty: 'easy' | 'medium' | 'hard';
-  question: string;
-  answers: Record<string, string>;
-  correct: string;
-}
-
-export interface CardData {
-  id: string;
-  topic: string;
-  difficulty: string;
-  question: string;
-  answers: Record<string, string>;
-  correct: string;
-}
-
-export interface ActiveQuestion {
-  card: Question;
-  timer: number;
-  from: string;
-}
-
-export interface QuestionResult {
-  correct: boolean;
-  correctAnswer: string;
+  type: CardType;
+  value?: number; // Only for NUMBER cards (1-9)
 }
 
 export interface TriggerResult {
@@ -45,12 +25,12 @@ export interface TriggerResult {
   currentPosition?: number;
   bulletsFired?: number;
   shotsFired?: number;
-  results?: { playerId: string; alive: boolean }[];
+  usedBlock?: boolean;
+  results?: { playerId: string; alive: boolean; usedBlock?: boolean }[];
 }
 
 export interface PlayerGameStats {
-  correctAnswers: number;
-  wrongAnswers: number;
+  cardsPlayed: number;
   triggerSurvived: number;
   triggerDied: number;
 }
@@ -66,6 +46,6 @@ export interface WinnerInfo {
   stats?: GameStats;
 }
 
-export type GamePhase = 'waiting' | 'choosing' | 'questioning' | 'answering' | 'result' | 'trigger' | 'game_over';
+export type GamePhase = 'waiting' | 'dealing' | 'choosing' | 'trigger' | 'round_end' | 'game_over';
 export type Screen = 'menu' | 'lobby' | 'game' | 'gameover';
 export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected';

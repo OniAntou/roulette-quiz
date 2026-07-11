@@ -1,7 +1,7 @@
 {
   "name": "roulette-quiz-server",
   "version": "1.0.0",
-  "description": "Roulette Quiz Server",
+  "description": "Roulette number-card game server",
   "main": "dist/index.js",
   "scripts": {
     "start": "ts-node src/index.ts",
@@ -17,15 +17,12 @@
     "helmet": "^8.2.0",
     "lru-cache": "^11.5.1",
     "socket.io": "^4.7.0",
-    "sqlite": "^5.1.1",
-    "sqlite3": "^6.0.1",
     "uuid": "^14.0.1"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/node": "^26.0.0",
-    "@types/sqlite3": "^3.1.11",
     "@types/uuid": "^10.0.0",
     "nodemon": "^3.0.0",
     "ts-node": "^10.9.2",

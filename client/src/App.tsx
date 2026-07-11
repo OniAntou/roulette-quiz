@@ -5,7 +5,7 @@ import { Lobby } from './components/Lobby';
 import { GameBoard } from './components/GameBoard';
 import { GameOver } from './components/GameOver';
 import { ChatBox } from './components/ChatBox';
-import { Screen, ConnectionStatus, GamePhase, Player, CardData, ActiveQuestion, QuestionResult, TriggerResult, WinnerInfo } from './types';
+import { Screen, ConnectionStatus, GamePhase, Player, Card, TriggerResult, WinnerInfo } from './types';
 import { useBotGame } from './hooks/useBotGame';
 import { useGameSocket } from './hooks/useGameSocket';
 
@@ -22,10 +22,10 @@ export default function App() {
   const [round, setRound] = useState<number>(1);
   const [phase, setPhase] = useState<GamePhase>('waiting');
   const [currentTurnId, setCurrentTurnId] = useState<string>('');
-  const [handCards, setHandCards] = useState<CardData[]>([]);
-  const [playedCard, setPlayedCard] = useState<CardData | null>(null);
-  const [activeQuestion, setActiveQuestion] = useState<ActiveQuestion | null>(null);
-  const [questionResult, setQuestionResult] = useState<QuestionResult | null>(null);
+  const [handCards, setHandCards] = useState<Card[]>([]);
+  const [playedCard, setPlayedCard] = useState<Card | null>(null);
+  const [currentNumber, setCurrentNumber] = useState<number>(0);
+  const [direction, setDirection] = useState<number>(1);
   const [triggerResult, setTriggerResult] = useState<TriggerResult | null>(null);
   const [winnerInfo, setWinnerInfo] = useState<WinnerInfo | null>(null);
 
@@ -36,8 +36,8 @@ export default function App() {
     setCurrentTurnId,
     setHandCards,
     setPlayedCard,
-    setActiveQuestion,
-    setQuestionResult,
+    setCurrentNumber,
+    setDirection,
     setTriggerResult,
     setPlayers,
     setWinnerInfo,
@@ -49,6 +49,8 @@ export default function App() {
     startBotGame,
     handleBotDisconnect,
     handleBotCardChoice,
+    handleBotPullTrigger,
+    handleBotMulligan,
     handleBotModePlayerAnswer,
     botHudMessage,
     isSpectating,
@@ -56,6 +58,7 @@ export default function App() {
     syncPlayers,
     syncPhase,
     syncCurrentTurn,
+    turnEndTime,
   } = useBotGame(playerName, botCallbacks);
 
   const handleStartBotGame = useCallback((count: number, name: string) => {
@@ -116,8 +119,8 @@ export default function App() {
     setLocalPlayerId('');
     setHandCards([]);
     setPlayedCard(null);
-    setActiveQuestion(null);
-    setQuestionResult(null);
+    setCurrentNumber(0);
+    setDirection(1);
     setTriggerResult(null);
   };
 
@@ -148,8 +151,8 @@ export default function App() {
     setRound,
     setPhase,
     setPlayedCard,
-    setActiveQuestion,
-    setQuestionResult,
+    setCurrentNumber,
+    setDirection,
     setTriggerResult,
     setScreen,
     setHandCards,
@@ -187,15 +190,17 @@ export default function App() {
           currentTurnId={currentTurnId}
           handCards={handCards}
           playedCard={playedCard}
-          activeQuestion={activeQuestion}
-          questionResult={questionResult}
+          currentNumber={currentNumber}
+          direction={direction}
           triggerResult={triggerResult}
           roomId={roomId}
           onLeaveAfterDeath={handleLeaveAfterDeath}
-          onCardChoice={botMode ? (cardId: string) => handleBotCardChoice(cardId, phase, currentTurnId, handCards) : undefined}
-          onAnswerSubmit={botMode ? (letter: string) => handleBotModePlayerAnswer(letter, phase, activeQuestion) : undefined}
+          onCardChoice={botMode ? (cardId: string) => handleBotCardChoice(cardId) : undefined}
+          onPullTrigger={botMode ? handleBotPullTrigger : undefined}
+          onMulligan={botMode ? handleBotMulligan : () => socketClient.sendMulligan(roomId)}
           botHudMessage={botMode ? botHudMessage : null}
           isBotSpectating={botMode ? isSpectating : false}
+          turnEndTime={botMode ? turnEndTime : undefined}
         />
       )}
       {screen === 'gameover' && (
@@ -204,7 +209,7 @@ export default function App() {
           localId={localPlayerId}
           playerName={playerName}
           players={players}
-          disconnect={handleDisconnect}
+          disconnect={botMode ? handleBotDisconnect : handleDisconnect}
         />
       )}
       {!botMode && <ChatBox roomId={roomId} localId={localPlayerId} />}

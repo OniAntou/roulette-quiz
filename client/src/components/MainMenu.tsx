@@ -22,7 +22,7 @@ function getRandomName(): string {
   return RANDOM_NAMES[Math.floor(Math.random() * RANDOM_NAMES.length)];
 }
 
-const SCRAMBLE_CHARS = '!<>-_\\/[]{}—=+*^?#_$%@&0123456789ABCDEF';
+const SCRAMBLE_CHARS = '!<>-_\\/[]{}-=+*^?#_$%@&0123456789ABCDEF';
 
 interface MainMenuProps {
   connect: (mode: string, name: string, ip?: string) => void;
@@ -41,7 +41,7 @@ const cornerLabels = [
 const buttonDefs = [
   { label: 'INITIALIZE ONLINE', icon: Globe, onClick: 'online' as const, tier: 'primary' as const },
   { label: 'LOCAL PROTOCOL // LAN', icon: WifiHigh, onClick: 'lan' as const, tier: 'secondary' as const },
-  { label: 'BOT PROTOCOL // VS CPU', icon: Robot, onClick: 'bot' as const, tier: 'tertiary' as const },
+  { label: 'BOT PROTOCOL // VS CPU', icon: Robot, onClick: 'bot' as const, tier: 'secondary' as const },
 ];
 
 // Floating particles config
@@ -351,7 +351,7 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
 
       {/* Tactical Blueprint Ambient Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none -z-10 bg-surface">
-        {/* Layer revealed by water ripple — theme-aware */}
+        {/* Layer revealed by water ripple, theme-aware */}
         <div className="absolute inset-0 bg-gradient-to-br via-transparent to-transparent" style={{ background: `linear-gradient(to bottom right, var(--tear-gradient-1), transparent 50%, var(--tear-gradient-2))` }} />
         <div className="absolute inset-0 bg-[linear-gradient(var(--grid-line)_1px,transparent_1px),linear-gradient(90deg,var(--grid-line)_1px,transparent_1px)] bg-[size:32px_32px] opacity-40" />
         
@@ -407,8 +407,7 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
             <TypewriterLabel text={label.text} pos={label.pos} delay={800 + i * 200} />
           </div>
         ))}
-
-        {/* Cloud tear overlay — dark mask with hole at cursor */}
+        {/* Cloud tear overlay, dark mask with hole at cursor */}
       </div>
 
       <div className="w-full h-screen px-5 sm:px-8 md:px-16 lg:px-24 grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16 lg:gap-24 items-center z-10 overflow-y-auto md:overflow-hidden">
@@ -456,7 +455,7 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
             transition={{ delay: 1.1, duration: 0.4 }}
             className="text-text-theme-muted font-mono text-sm sm:text-base leading-relaxed max-w-[45ch] uppercase tracking-wider mt-4"
           >
-            High-stakes trivia multiplayer system. Answer correctly or pull the trigger. Survive to decrypt the next level.
+            High-stakes number-card multiplayer system. Beat the table number or pull the trigger. Survive the chamber.
           </motion.p>
         </div>
 
@@ -487,8 +486,6 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
             {buttonDefs.map((btn, i) => {
               const Icon = btn.icon;
               const isPrimary = btn.tier === 'primary';
-              const isTertiary = btn.tier === 'tertiary';
-
               return (
                 <motion.button
                   key={i}
@@ -504,9 +501,7 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
                   className={`group relative flex items-center justify-between px-5 sm:px-8 py-5 bg-surface border rounded-md font-mono text-xs sm:text-sm font-bold tracking-widest uppercase cursor-pointer transition-all duration-200 ease-out overflow-hidden ${
                     isPrimary
                       ? 'border-brand/40 shadow-[3px_3px_0px_var(--color-brand)] hover:shadow-[0px_0px_0px_var(--color-brand)] hover:translate-y-[3px] hover:bg-brand/5 hover:text-brand'
-                      : isTertiary
-                        ? 'border-emerald-theme/40 shadow-[3px_3px_0px_var(--color-emerald-theme)] hover:shadow-[0px_0px_0px_var(--color-emerald-theme)] hover:translate-y-[3px] hover:bg-emerald-theme/5 hover:text-emerald-theme'
-                        : 'border-border shadow-[3px_3px_0px_var(--color-border)] hover:shadow-[0px_0px_0px_var(--color-border)] hover:translate-y-[3px] hover:bg-surface-hover hover:text-text-main'
+                      : 'border-border shadow-[3px_3px_0px_var(--color-border)] hover:shadow-[0px_0px_0px_var(--color-border)] hover:translate-y-[3px] hover:bg-surface-hover hover:text-text-main'
                   }`} 
                 >
                   <span className="flex items-center gap-3">
@@ -688,9 +683,9 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
                 transition={{ duration: 0.3, ease: 'easeOut' }}
                 className="bg-panel-solid border border-border-theme rounded-lg p-5 sm:p-8 max-w-md w-full flex flex-col items-center relative max-h-[90vh] overflow-y-auto"
               >
-                <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-emerald-theme-border to-transparent"></div>
+                <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-border-theme-strong to-transparent"></div>
                 <h3 className="font-mono text-[9px] text-text-theme-muted tracking-widest uppercase mb-6 flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-theme animate-pulse"></span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-theme animate-pulse"></span>
                   // SELECT BOT COUNT
                 </h3>
 
@@ -707,11 +702,11 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
                         Sounds.buttonClick();
                         setSelectedBotCount(count);
                       }}
-                      className={`w-24 h-24 rounded-lg border flex flex-col items-center justify-center gap-1 transition-all duration-200 cursor-pointer ${
-                        selectedBotCount === count
-                          ? 'bg-emerald-theme-bg border-emerald-theme-border text-emerald-theme'
-                          : 'bg-input-theme border-border-theme text-text-theme-muted hover:border-border-theme-strong hover:text-text-theme-secondary'
-                      }`}
+                        className={`w-24 h-24 rounded-lg border flex flex-col items-center justify-center gap-1 transition-all duration-200 cursor-pointer ${
+                          selectedBotCount === count
+                            ? 'bg-surface-2 border-border-theme-strong text-text-theme-secondary'
+                            : 'bg-input-theme border-border-theme text-text-theme-muted hover:border-border-theme-strong hover:text-text-theme-secondary'
+                        }`}
                     >
                       <span className="font-mono text-3xl font-black">{count}</span>
                       <span className="font-mono text-[9px] tracking-widest uppercase">BOTS</span>
@@ -738,7 +733,7 @@ export function MainMenu({ connect, startBot, error, status }: MainMenuProps) {
                         Sounds.buttonHover();
                       } catch (e) {}
                     }}
-                    className="flex-1 py-3 bg-emerald-theme-bg border border-emerald-theme-border text-[9px] font-mono font-bold text-emerald-theme tracking-wider uppercase rounded-lg hover:bg-emerald-theme-bg-hover hover:border-emerald-theme transition-all duration-200 cursor-pointer"
+                    className="flex-1 py-3 bg-red-theme-bg border border-red-theme-border text-[9px] font-mono font-bold text-red-theme tracking-wider uppercase rounded-lg hover:bg-red-theme-bg-hover hover:border-red-theme transition-all duration-200 cursor-pointer"
                   >
                     START MISSION
                   </button>

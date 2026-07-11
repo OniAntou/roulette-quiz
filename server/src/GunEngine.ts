@@ -1,6 +1,7 @@
 import { Server } from 'socket.io';
 import crypto from 'crypto';
 import { GameState, Gun } from './types';
+import { consumeBlock } from '../../shared/gameRules';
 
 export interface GunEngineCallbacks {
   dealCards: (roomId: string) => Promise<void>;
@@ -8,6 +9,7 @@ export interface GunEngineCallbacks {
   deleteGame: (roomId: string) => void;
   ensurePlayerStats: (game: GameState, playerId: string) => void;
   advanceToNextTurn: (roomId: string, game: GameState) => void;
+  startChoosingTurn: (roomId: string, game: GameState) => void;
 }
 
 export class GunEngine {
@@ -37,15 +39,23 @@ export class GunEngine {
     for (const p of alivePlayers) {
       const isDead = Math.random() < (1/6);
       p.shotsFired = (p.shotsFired || 0) + 1;
+      let usedBlock = false;
       if (isDead) {
+        const protection = consumeBlock(p.hand);
+        usedBlock = protection.used;
+        if (usedBlock) {
+          p.hand = protection.hand;
+        }
+      }
+      if (isDead && !usedBlock) {
         p.isAlive = false;
         this.callbacks.ensurePlayerStats(game, p.id);
-        (game.stats.players[p.id] as any).triggerDied++;
+        game.stats.players[p.id].triggerDied++;
       } else {
         this.callbacks.ensurePlayerStats(game, p.id);
-        (game.stats.players[p.id] as any).triggerSurvived++;
+        game.stats.players[p.id].triggerSurvived++;
       }
-      results.push({ playerId: p.id, alive: !isDead });
+      results.push({ playerId: p.id, alive: !isDead || usedBlock, usedBlock } as any);
     }
 
     // Emit result
@@ -70,17 +80,18 @@ export class GunEngine {
         this.callbacks.deleteGame(roomId);
       } else {
         // Next round
+        game.newRound = true;
         this.callbacks.advanceToNextTurn(roomId, game);
       }
     }, delay);
   }
 
   pullTrigger(roomId: string, game: GameState): void {
-    // Only allow trigger from 'result' phase (after answer/timeout sets it)
-    if (game.phase !== 'result') {
-      console.warn(`[pullTrigger] Blocked: phase is '${game.phase}', expected 'result'. Room: ${roomId}`);
+    if (game.phase !== 'trigger') {
+      console.warn(`[pullTrigger] Blocked: phase is '${game.phase}', expected 'trigger'. Room: ${roomId}`);
       return;
     }
+
 
     game.phase = 'trigger';
 
@@ -92,11 +103,16 @@ export class GunEngine {
     const targetPlayer = game.players[game.targetPlayer!];
     targetPlayer.shotsFired++;
 
-    if (bullet) {
+    const protection = bullet ? consumeBlock(targetPlayer.hand) : { used: false, hand: targetPlayer.hand };
+    if (protection.used) {
+      targetPlayer.hand = protection.hand;
+    }
+
+    if (bullet && !protection.used) {
       // BULLET HIT - player dies
       targetPlayer.isAlive = false;
       this.callbacks.ensurePlayerStats(game, targetPlayer.id);
-      (game.stats.players[targetPlayer.id] as any).triggerDied++;
+      game.stats.players[targetPlayer.id].triggerDied++;
 
       this.io.to(roomId).emit('game:trigger', {
         alive: false,
@@ -106,6 +122,7 @@ export class GunEngine {
         currentPosition: gun.currentPosition,
         bulletsFired: gun.bulletsFired,
         shotsFired: targetPlayer.shotsFired,
+        usedBlock: false,
       });
 
       const alivePlayers = game.players.filter(p => p.isAlive);
@@ -129,17 +146,15 @@ export class GunEngine {
           game.round++;
           game.gun = this.createGun();
           game.currentTurn = this.callbacks.getNextAlivePlayer(game, game.targetPlayer!);
-          game.phase = 'choosing';
-          this.callbacks.dealCards(roomId).then(() => {
-            this.io.to(roomId).emit('game:newRound', { round: game.round });
-            this.io.to(roomId).emit('game:turn', { playerId: game.players[game.currentTurn].id });
-          });
+          this.io.to(roomId).emit('game:newRound', { round: game.round });
+          game.newRound = true;
+          this.callbacks.startChoosingTurn(roomId, game);
         }, this.postTriggerDelayMs);
       }
     } else {
       // SURVIVED - gun clicked but no bullet
       this.callbacks.ensurePlayerStats(game, targetPlayer.id);
-      (game.stats.players[targetPlayer.id] as any).triggerSurvived++;
+      game.stats.players[targetPlayer.id].triggerSurvived++;
 
       this.io.to(roomId).emit('game:trigger', {
         alive: true,
@@ -149,6 +164,7 @@ export class GunEngine {
         currentPosition: gun.currentPosition,
         bulletsFired: gun.bulletsFired,
         shotsFired: targetPlayer.shotsFired,
+        usedBlock: protection.used,
       });
 
       // Survived: just continue the game, same round, same gun
@@ -156,10 +172,7 @@ export class GunEngine {
       game.postTriggerTimeout = setTimeout(() => {
         game.postTriggerTimeout = undefined;
         game.currentTurn = game.targetPlayer!;
-        game.phase = 'choosing';
-        this.callbacks.dealCards(roomId).then(() => {
-          this.io.to(roomId).emit('game:turn', { playerId: game.players[game.currentTurn].id });
-        });
+        this.callbacks.startChoosingTurn(roomId, game);
       }, this.postTriggerDelayMs);
     }
   }

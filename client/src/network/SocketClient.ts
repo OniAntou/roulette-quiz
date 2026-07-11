@@ -28,7 +28,6 @@ class SocketClient {
       this.socket.disconnect();
       this.socket = null;
       this._connected = false;
-      this.callbacks = {};
     }
 
     this._connectPromise = new Promise((resolve, reject) => {
@@ -101,8 +100,6 @@ class SocketClient {
     this.socket.on('game:start', (data: any) => this.emit('game:start', data));
     this.socket.on('game:deal', (data: any) => this.emit('game:deal', data));
     this.socket.on('game:cardPlayed', (data: any) => this.emit('game:cardPlayed', data));
-    this.socket.on('game:question', (data: any) => this.emit('game:question', data));
-    this.socket.on('game:result', (data: any) => this.emit('game:result', data));
     this.socket.on('game:trigger', (data: any) => this.emit('game:trigger', data));
     this.socket.on('game:newRound', (data: any) => this.emit('game:newRound', data));
     this.socket.on('game:over', (data: any) => this.emit('game:over', data));
@@ -111,6 +108,11 @@ class SocketClient {
     this.socket.on('game:cardsUpdate', (data: any) => this.emit('game:cardsUpdate', data));
     this.socket.on('game:turn', (data: any) => this.emit('game:turn', data));
     this.socket.on('game:standoffResult', (data: any) => this.emit('game:standoffResult', data));
+    this.socket.on('game:autoTriggerCountdown', (data: any) => this.emit('game:autoTriggerCountdown', data));
+    this.socket.on('game:session', (data: any) => this.emit('game:session', data));
+    this.socket.on('game:stateSnapshot', (data: any) => this.emit('game:stateSnapshot', data));
+    this.socket.on('game:reconnecting', (data: any) => this.emit('game:reconnecting', data));
+    this.socket.on('game:resumed', (data: any) => this.emit('game:resumed', data));
 
     this.socket.on('chat:message', (data: any) => this.emit('chat:message', data));
     this.socket.on('chat:global_message', (data: any) => this.emit('chat:global_message', data));
@@ -175,16 +177,17 @@ class SocketClient {
     this.send('room:leave', { roomId });
   }
 
-  chooseCard(roomId: string, cardId: string): void {
-    this.send('game:choose', { roomId, cardId });
-  }
-
-  submitAnswer(roomId: string, answer: string): void {
-    this.send('game:answer', { roomId, answer });
-  }
 
   leaveAfterDeath(roomId: string): void {
     this.send('game:leaveAfterDeath', { roomId });
+  }
+
+  sendMulligan(roomId: string): void {
+    this.send('game:mulligan', { roomId });
+  }
+
+  reconnectGame(roomId: string, token: string): void {
+    this.send('game:reconnect', { roomId, token });
   }
 
   sendChat(roomId: string, message: string): void {

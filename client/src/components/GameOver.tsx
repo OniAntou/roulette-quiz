@@ -96,8 +96,8 @@ export function GameOver({ winnerInfo, localId, playerName, players, disconnect 
 
   // Find local player's stats
   const myStats: PlayerGameStats | undefined = stats?.players?.[localId] || stats?.players?.[playerName];
-  const totalAnswers = myStats ? myStats.correctAnswers + myStats.wrongAnswers : 0;
-  const accuracy = totalAnswers > 0 ? Math.round((myStats!.correctAnswers / totalAnswers) * 100) : 0;
+  const totalAnswers = myStats ? myStats.cardsPlayed : 0;
+  const accuracy = 0; // Not applicable anymore but keeping the variable to not break rendering yet
 
   // Get all players' stats for the summary
   const allPlayerStats = stats?.players
@@ -105,12 +105,11 @@ export function GameOver({ winnerInfo, localId, playerName, players, disconnect 
         .map(p => {
           const s = stats!.players[p.id] || stats!.players[p.name];
           if (!s) return null;
-          const total = s.correctAnswers + s.wrongAnswers;
           return {
             name: p.id === localId ? `${playerName} (Bạn)` : p.name || p.id,
-            accuracy: total > 0 ? Math.round((s.correctAnswers / total) * 100) : 0,
-            correct: s.correctAnswers,
-            wrong: s.wrongAnswers,
+            accuracy: 0,
+            correct: s.cardsPlayed,
+            wrong: 0,
             survived: s.triggerSurvived,
             died: s.triggerDied,
           };
@@ -313,14 +312,9 @@ export function GameOver({ winnerInfo, localId, playerName, players, disconnect 
             color={accuracy >= 50 ? 'var(--emerald-theme)' : 'var(--red-theme)'}
           />
           <StatCard
-            label="CORRECT"
-            value={myStats ? `${myStats.correctAnswers}` : '--'}
+            label="CARDS PLAYED"
+            value={myStats ? `${myStats.cardsPlayed}` : '--'}
             color="var(--emerald-theme)"
-          />
-          <StatCard
-            label="WRONG"
-            value={myStats ? `${myStats.wrongAnswers}` : '--'}
-            color="var(--red-theme)"
           />
         </motion.div>
 
